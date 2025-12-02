@@ -9,6 +9,7 @@ import {
   Agent as AgentAPIAgent,
   AgentCreateParams,
   AgentGetVersionsResponse,
+  AgentListParams,
   AgentListResponse,
   AgentResponse,
   AgentRetrieveParams,
@@ -27,7 +28,36 @@ import {
   PhoneCallResponse,
   WebCallResponse,
 } from './resources/call';
+import {
+  Chat,
+  ChatCreateChatCompletionParams,
+  ChatCreateChatCompletionResponse,
+  ChatCreateParams,
+  ChatCreateSMSChatParams,
+  ChatListResponse,
+  ChatResponse,
+  ChatUpdateParams,
+} from './resources/chat';
+import {
+  ChatAgent,
+  ChatAgentCreateParams,
+  ChatAgentGetVersionsResponse,
+  ChatAgentListParams,
+  ChatAgentListResponse,
+  ChatAgentResponse,
+  ChatAgentRetrieveParams,
+  ChatAgentUpdateParams,
+} from './resources/chat-agent';
 import { Concurrency, ConcurrencyRetrieveResponse } from './resources/concurrency';
+import {
+  ConversationFlow,
+  ConversationFlowCreateParams,
+  ConversationFlowListParams,
+  ConversationFlowListResponse,
+  ConversationFlowResponse,
+  ConversationFlowRetrieveParams,
+  ConversationFlowUpdateParams,
+} from './resources/conversation-flow';
 import {
   KnowledgeBase,
   KnowledgeBaseAddSourcesParams,
@@ -38,11 +68,18 @@ import {
 import {
   Llm,
   LlmCreateParams,
+  LlmListParams,
   LlmListResponse,
   LlmResponse,
   LlmRetrieveParams,
   LlmUpdateParams,
 } from './resources/llm';
+import {
+  McpTool,
+  McpToolDefinition,
+  McpToolGetMcpToolsParams,
+  McpToolGetMcpToolsResponse,
+} from './resources/mcp-tool';
 import {
   PhoneNumber,
   PhoneNumberCreateParams,
@@ -51,6 +88,7 @@ import {
   PhoneNumberResponse,
   PhoneNumberUpdateParams,
 } from './resources/phone-number';
+import { BatchTestResponse, TestCreateBatchTestParams, Tests } from './resources/tests';
 import { Voice, VoiceListResponse, VoiceResponse } from './resources/voice';
 import * as Webhooks from 'retell-sdk/lib/webhook_auth';
 
@@ -70,6 +108,8 @@ export interface ClientOptions {
    *
    * Note that request timeouts are retried by default, so in a worst-case scenario you may wait
    * much longer than this timeout before the promise succeeds or fails.
+   *
+   * @unit milliseconds
    */
   timeout?: number | undefined;
 
@@ -149,6 +189,7 @@ export class Retell extends Core.APIClient {
 
     super({
       baseURL: options.baseURL!,
+      baseURLOverridden: baseURL ? baseURL !== 'https://api.retellai.com' : false,
       timeout: options.timeout ?? 60000 /* 1 minute */,
       httpAgent: options.httpAgent,
       maxRetries: options.maxRetries,
@@ -161,13 +202,25 @@ export class Retell extends Core.APIClient {
   }
 
   call: API.Call = new API.Call(this);
+  chat: API.Chat = new API.Chat(this);
   phoneNumber: API.PhoneNumber = new API.PhoneNumber(this);
   agent: API.Agent = new API.Agent(this);
+  chatAgent: API.ChatAgent = new API.ChatAgent(this);
   llm: API.Llm = new API.Llm(this);
+  conversationFlow: API.ConversationFlow = new API.ConversationFlow(this);
   knowledgeBase: API.KnowledgeBase = new API.KnowledgeBase(this);
   voice: API.Voice = new API.Voice(this);
   concurrency: API.Concurrency = new API.Concurrency(this);
   batchCall: API.BatchCall = new API.BatchCall(this);
+  tests: API.Tests = new API.Tests(this);
+  mcpTool: API.McpTool = new API.McpTool(this);
+
+  /**
+   * Check whether the base URL is set to its default.
+   */
+  #baseURLOverridden(): boolean {
+    return this.baseURL !== 'https://api.retellai.com';
+  }
 
   protected override defaultQuery(): Core.DefaultQuery | undefined {
     return this._options.defaultQuery;
@@ -209,13 +262,19 @@ export class Retell extends Core.APIClient {
 }
 
 Retell.Call = Call;
+Retell.Chat = Chat;
 Retell.PhoneNumber = PhoneNumber;
 Retell.Agent = AgentAPIAgent;
+Retell.ChatAgent = ChatAgent;
 Retell.Llm = Llm;
+Retell.ConversationFlow = ConversationFlow;
 Retell.KnowledgeBase = KnowledgeBase;
 Retell.Voice = Voice;
 Retell.Concurrency = Concurrency;
 Retell.BatchCall = BatchCall;
+Retell.Tests = Tests;
+Retell.McpTool = McpTool;
+
 export declare namespace Retell {
   export type RequestOptions = Core.RequestOptions;
 
@@ -230,6 +289,17 @@ export declare namespace Retell {
     type CallCreatePhoneCallParams as CallCreatePhoneCallParams,
     type CallCreateWebCallParams as CallCreateWebCallParams,
     type CallRegisterPhoneCallParams as CallRegisterPhoneCallParams,
+  };
+
+  export {
+    Chat as Chat,
+    type ChatResponse as ChatResponse,
+    type ChatListResponse as ChatListResponse,
+    type ChatCreateChatCompletionResponse as ChatCreateChatCompletionResponse,
+    type ChatCreateParams as ChatCreateParams,
+    type ChatUpdateParams as ChatUpdateParams,
+    type ChatCreateChatCompletionParams as ChatCreateChatCompletionParams,
+    type ChatCreateSMSChatParams as ChatCreateSMSChatParams,
   };
 
   export {
@@ -249,6 +319,18 @@ export declare namespace Retell {
     type AgentCreateParams as AgentCreateParams,
     type AgentRetrieveParams as AgentRetrieveParams,
     type AgentUpdateParams as AgentUpdateParams,
+    type AgentListParams as AgentListParams,
+  };
+
+  export {
+    ChatAgent as ChatAgent,
+    type ChatAgentResponse as ChatAgentResponse,
+    type ChatAgentListResponse as ChatAgentListResponse,
+    type ChatAgentGetVersionsResponse as ChatAgentGetVersionsResponse,
+    type ChatAgentCreateParams as ChatAgentCreateParams,
+    type ChatAgentRetrieveParams as ChatAgentRetrieveParams,
+    type ChatAgentUpdateParams as ChatAgentUpdateParams,
+    type ChatAgentListParams as ChatAgentListParams,
   };
 
   export {
@@ -258,6 +340,17 @@ export declare namespace Retell {
     type LlmCreateParams as LlmCreateParams,
     type LlmRetrieveParams as LlmRetrieveParams,
     type LlmUpdateParams as LlmUpdateParams,
+    type LlmListParams as LlmListParams,
+  };
+
+  export {
+    ConversationFlow as ConversationFlow,
+    type ConversationFlowResponse as ConversationFlowResponse,
+    type ConversationFlowListResponse as ConversationFlowListResponse,
+    type ConversationFlowCreateParams as ConversationFlowCreateParams,
+    type ConversationFlowRetrieveParams as ConversationFlowRetrieveParams,
+    type ConversationFlowUpdateParams as ConversationFlowUpdateParams,
+    type ConversationFlowListParams as ConversationFlowListParams,
   };
 
   export {
@@ -276,6 +369,19 @@ export declare namespace Retell {
     BatchCall as BatchCall,
     type BatchCallResponse as BatchCallResponse,
     type BatchCallCreateBatchCallParams as BatchCallCreateBatchCallParams,
+  };
+
+  export {
+    Tests as Tests,
+    type BatchTestResponse as BatchTestResponse,
+    type TestCreateBatchTestParams as TestCreateBatchTestParams,
+  };
+
+  export {
+    McpTool as McpTool,
+    type McpToolDefinition as McpToolDefinition,
+    type McpToolGetMcpToolsResponse as McpToolGetMcpToolsResponse,
+    type McpToolGetMcpToolsParams as McpToolGetMcpToolsParams,
   };
 }
 

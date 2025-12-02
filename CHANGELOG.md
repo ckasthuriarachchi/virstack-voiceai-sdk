@@ -1,5 +1,460 @@
 # Changelog
 
+## 4.61.0 (2025-11-26)
+
+Full Changelog: [v4.60.0...v4.61.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.60.0...v4.61.0)
+
+### Features
+
+* **api:** api update ([1a7352f](https://github.com/RetellAI/retell-typescript-sdk/commit/1a7352f30631011d29ce3fe06ffa12f7c22d038c))
+
+## 4.60.0 (2025-11-26)
+
+Full Changelog: [v4.59.0...v4.60.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.59.0...v4.60.0)
+
+### Features
+
+* **api:** api update ([0315747](https://github.com/RetellAI/retell-typescript-sdk/commit/0315747397129ed30d28399f9ad3ef6e88359224))
+* **api:** api update ([a58b7d1](https://github.com/RetellAI/retell-typescript-sdk/commit/a58b7d1b0e0c02b6dab2932bebabcac55dba4756))
+* **api:** api update ([51d5e80](https://github.com/RetellAI/retell-typescript-sdk/commit/51d5e80d8ad240ae1cd57f7abd47b1d249549745))
+* **api:** api update ([aaf0b08](https://github.com/RetellAI/retell-typescript-sdk/commit/aaf0b08ecbc1de93c5ae1410f7693c75b08a0fb9))
+
+## 4.59.0 (2025-11-21)
+
+Full Changelog: [v4.58.0...v4.59.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.58.0...v4.59.0)
+
+### Features
+
+* **api:** api update ([bfb4458](https://github.com/RetellAI/retell-typescript-sdk/commit/bfb4458eb99c1dfda0c89ade4f63b7512da4d26f))
+* **api:** api update ([6f40b11](https://github.com/RetellAI/retell-typescript-sdk/commit/6f40b1179b9ab4b61f551592e13cdd6a2b671eec))
+* **api:** api update ([cbf5fa9](https://github.com/RetellAI/retell-typescript-sdk/commit/cbf5fa9b1240f3dbf79fec5c5ca18533b0505b45))
+
+## 4.58.0 (2025-11-14)
+
+Full Changelog: [v4.57.0...v4.58.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.57.0...v4.58.0)
+
+### Features
+
+* **api:** api update ([3ec56c2](https://github.com/RetellAI/retell-typescript-sdk/commit/3ec56c2c88ada6afd1f903607b05aaf1141918bb))
+* **api:** api update ([3379794](https://github.com/RetellAI/retell-typescript-sdk/commit/3379794bd7687f35faef897bafa15ad9ace3f037))
+
+## 4.57.0 (2025-11-05)
+
+Full Changelog: [v4.56.0...v4.57.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.56.0...v4.57.0)
+
+### Features
+
+* **api:** api update ([a68e6bc](https://github.com/RetellAI/retell-typescript-sdk/commit/a68e6bcc2fd159af261cb9296f904c99094b262e))
+* **api:** api update ([6590d7d](https://github.com/RetellAI/retell-typescript-sdk/commit/6590d7d9efc3c6ce1129730174ee1378237b1145))
+* **api:** api update ([0cbbff2](https://github.com/RetellAI/retell-typescript-sdk/commit/0cbbff28c0eb7912a3e6149eccf998a8706d74ed))
+* **api:** api update ([be8a7bb](https://github.com/RetellAI/retell-typescript-sdk/commit/be8a7bbc0990c691e80047fd50d95c829d9df9be))
+
+## 4.56.0 (2025-10-29)
+
+Full Changelog: [v4.55.0...v4.56.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.55.0...v4.56.0)
+
+### Features
+
+* **api:** api update ([87ab721](https://github.com/RetellAI/retell-typescript-sdk/commit/87ab7210d50e0eb8af166a5fe96d473e6ff0266f))
+
+## 4.55.0 (2025-10-23)
+
+Full Changelog: [v4.54.0...v4.55.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.54.0...v4.55.0)
+
+### Features
+
+* **api:** api update ([ecc1ee5](https://github.com/RetellAI/retell-typescript-sdk/commit/ecc1ee5c0be1435eb91c05077d7a7f8355a06f7d))
+
+## 4.54.0 (2025-10-22)
+
+Full Changelog: [v4.53.0...v4.54.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.53.0...v4.54.0)
+
+### Features
+
+* **api:** api update ([254b12a](https://github.com/RetellAI/retell-typescript-sdk/commit/254b12a5b24020b014d076c6661b43ab2b250a63))
+* **api:** api update ([a06f51d](https://github.com/RetellAI/retell-typescript-sdk/commit/a06f51d13f1165ebe1ae2e6dc6f3adad19cc6db7))
+
+## 4.53.0 (2025-10-19)
+
+Full Changelog: [v4.52.0...v4.53.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.52.0...v4.53.0)
+
+### Features
+
+* **api:** api update ([c8c0832](https://github.com/RetellAI/retell-typescript-sdk/commit/c8c0832badb2ddaeb1fe11246d680531a03994b6))
+
+## 4.52.0 (2025-10-19)
+
+Full Changelog: [v4.51.0...v4.52.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.51.0...v4.52.0)
+
+### Features
+
+* **api:** api update ([dcde1b2](https://github.com/RetellAI/retell-typescript-sdk/commit/dcde1b21d94faae3b749865e7edab3da09755c34))
+
+## 4.51.0 (2025-10-19)
+
+Full Changelog: [v4.50.0...v4.51.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.50.0...v4.51.0)
+
+### Features
+
+* **api:** api update ([e1dbb59](https://github.com/RetellAI/retell-typescript-sdk/commit/e1dbb590d5ef7f7d0b8b575dee41cc032ae582e2))
+* **api:** api update ([d56c0d3](https://github.com/RetellAI/retell-typescript-sdk/commit/d56c0d32b07f1ba571db7b03fd42920b3299c29f))
+* **api:** api update ([300cdbf](https://github.com/RetellAI/retell-typescript-sdk/commit/300cdbf72296402f87862671b83ad34314cd5ffc))
+* **api:** api update ([2368c29](https://github.com/RetellAI/retell-typescript-sdk/commit/2368c29564eeee1f85a8ab0b3a66a455909e54c5))
+
+## 4.50.0 (2025-10-13)
+
+Full Changelog: [v4.49.0...v4.50.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.49.0...v4.50.0)
+
+### Features
+
+* **api:** api update ([8989832](https://github.com/RetellAI/retell-typescript-sdk/commit/898983213f4f7e0d90e47a663de22eb52a7b09f3))
+* **api:** api update ([51a3d02](https://github.com/RetellAI/retell-typescript-sdk/commit/51a3d020f1591f8c44d94841d725c7c10fa34942))
+* **api:** api update ([0b46faa](https://github.com/RetellAI/retell-typescript-sdk/commit/0b46faaa5a52b244a3c571313d357644417b3157))
+* **api:** api update ([365cbec](https://github.com/RetellAI/retell-typescript-sdk/commit/365cbec1e5514a23bd91f64c92a7c5ecf89bca6e))
+* **api:** api update ([624c79c](https://github.com/RetellAI/retell-typescript-sdk/commit/624c79c89036d588399a4afadd9e61ca82d4cd23))
+
+
+### Performance Improvements
+
+* faster formatting ([b719dd8](https://github.com/RetellAI/retell-typescript-sdk/commit/b719dd8dfe9315a09104a4e4b6282e3bca522625))
+
+
+### Chores
+
+* **internal:** codegen related update ([5f24457](https://github.com/RetellAI/retell-typescript-sdk/commit/5f2445765caaf36ecb08d19093ae939f9fa50a2e))
+* **internal:** fix incremental formatting in some cases ([c32aca7](https://github.com/RetellAI/retell-typescript-sdk/commit/c32aca702d5807e8dcb8933e665c0544a855b68b))
+* **internal:** ignore .eslintcache ([683b130](https://github.com/RetellAI/retell-typescript-sdk/commit/683b130c62d6e83ff578486289ab85d1349185d5))
+* **internal:** remove .eslintcache ([adc1f24](https://github.com/RetellAI/retell-typescript-sdk/commit/adc1f24d7670cb0b1e97bae9adecec24e412b4bd))
+* **internal:** remove deprecated `compilerOptions.baseUrl` from tsconfig.json ([751dd50](https://github.com/RetellAI/retell-typescript-sdk/commit/751dd50445ab8fcd5abcb112e500c8b57684d834))
+* **internal:** use npm pack for build uploads ([2de8f44](https://github.com/RetellAI/retell-typescript-sdk/commit/2de8f44f9c6db9515d0c09dfaf11529888ea0f3c))
+* **tests:** disable tests with false negative ([3299eb0](https://github.com/RetellAI/retell-typescript-sdk/commit/3299eb054dbc6d797bc94ade5d20a1358ca8eb97))
+
+## 4.49.0 (2025-09-24)
+
+Full Changelog: [v4.48.0...v4.49.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.48.0...v4.49.0)
+
+### Features
+
+* **api:** api update ([7abc1b2](https://github.com/RetellAI/retell-typescript-sdk/commit/7abc1b2183f9712918750b2aa301d813c5d0176b))
+
+
+### Chores
+
+* do not install brew dependencies in ./scripts/bootstrap by default ([9475f5d](https://github.com/RetellAI/retell-typescript-sdk/commit/9475f5d33ff68c03c2d2e972893122c40bf0937b))
+
+## 4.48.0 (2025-09-18)
+
+Full Changelog: [v4.47.0...v4.48.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.47.0...v4.48.0)
+
+### Features
+
+* **api:** api update ([586b083](https://github.com/RetellAI/retell-typescript-sdk/commit/586b0833dc380381b8d699c70111f26e3d49b4a0))
+* **api:** api update ([c965bd9](https://github.com/RetellAI/retell-typescript-sdk/commit/c965bd9e50577e173c347c34307650263d1aee8e))
+
+
+### Bug Fixes
+
+* coerce nullable values to undefined ([89f8c50](https://github.com/RetellAI/retell-typescript-sdk/commit/89f8c503f4a5e4efa64af9321b8865157cbae804))
+
+
+### Chores
+
+* ci build action ([65e6f62](https://github.com/RetellAI/retell-typescript-sdk/commit/65e6f627dc34bbd063242aaeb0df93531c25b083))
+
+## 4.47.0 (2025-09-08)
+
+Full Changelog: [v4.46.0...v4.47.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.46.0...v4.47.0)
+
+### Features
+
+* **api:** api update ([04e6dd8](https://github.com/RetellAI/retell-typescript-sdk/commit/04e6dd8e4f4e4a81cbcc0c5387068b4ac1914f05))
+* **api:** api update ([755b3ef](https://github.com/RetellAI/retell-typescript-sdk/commit/755b3ef117d140e4b14ac19ffa06a9e8eaa63de9))
+
+## 4.46.0 (2025-09-05)
+
+Full Changelog: [v4.45.0...v4.46.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.45.0...v4.46.0)
+
+### Features
+
+* **api:** api update ([1e8bb19](https://github.com/RetellAI/retell-typescript-sdk/commit/1e8bb19d24b2fd1054dc43d317a2fef04f365204))
+* **api:** api update ([e675008](https://github.com/RetellAI/retell-typescript-sdk/commit/e67500834bc100b9d4478486de77eecc5982c2d2))
+
+## 4.45.0 (2025-09-04)
+
+Full Changelog: [v4.44.0...v4.45.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.44.0...v4.45.0)
+
+### Features
+
+* **api:** api update ([7198e58](https://github.com/RetellAI/retell-typescript-sdk/commit/7198e5821311a46e2298a6137e3a2e3eb1ab3aef))
+* **api:** api update ([92aa974](https://github.com/RetellAI/retell-typescript-sdk/commit/92aa974b51cde8589f9e6361ac431be87c130317))
+
+## 4.44.0 (2025-09-03)
+
+Full Changelog: [v4.43.0...v4.44.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.43.0...v4.44.0)
+
+### Features
+
+* **api:** api update ([654dd48](https://github.com/RetellAI/retell-typescript-sdk/commit/654dd4809036eba84cbab538bd19a96f2e46a5a3))
+* **api:** api update ([d9be269](https://github.com/RetellAI/retell-typescript-sdk/commit/d9be2696ed88e1d52c42ef08161b7f88f0d0a835))
+* **api:** api update ([d3bff2b](https://github.com/RetellAI/retell-typescript-sdk/commit/d3bff2b30e139886a25a8307c8e28e5984e7daa0))
+* **api:** api update ([5cc8838](https://github.com/RetellAI/retell-typescript-sdk/commit/5cc88381bfa32136d7c61629f0c3bc149e402bfd))
+* **api:** api update ([aa286ab](https://github.com/RetellAI/retell-typescript-sdk/commit/aa286abadcac34f64bc95ba0a4a348414a3371de))
+* **api:** api update ([53ed7af](https://github.com/RetellAI/retell-typescript-sdk/commit/53ed7af88a1dc2bfefc90a400174b2dfab8e70bf))
+* **api:** api update ([452654a](https://github.com/RetellAI/retell-typescript-sdk/commit/452654ac93e172b4d88da10e404cad7f8e14c0b1))
+* **api:** api update ([f3ac79b](https://github.com/RetellAI/retell-typescript-sdk/commit/f3ac79b4d4f5487aca9ae84747665b497bc47291))
+* **api:** api update ([3241b89](https://github.com/RetellAI/retell-typescript-sdk/commit/3241b892991484dbc9d03b3c93eb3d45c0b0d18a))
+* **api:** api update ([09e69f0](https://github.com/RetellAI/retell-typescript-sdk/commit/09e69f0d60b2c2c590af7235ead3f0cfde013dca))
+* **api:** api update ([35de543](https://github.com/RetellAI/retell-typescript-sdk/commit/35de5431dbaccc3071e3a98acc7de086b5a7b05d))
+* **api:** api update ([b4b555c](https://github.com/RetellAI/retell-typescript-sdk/commit/b4b555c818e9aed5368c4b62161840b17071bde0))
+* **api:** api update ([4768384](https://github.com/RetellAI/retell-typescript-sdk/commit/47683843f5fa5e34415fc77074c925ec021a7947))
+* **api:** api update ([6f07b9a](https://github.com/RetellAI/retell-typescript-sdk/commit/6f07b9aa37715966a398fab09fe3045cdf0272ad))
+* **api:** api update ([94a49eb](https://github.com/RetellAI/retell-typescript-sdk/commit/94a49eba38c2a773d50b888aa73eb40e349ccd74))
+
+
+### Bug Fixes
+
+* **tests:** fix invalid test value ([9b9ae07](https://github.com/RetellAI/retell-typescript-sdk/commit/9b9ae0749cf6aba9f31b00cf109f3dd6a33cccb1))
+
+
+### Chores
+
+* update CI script ([096f620](https://github.com/RetellAI/retell-typescript-sdk/commit/096f6209200daeead513cd1c0578c6c86758d47c))
+
+## 4.43.0 (2025-08-17)
+
+Full Changelog: [v4.42.0...v4.43.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.42.0...v4.43.0)
+
+### Features
+
+* **api:** api update ([07fe7d2](https://github.com/RetellAI/retell-typescript-sdk/commit/07fe7d2354a93ea8dc4fca8186e935fc8f5ea95a))
+
+
+### Chores
+
+* **deps:** update dependency node-fetch to v2.6.13 ([5fd4292](https://github.com/RetellAI/retell-typescript-sdk/commit/5fd4292f057355fe2971677c81b9e80f8175c774))
+* **internal:** formatting change ([5f6c667](https://github.com/RetellAI/retell-typescript-sdk/commit/5f6c667d3717341484f03464c40e1617d7927b59))
+
+## 4.42.0 (2025-08-12)
+
+Full Changelog: [v4.41.0...v4.42.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.41.0...v4.42.0)
+
+### Features
+
+* **api:** api update ([8b16279](https://github.com/RetellAI/retell-typescript-sdk/commit/8b162792e7178d7929fb717eceb50b66d3ba21e7))
+
+
+### Chores
+
+* **internal:** move publish config ([9e4f257](https://github.com/RetellAI/retell-typescript-sdk/commit/9e4f25739c62bd58b6ebf23a591740fc00f463dd))
+* **internal:** update comment in script ([8843d03](https://github.com/RetellAI/retell-typescript-sdk/commit/8843d03acfa578f94d6413422e216abd5b583140))
+* update @stainless-api/prism-cli to v5.15.0 ([4305fa0](https://github.com/RetellAI/retell-typescript-sdk/commit/4305fa07ac5a9ccb84314d60c1999bcc454138a0))
+
+## 4.41.0 (2025-07-30)
+
+Full Changelog: [v4.40.0...v4.41.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.40.0...v4.41.0)
+
+### Features
+
+* **api:** api update ([8a4a778](https://github.com/RetellAI/retell-typescript-sdk/commit/8a4a778bb6e0d93e25839ced5027e12cb108d49c))
+* **api:** api update ([42afcb7](https://github.com/RetellAI/retell-typescript-sdk/commit/42afcb780b91d9d4758c60c9b2fd4c775df3c8f7))
+* **api:** api update ([742f928](https://github.com/RetellAI/retell-typescript-sdk/commit/742f92868799e7ed6478cc65ed9b2ff20c575ac3))
+* **api:** api update ([25ce6a5](https://github.com/RetellAI/retell-typescript-sdk/commit/25ce6a546fff5a7d3fd4660ee254bf827ae7fde8))
+* **api:** api update ([dd41629](https://github.com/RetellAI/retell-typescript-sdk/commit/dd4162972dc95cb208d1a6062af2784cdcf9c517))
+
+
+### Chores
+
+* **internal:** remove redundant imports config ([ced1122](https://github.com/RetellAI/retell-typescript-sdk/commit/ced112282ea4205ebada372b0b1fcfc8b57ba825))
+
+## 4.40.0 (2025-07-21)
+
+Full Changelog: [v4.39.0...v4.40.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.39.0...v4.40.0)
+
+### Features
+
+* **api:** api update ([2ac2e1c](https://github.com/RetellAI/retell-typescript-sdk/commit/2ac2e1cc86fcd9eb6961f7df8a298ff1dac1e4df))
+* **api:** api update ([de72d25](https://github.com/RetellAI/retell-typescript-sdk/commit/de72d257d1637e7d8b89f455041594276b826ddd))
+
+
+### Bug Fixes
+
+* **client:** don't send `Content-Type` for bodyless methods ([86aa850](https://github.com/RetellAI/retell-typescript-sdk/commit/86aa850130f91a16283d9dfc1c5e7cfc1e8682c4))
+
+
+### Chores
+
+* make some internal functions async ([6a01ac6](https://github.com/RetellAI/retell-typescript-sdk/commit/6a01ac612f855e1c5489631c63667c716cb4692a))
+* mention unit type in timeout docs ([cdbafef](https://github.com/RetellAI/retell-typescript-sdk/commit/cdbafef4a2b97417116dea9ff3416ac9df3a0712))
+
+## 4.39.0 (2025-07-02)
+
+Full Changelog: [v4.38.0...v4.39.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.38.0...v4.39.0)
+
+### Features
+
+* **api:** api update ([dca6d28](https://github.com/RetellAI/retell-typescript-sdk/commit/dca6d281fccb22d19044b15a76b50264f1f15528))
+* **api:** api update ([4a4b72e](https://github.com/RetellAI/retell-typescript-sdk/commit/4a4b72e56da0cc2a36d8ac6c2f90ff26e05d84bd))
+
+## 4.38.0 (2025-06-29)
+
+Full Changelog: [v4.37.0...v4.38.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.37.0...v4.38.0)
+
+### Features
+
+* **api:** api update ([23024dd](https://github.com/RetellAI/retell-typescript-sdk/commit/23024dd4391b45e14b9ccffa2fe99ece946dcad7))
+* **api:** api update ([700e7d7](https://github.com/RetellAI/retell-typescript-sdk/commit/700e7d768d50007456e0545b51bfbd110bc51346))
+* **api:** api update ([7a4652e](https://github.com/RetellAI/retell-typescript-sdk/commit/7a4652e99b4b2d643ab95c448dfda75154c563e8))
+* **api:** api update ([54adbc3](https://github.com/RetellAI/retell-typescript-sdk/commit/54adbc3eeb77c7791fbcbb09ca32b7c851112eee))
+* **api:** api update ([e940672](https://github.com/RetellAI/retell-typescript-sdk/commit/e940672ca6424031270818e3007f684965776797))
+* **api:** api update ([4c41d15](https://github.com/RetellAI/retell-typescript-sdk/commit/4c41d15ecefcebd2948c74c0c04d50213da3d317))
+* **api:** api update ([78d4e81](https://github.com/RetellAI/retell-typescript-sdk/commit/78d4e8163ed88665897383a3451120540aa4b8b8))
+* **api:** api update ([0f0e31b](https://github.com/RetellAI/retell-typescript-sdk/commit/0f0e31bf5338193f05cfa5578d27b1955af3e195))
+* **client:** add support for endpoint-specific base URLs ([a4a67f3](https://github.com/RetellAI/retell-typescript-sdk/commit/a4a67f36865085c7bcf7bac3b7cb19dd27f594ff))
+
+
+### Bug Fixes
+
+* **ci:** release-doctor — report correct token name ([88287e5](https://github.com/RetellAI/retell-typescript-sdk/commit/88287e5f2fbf6316d7a3feca6ec24897ac13c6c9))
+
+
+### Chores
+
+* **ci:** enable for pull requests ([a70cbc3](https://github.com/RetellAI/retell-typescript-sdk/commit/a70cbc3f897d349319fc865c63387fd9ec05f751))
+* **ci:** only run for pushes and fork pull requests ([c02cb26](https://github.com/RetellAI/retell-typescript-sdk/commit/c02cb268c080463ab5b6462e6f1281fe3d782601))
+
+
+### Refactors
+
+* **types:** replace Record with mapped types ([f13a1bc](https://github.com/RetellAI/retell-typescript-sdk/commit/f13a1bcd686c2dbded1b00e92331c5542824204d))
+
+## 4.37.0 (2025-06-16)
+
+Full Changelog: [v4.36.0...v4.37.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.36.0...v4.37.0)
+
+### Features
+
+* **api:** api update ([d160248](https://github.com/RetellAI/retell-typescript-sdk/commit/d1602488c5fe14b7627f9b38c029751f648c4b6b))
+
+## 4.36.0 (2025-06-13)
+
+Full Changelog: [v4.35.0...v4.36.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.35.0...v4.36.0)
+
+### Features
+
+* **api:** api update ([9a718b9](https://github.com/RetellAI/retell-typescript-sdk/commit/9a718b9dff4e53b76f09d98efb7641e6c26d7b3a))
+* **api:** api update ([1b3da08](https://github.com/RetellAI/retell-typescript-sdk/commit/1b3da0895257c3e2a19b01f427d4aa63326eb95f))
+
+
+### Bug Fixes
+
+* publish script — handle NPM errors correctly ([74e157b](https://github.com/RetellAI/retell-typescript-sdk/commit/74e157beca1fb029c18aa6878639c1ed172e3690))
+
+
+### Chores
+
+* **internal:** make base APIResource abstract ([0d933ef](https://github.com/RetellAI/retell-typescript-sdk/commit/0d933ef59161679e93fbe5766a33f6e9f118241f))
+
+## 4.35.0 (2025-06-11)
+
+Full Changelog: [v4.34.0...v4.35.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.34.0...v4.35.0)
+
+### Features
+
+* **api:** api update ([fe0958f](https://github.com/RetellAI/retell-typescript-sdk/commit/fe0958f7b237e3cad14a40f82c45e495c7228b37))
+
+## 4.34.0 (2025-06-11)
+
+Full Changelog: [v4.33.0...v4.34.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.33.0...v4.34.0)
+
+### Features
+
+* **api:** api update ([4ba8f6c](https://github.com/RetellAI/retell-typescript-sdk/commit/4ba8f6c12d35433a34a9e31cbd33a43f6a74ce3b))
+* **api:** api update ([c13b763](https://github.com/RetellAI/retell-typescript-sdk/commit/c13b763fb734701929d3aac14a82efa059997b2f))
+* **api:** api update ([1ff268c](https://github.com/RetellAI/retell-typescript-sdk/commit/1ff268c492546ce61a058ba491615dd8bc6fbf82))
+* **api:** api update ([ac151cb](https://github.com/RetellAI/retell-typescript-sdk/commit/ac151cb692f6f65dd3a6b2edfcbf7bf5d9f7e0a1))
+* **api:** api update ([c495c80](https://github.com/RetellAI/retell-typescript-sdk/commit/c495c8068b52498745fa8c0c97a30f9b729b6e01))
+* **api:** api update ([0e4d14b](https://github.com/RetellAI/retell-typescript-sdk/commit/0e4d14b18afea372090bfd3db1c59fe8bd4a1a46))
+* **api:** api update ([49f721a](https://github.com/RetellAI/retell-typescript-sdk/commit/49f721a2b49a56b9406a92e2bc5c4d74080d8090))
+
+
+### Chores
+
+* **internal:** codegen related update ([6563e68](https://github.com/RetellAI/retell-typescript-sdk/commit/6563e68aaf6ea72e06c2a4af8ad55fd28594ef48))
+* **internal:** codegen related update ([b648dbc](https://github.com/RetellAI/retell-typescript-sdk/commit/b648dbcb1a97977b1b83bdd2082bb67dab770f73))
+
+## 4.33.0 (2025-06-04)
+
+Full Changelog: [v4.32.0...v4.33.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.32.0...v4.33.0)
+
+### Features
+
+* **api:** api update ([a47993c](https://github.com/RetellAI/retell-typescript-sdk/commit/a47993cbfd7a2bcded1220ec932ee03f49c1a73c))
+* **api:** api update ([1f3b3e3](https://github.com/RetellAI/retell-typescript-sdk/commit/1f3b3e3590abb0b77431b89a91c6da82f0ba8ed0))
+* **api:** api update ([397bdf0](https://github.com/RetellAI/retell-typescript-sdk/commit/397bdf013dbcebff1b75329d9855d83c139aab5f))
+* **api:** api update ([a74e7bd](https://github.com/RetellAI/retell-typescript-sdk/commit/a74e7bd24f9654dfc36b694ffbb3fa138ee8a1b3))
+* **api:** api update ([4d474bd](https://github.com/RetellAI/retell-typescript-sdk/commit/4d474bd69ba13622738a001ec879dbcbe8a7370a))
+* **api:** api update ([ca2e08b](https://github.com/RetellAI/retell-typescript-sdk/commit/ca2e08b1daee6db444caf0a729dc9ba60f7e54dc))
+
+
+### Chores
+
+* **docs:** use top-level-await in example snippets ([5796338](https://github.com/RetellAI/retell-typescript-sdk/commit/579633888761a2171676253a067a1f7616cc9d2d))
+* improve publish-npm script --latest tag logic ([91b5313](https://github.com/RetellAI/retell-typescript-sdk/commit/91b5313504566820da426276dc487edb123c22d9))
+
+## 4.32.0 (2025-05-26)
+
+Full Changelog: [v4.31.0...v4.32.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.31.0...v4.32.0)
+
+### Features
+
+* **api:** api update ([c4a2766](https://github.com/RetellAI/retell-typescript-sdk/commit/c4a2766d3a75d7cacfaac72485513c13436c7993))
+* **api:** api update ([dca0ee6](https://github.com/RetellAI/retell-typescript-sdk/commit/dca0ee697a906c7646c57623101a20d5590f13bf))
+
+## 4.31.0 (2025-05-22)
+
+Full Changelog: [v4.30.0...v4.31.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.30.0...v4.31.0)
+
+### Features
+
+* **api:** api update ([434bf73](https://github.com/RetellAI/retell-typescript-sdk/commit/434bf73b9f2e3da8fcf2913f0d1cb7c5846da418))
+
+
+### Chores
+
+* **docs:** grammar improvements ([907a718](https://github.com/RetellAI/retell-typescript-sdk/commit/907a7182ca7ea5b6c6da906836d0ecfc2c13949b))
+
+## 4.30.0 (2025-05-15)
+
+Full Changelog: [v4.29.0...v4.30.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.29.0...v4.30.0)
+
+### Features
+
+* **api:** api update ([b1368a8](https://github.com/RetellAI/retell-typescript-sdk/commit/b1368a8f252e7f4fad172b875daae2442aa167cf))
+
+## 4.29.0 (2025-05-14)
+
+Full Changelog: [v4.28.0...v4.29.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.28.0...v4.29.0)
+
+### Features
+
+* **api:** api update ([c368819](https://github.com/RetellAI/retell-typescript-sdk/commit/c36881925b1ad17364267b59a98ecaf743399c76))
+* **api:** api update ([4edbd26](https://github.com/RetellAI/retell-typescript-sdk/commit/4edbd26024a4aec27b767ef333d0d6165eecec64))
+* **api:** api update ([b1d6c3b](https://github.com/RetellAI/retell-typescript-sdk/commit/b1d6c3b5d705c55e08f17cb558a7815f22800a71))
+* **api:** api update ([d163d35](https://github.com/RetellAI/retell-typescript-sdk/commit/d163d35387cf32bf88b5a89db3e3752660a24c03))
+* **api:** api update ([b9972c0](https://github.com/RetellAI/retell-typescript-sdk/commit/b9972c0e8c880f6b6a11f1133a587a244c24071d))
+* **api:** api update ([45934c8](https://github.com/RetellAI/retell-typescript-sdk/commit/45934c838c3d6580f812159bc4b4c02df291aadc))
+
+
+### Chores
+
+* **ci:** bump node version for release workflows ([7947f74](https://github.com/RetellAI/retell-typescript-sdk/commit/7947f74e5f0f55713ebee3759e84cf6c92c57bb7))
+* **internal:** codegen related update ([978c3f8](https://github.com/RetellAI/retell-typescript-sdk/commit/978c3f8f4fcb4603f521c08220c2227deb83d80a))
+
+
+### Documentation
+
+* add examples to tsdocs ([ddddc01](https://github.com/RetellAI/retell-typescript-sdk/commit/ddddc01844b95a96f34119e902711a7a72684c10))
+
 ## 4.28.0 (2025-04-30)
 
 Full Changelog: [v4.27.0...v4.28.0](https://github.com/RetellAI/retell-typescript-sdk/compare/v4.27.0...v4.28.0)

@@ -17,6 +17,24 @@ Methods:
 - <code title="post /v2/create-web-call">client.call.<a href="./src/resources/call.ts">createWebCall</a>({ ...params }) -> WebCallResponse</code>
 - <code title="post /v2/register-phone-call">client.call.<a href="./src/resources/call.ts">registerPhoneCall</a>({ ...params }) -> PhoneCallResponse</code>
 
+# Chat
+
+Types:
+
+- <code><a href="./src/resources/chat.ts">ChatResponse</a></code>
+- <code><a href="./src/resources/chat.ts">ChatListResponse</a></code>
+- <code><a href="./src/resources/chat.ts">ChatCreateChatCompletionResponse</a></code>
+
+Methods:
+
+- <code title="post /create-chat">client.chat.<a href="./src/resources/chat.ts">create</a>({ ...params }) -> ChatResponse</code>
+- <code title="get /get-chat/{chat_id}">client.chat.<a href="./src/resources/chat.ts">retrieve</a>(chatId) -> ChatResponse</code>
+- <code title="patch /update-chat/{chat_id}">client.chat.<a href="./src/resources/chat.ts">update</a>(chatId, { ...params }) -> ChatResponse</code>
+- <code title="get /list-chat">client.chat.<a href="./src/resources/chat.ts">list</a>() -> ChatListResponse</code>
+- <code title="post /create-chat-completion">client.chat.<a href="./src/resources/chat.ts">createChatCompletion</a>({ ...params }) -> ChatCreateChatCompletionResponse</code>
+- <code title="post /create-sms-chat">client.chat.<a href="./src/resources/chat.ts">createSMSChat</a>({ ...params }) -> ChatResponse</code>
+- <code title="patch /end-chat/{chat_id}">client.chat.<a href="./src/resources/chat.ts">end</a>(chatId) -> void</code>
+
 # PhoneNumber
 
 Types:
@@ -46,9 +64,28 @@ Methods:
 - <code title="post /create-agent">client.agent.<a href="./src/resources/agent.ts">create</a>({ ...params }) -> AgentResponse</code>
 - <code title="get /get-agent/{agent_id}">client.agent.<a href="./src/resources/agent.ts">retrieve</a>(agentId, { ...params }) -> AgentResponse</code>
 - <code title="patch /update-agent/{agent_id}">client.agent.<a href="./src/resources/agent.ts">update</a>(agentId, { ...params }) -> AgentResponse</code>
-- <code title="get /list-agents">client.agent.<a href="./src/resources/agent.ts">list</a>() -> AgentListResponse</code>
+- <code title="get /list-agents">client.agent.<a href="./src/resources/agent.ts">list</a>({ ...params }) -> AgentListResponse</code>
 - <code title="delete /delete-agent/{agent_id}">client.agent.<a href="./src/resources/agent.ts">delete</a>(agentId) -> void</code>
 - <code title="get /get-agent-versions/{agent_id}">client.agent.<a href="./src/resources/agent.ts">getVersions</a>(agentId) -> AgentGetVersionsResponse</code>
+- <code title="post /publish-agent/{agent_id}">client.agent.<a href="./src/resources/agent.ts">publish</a>(agentId) -> void</code>
+
+# ChatAgent
+
+Types:
+
+- <code><a href="./src/resources/chat-agent.ts">ChatAgentResponse</a></code>
+- <code><a href="./src/resources/chat-agent.ts">ChatAgentListResponse</a></code>
+- <code><a href="./src/resources/chat-agent.ts">ChatAgentGetVersionsResponse</a></code>
+
+Methods:
+
+- <code title="post /create-chat-agent">client.chatAgent.<a href="./src/resources/chat-agent.ts">create</a>({ ...params }) -> ChatAgentResponse</code>
+- <code title="get /get-chat-agent/{agent_id}">client.chatAgent.<a href="./src/resources/chat-agent.ts">retrieve</a>(agentId, { ...params }) -> ChatAgentResponse</code>
+- <code title="patch /update-chat-agent/{agent_id}">client.chatAgent.<a href="./src/resources/chat-agent.ts">update</a>(agentId, { ...params }) -> ChatAgentResponse</code>
+- <code title="get /list-chat-agents">client.chatAgent.<a href="./src/resources/chat-agent.ts">list</a>({ ...params }) -> ChatAgentListResponse</code>
+- <code title="delete /delete-chat-agent/{agent_id}">client.chatAgent.<a href="./src/resources/chat-agent.ts">delete</a>(agentId) -> void</code>
+- <code title="get /get-chat-agent-versions/{agent_id}">client.chatAgent.<a href="./src/resources/chat-agent.ts">getVersions</a>(agentId) -> ChatAgentGetVersionsResponse</code>
+- <code title="post /publish-chat-agent/{agent_id}">client.chatAgent.<a href="./src/resources/chat-agent.ts">publish</a>(agentId) -> void</code>
 
 # Llm
 
@@ -62,8 +99,23 @@ Methods:
 - <code title="post /create-retell-llm">client.llm.<a href="./src/resources/llm.ts">create</a>({ ...params }) -> LlmResponse</code>
 - <code title="get /get-retell-llm/{llm_id}">client.llm.<a href="./src/resources/llm.ts">retrieve</a>(llmId, { ...params }) -> LlmResponse</code>
 - <code title="patch /update-retell-llm/{llm_id}">client.llm.<a href="./src/resources/llm.ts">update</a>(llmId, { ...params }) -> LlmResponse</code>
-- <code title="get /list-retell-llms">client.llm.<a href="./src/resources/llm.ts">list</a>() -> LlmListResponse</code>
+- <code title="get /list-retell-llms">client.llm.<a href="./src/resources/llm.ts">list</a>({ ...params }) -> LlmListResponse</code>
 - <code title="delete /delete-retell-llm/{llm_id}">client.llm.<a href="./src/resources/llm.ts">delete</a>(llmId) -> void</code>
+
+# ConversationFlow
+
+Types:
+
+- <code><a href="./src/resources/conversation-flow.ts">ConversationFlowResponse</a></code>
+- <code><a href="./src/resources/conversation-flow.ts">ConversationFlowListResponse</a></code>
+
+Methods:
+
+- <code title="post /create-conversation-flow">client.conversationFlow.<a href="./src/resources/conversation-flow.ts">create</a>({ ...params }) -> ConversationFlowResponse</code>
+- <code title="get /get-conversation-flow/{conversation_flow_id}">client.conversationFlow.<a href="./src/resources/conversation-flow.ts">retrieve</a>(conversationFlowId, { ...params }) -> ConversationFlowResponse</code>
+- <code title="patch /update-conversation-flow/{conversation_flow_id}">client.conversationFlow.<a href="./src/resources/conversation-flow.ts">update</a>(conversationFlowId, { ...params }) -> ConversationFlowResponse</code>
+- <code title="get /list-conversation-flows">client.conversationFlow.<a href="./src/resources/conversation-flow.ts">list</a>({ ...params }) -> ConversationFlowListResponse</code>
+- <code title="delete /delete-conversation-flow/{conversation_flow_id}">client.conversationFlow.<a href="./src/resources/conversation-flow.ts">delete</a>(conversationFlowId) -> void</code>
 
 # KnowledgeBase
 
@@ -112,3 +164,24 @@ Types:
 Methods:
 
 - <code title="post /create-batch-call">client.batchCall.<a href="./src/resources/batch-call.ts">createBatchCall</a>({ ...params }) -> BatchCallResponse</code>
+
+# Tests
+
+Types:
+
+- <code><a href="./src/resources/tests.ts">BatchTestResponse</a></code>
+
+Methods:
+
+- <code title="post /create-batch-test">client.tests.<a href="./src/resources/tests.ts">createBatchTest</a>({ ...params }) -> BatchTestResponse</code>
+
+# McpTool
+
+Types:
+
+- <code><a href="./src/resources/mcp-tool.ts">McpToolDefinition</a></code>
+- <code><a href="./src/resources/mcp-tool.ts">McpToolGetMcpToolsResponse</a></code>
+
+Methods:
+
+- <code title="get /get-mcp-tools/{agent_id}">client.mcpTool.<a href="./src/resources/mcp-tool.ts">getMcpTools</a>(agentId, { ...params }) -> McpToolGetMcpToolsResponse</code>

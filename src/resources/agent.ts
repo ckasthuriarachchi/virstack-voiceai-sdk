@@ -7,6 +7,17 @@ import * as Core from '../core';
 export class Agent extends APIResource {
   /**
    * Create a new agent
+   *
+   * @example
+   * ```ts
+   * const agentResponse = await client.agent.create({
+   *   response_engine: {
+   *     llm_id: 'llm_234sdertfsdsfsdf',
+   *     type: 'retell-llm',
+   *   },
+   *   voice_id: '11labs-Adrian',
+   * });
+   * ```
    */
   create(body: AgentCreateParams, options?: Core.RequestOptions): Core.APIPromise<AgentResponse> {
     return this._client.post('/create-agent', { body, ...options });
@@ -14,6 +25,13 @@ export class Agent extends APIResource {
 
   /**
    * Retrieve details of a specific agent
+   *
+   * @example
+   * ```ts
+   * const agentResponse = await client.agent.retrieve(
+   *   '16b980523634a6dc504898cda492e939',
+   * );
+   * ```
    */
   retrieve(
     agentId: string,
@@ -33,30 +51,54 @@ export class Agent extends APIResource {
   }
 
   /**
-   * Update an existing agent
+   * Update an existing agent's latest draft version
+   *
+   * @example
+   * ```ts
+   * const agentResponse = await client.agent.update(
+   *   '16b980523634a6dc504898cda492e939',
+   *   { agent_name: 'Jarvis' },
+   * );
+   * ```
    */
   update(
     agentId: string,
     params: AgentUpdateParams,
     options?: Core.RequestOptions,
   ): Core.APIPromise<AgentResponse> {
-    const { query_version, ...body } = params;
-    return this._client.patch(`/update-agent/${agentId}`, {
-      query: { version: query_version },
-      body,
-      ...options,
-    });
+    const { version, ...body } = params;
+    return this._client.patch(`/update-agent/${agentId}`, { query: { version }, body, ...options });
   }
 
   /**
    * List all agents
+   *
+   * @example
+   * ```ts
+   * const agentResponses = await client.agent.list();
+   * ```
    */
-  list(options?: Core.RequestOptions): Core.APIPromise<AgentListResponse> {
-    return this._client.get('/list-agents', options);
+  list(query?: AgentListParams, options?: Core.RequestOptions): Core.APIPromise<AgentListResponse>;
+  list(options?: Core.RequestOptions): Core.APIPromise<AgentListResponse>;
+  list(
+    query: AgentListParams | Core.RequestOptions = {},
+    options?: Core.RequestOptions,
+  ): Core.APIPromise<AgentListResponse> {
+    if (isRequestOptions(query)) {
+      return this.list({}, query);
+    }
+    return this._client.get('/list-agents', { query, ...options });
   }
 
   /**
    * Delete an existing agent
+   *
+   * @example
+   * ```ts
+   * await client.agent.delete(
+   *   'oBeDLoLOeuAbiuaMFXRtDOLriTJ5tSxD',
+   * );
+   * ```
    */
   delete(agentId: string, options?: Core.RequestOptions): Core.APIPromise<void> {
     return this._client.delete(`/delete-agent/${agentId}`, {
@@ -67,9 +109,34 @@ export class Agent extends APIResource {
 
   /**
    * Get all versions of an agent
+   *
+   * @example
+   * ```ts
+   * const agentResponses = await client.agent.getVersions(
+   *   '16b980523634a6dc504898cda492e939',
+   * );
+   * ```
    */
   getVersions(agentId: string, options?: Core.RequestOptions): Core.APIPromise<AgentGetVersionsResponse> {
     return this._client.get(`/get-agent-versions/${agentId}`, options);
+  }
+
+  /**
+   * Publish the latest version of the agent and create a new draft agent with newer
+   * version.
+   *
+   * @example
+   * ```ts
+   * await client.agent.publish(
+   *   '16b980523634a6dc504898cda492e939',
+   * );
+   * ```
+   */
+  publish(agentId: string, options?: Core.RequestOptions): Core.APIPromise<void> {
+    return this._client.post(`/publish-agent/${agentId}`, {
+      ...options,
+      headers: { Accept: '*/*', ...options?.headers },
+    });
   }
 }
 
@@ -105,6 +172,12 @@ export interface AgentResponse {
    * The name of the agent. Only used for your own reference.
    */
   agent_name?: string | null;
+
+  /**
+   * If set to true, DTMF input will be accepted and processed. If false, any DTMF
+   * input will be ignored. Default to true.
+   */
+  allow_user_dtmf?: boolean;
 
   /**
    * If set, will add ambient environment sound to the call to make experience more
@@ -161,7 +234,7 @@ export interface AgentResponse {
    * Check out
    * [backchannel default words](/agent/interaction-configuration#backchannel) for
    * more details. Note that certain voices do not work too well with certain words,
-   * so it's recommended to expeirment before adding any words.
+   * so it's recommended to experiment before adding any words.
    */
   backchannel_words?: Array<string> | null;
 
@@ -181,25 +254,30 @@ export interface AgentResponse {
   boosted_keywords?: Array<string> | null;
 
   /**
+   * Granular setting to manage how Retell stores sensitive data (transcripts,
+   * recordings, logs, etc.). This replaces the deprecated
+   * `opt_out_sensitive_data_storage` field.
+   *
+   * - `everything`: Store all data including transcripts, recordings, and logs.
+   * - `everything_except_pii`: Store data without PII when PII is detected.
+   * - `basic_attributes_only`: Store only basic attributes; no
+   *   transcripts/recordings/logs. If not set, default value of "everything" will
+   *   apply.
+   */
+  data_storage_setting?: 'everything' | 'everything_except_pii' | 'basic_attributes_only';
+
+  /**
+   * If set, determines what denoising mode to use. Default to noise-cancellation.
+   */
+  denoising_mode?: 'noise-cancellation' | 'noise-and-background-speech-cancellation';
+
+  /**
    * Controls whether the agent would backchannel (agent interjects the speaker with
    * phrases like "yeah", "uh-huh" to signify interest and engagement). Backchannel
    * when enabled tends to show up more in longer user utterances. If not set, agent
    * will not backchannel.
    */
   enable_backchannel?: boolean;
-
-  /**
-   * If set to true, will format transcription to number, date, email, etc. If set to
-   * false, will return transcripts in raw words. If not set, default value of true
-   * will apply. This currently only applies to English.
-   */
-  enable_transcription_formatting?: boolean;
-
-  /**
-   * If set to true, will detect whether the call enters a voicemail. Note that this
-   * feature is only available for phone calls.
-   */
-  enable_voicemail_detection?: boolean;
 
   /**
    * If users stay silent for a period after agent speech, end the call. The minimum
@@ -224,6 +302,11 @@ export interface AgentResponse {
    * interrupted.
    */
   interruption_sensitivity?: number;
+
+  /**
+   * Whether the agent is published.
+   */
+  is_published?: boolean;
 
   /**
    * Specifies what language (and dialect) the speech recognition will operate in.
@@ -251,8 +334,10 @@ export interface AgentResponse {
     | 'it-IT'
     | 'ko-KR'
     | 'nl-NL'
+    | 'nl-BE'
     | 'pl-PL'
     | 'tr-TR'
+    | 'th-TH'
     | 'vi-VN'
     | 'ro-RO'
     | 'bg-BG'
@@ -293,11 +378,9 @@ export interface AgentResponse {
   opt_in_signed_url?: boolean;
 
   /**
-   * Whether this agent opts out of sensitive data storage like transcript,
-   * recording, logging, inbound/outbound phone numbers, etc. These data can still be
-   * accessed securely via webhooks. If not set, default value of false will apply.
+   * Configuration for PII scrubbing from transcripts and recordings.
    */
-  opt_out_sensitive_data_storage?: boolean;
+  pii_config?: AgentResponse.PiiConfig;
 
   /**
    * Post call analysis data to extract from the call. This data will augment the
@@ -312,10 +395,25 @@ export interface AgentResponse {
   > | null;
 
   /**
-   * The model to use for post call analysis. Currently only supports gpt-4o-mini and
-   * gpt-4o. Default to gpt-4o-mini.
+   * The model to use for post call analysis. Default to gpt-4o-mini.
    */
-  post_call_analysis_model?: 'gpt-4o-mini' | 'gpt-4o';
+  post_call_analysis_model?:
+    | 'gpt-4o'
+    | 'gpt-4o-mini'
+    | 'gpt-4.1'
+    | 'gpt-4.1-mini'
+    | 'gpt-4.1-nano'
+    | 'gpt-5'
+    | 'gpt-5-mini'
+    | 'gpt-5-nano'
+    | 'claude-4.5-sonnet'
+    | 'claude-4.0-sonnet'
+    | 'claude-3.7-sonnet'
+    | 'claude-3.5-haiku'
+    | 'gemini-2.0-flash'
+    | 'gemini-2.0-flash-lite'
+    | 'gemini-2.5-flash'
+    | 'gemini-2.5-flash-lite';
 
   /**
    * A list of words / phrases and their pronunciation to be used to guide the audio
@@ -359,10 +457,19 @@ export interface AgentResponse {
    */
   stt_mode?: 'fast' | 'accurate';
 
+  user_dtmf_options?: AgentResponse.UserDtmfOptions | null;
+
   /**
    * Version of the agent.
    */
-  version?: number | null;
+  version?: number;
+
+  /**
+   * If set, determines the vocabulary set to use for transcription. This setting
+   * only applies for English agents, for non English agent, this setting is a no-op.
+   * Default to general.
+   */
+  vocab_specialization?: 'general' | 'medical';
 
   /**
    * Optionally set the voice model used for the selected voice. Currently only
@@ -376,8 +483,8 @@ export interface AgentResponse {
     | 'eleven_turbo_v2_5'
     | 'eleven_flash_v2_5'
     | 'eleven_multilingual_v2'
-    | 'Play3.0-mini'
-    | 'PlayDialog'
+    | 'tts-1'
+    | 'gpt-4o-mini-tts'
     | null;
 
   /**
@@ -396,19 +503,12 @@ export interface AgentResponse {
   voice_temperature?: number;
 
   /**
-   * Configures when to stop running voicemail detection, as it becomes unlikely to
-   * hit voicemail after a couple minutes, and keep running it will only have
-   * negative impact. The minimum value allowed is 5,000 ms (5 s), and maximum value
-   * allowed is 180,000 (3 minutes). By default, this is set to 30,000 (30 s).
+   * If this option is set, the call will try to detect voicemail in the first 3
+   * minutes of the call. Actions defined (hangup, or leave a message) will be
+   * applied when the voicemail is detected. Set this to null to disable voicemail
+   * detection.
    */
-  voicemail_detection_timeout_ms?: number;
-
-  /**
-   * The message to be played when the call enters a voicemail. Note that this
-   * feature is only available for phone calls. If you want to hangup after hitting
-   * voicemail, set this to empty string.
-   */
-  voicemail_message?: string;
+  voicemail_option?: AgentResponse.VoicemailOption | null;
 
   /**
    * If set, will control the volume of the agent. Value ranging from [0,2]. Lower
@@ -416,6 +516,12 @@ export interface AgentResponse {
    * If unset, default value 1 will apply.
    */
   volume?: number;
+
+  /**
+   * The timeout for the webhook in milliseconds. If not set, default value of 10000
+   * will apply.
+   */
+  webhook_timeout_ms?: number;
 
   /**
    * The webhook for agent to listen to call events. See what events it would get at
@@ -473,6 +579,35 @@ export namespace AgentResponse {
     version?: number | null;
   }
 
+  /**
+   * Configuration for PII scrubbing from transcripts and recordings.
+   */
+  export interface PiiConfig {
+    /**
+     * List of PII categories to scrub from transcripts and recordings.
+     */
+    categories: Array<
+      | 'person_name'
+      | 'address'
+      | 'email'
+      | 'phone_number'
+      | 'ssn'
+      | 'passport'
+      | 'driver_license'
+      | 'credit_card'
+      | 'bank_account'
+      | 'password'
+      | 'pin'
+      | 'medical_id'
+      | 'date_of_birth'
+    >;
+
+    /**
+     * The processing mode for PII scrubbing. Currently only post-call is supported.
+     */
+    mode: 'post_call';
+  }
+
   export interface StringAnalysisData {
     /**
      * Description of the variable.
@@ -567,6 +702,65 @@ export namespace AgentResponse {
      */
     word: string;
   }
+
+  export interface UserDtmfOptions {
+    /**
+     * The maximum number of digits allowed in the user's DTMF (Dual-Tone
+     * Multi-Frequency) input per turn. Once this limit is reached, the input is
+     * considered complete and a response will be generated immediately.
+     */
+    digit_limit?: number | null;
+
+    /**
+     * A single key that signals the end of DTMF input. Acceptable values include any
+     * digit (0–9), the pound/hash symbol (#), or the asterisk (\*).
+     */
+    termination_key?: string | null;
+
+    /**
+     * The time (in milliseconds) to wait for user DTMF input before timing out. The
+     * timer resets with each digit received.
+     */
+    timeout_ms?: number;
+  }
+
+  /**
+   * If this option is set, the call will try to detect voicemail in the first 3
+   * minutes of the call. Actions defined (hangup, or leave a message) will be
+   * applied when the voicemail is detected. Set this to null to disable voicemail
+   * detection.
+   */
+  export interface VoicemailOption {
+    action:
+      | VoicemailOption.VoicemailActionPrompt
+      | VoicemailOption.VoicemailActionStaticText
+      | VoicemailOption.VoicemailActionHangup;
+  }
+
+  export namespace VoicemailOption {
+    export interface VoicemailActionPrompt {
+      /**
+       * The prompt used to generate the text to be spoken when the call is detected to
+       * be in voicemail.
+       */
+      text: string;
+
+      type: 'prompt';
+    }
+
+    export interface VoicemailActionStaticText {
+      /**
+       * The text to be spoken when the call is detected to be in voicemail.
+       */
+      text: string;
+
+      type: 'static_text';
+    }
+
+    export interface VoicemailActionHangup {
+      type: 'hangup';
+    }
+  }
 }
 
 export type AgentListResponse = Array<AgentResponse>;
@@ -594,6 +788,12 @@ export interface AgentCreateParams {
    * The name of the agent. Only used for your own reference.
    */
   agent_name?: string | null;
+
+  /**
+   * If set to true, DTMF input will be accepted and processed. If false, any DTMF
+   * input will be ignored. Default to true.
+   */
+  allow_user_dtmf?: boolean;
 
   /**
    * If set, will add ambient environment sound to the call to make experience more
@@ -650,7 +850,7 @@ export interface AgentCreateParams {
    * Check out
    * [backchannel default words](/agent/interaction-configuration#backchannel) for
    * more details. Note that certain voices do not work too well with certain words,
-   * so it's recommended to expeirment before adding any words.
+   * so it's recommended to experiment before adding any words.
    */
   backchannel_words?: Array<string> | null;
 
@@ -670,25 +870,30 @@ export interface AgentCreateParams {
   boosted_keywords?: Array<string> | null;
 
   /**
+   * Granular setting to manage how Retell stores sensitive data (transcripts,
+   * recordings, logs, etc.). This replaces the deprecated
+   * `opt_out_sensitive_data_storage` field.
+   *
+   * - `everything`: Store all data including transcripts, recordings, and logs.
+   * - `everything_except_pii`: Store data without PII when PII is detected.
+   * - `basic_attributes_only`: Store only basic attributes; no
+   *   transcripts/recordings/logs. If not set, default value of "everything" will
+   *   apply.
+   */
+  data_storage_setting?: 'everything' | 'everything_except_pii' | 'basic_attributes_only';
+
+  /**
+   * If set, determines what denoising mode to use. Default to noise-cancellation.
+   */
+  denoising_mode?: 'noise-cancellation' | 'noise-and-background-speech-cancellation';
+
+  /**
    * Controls whether the agent would backchannel (agent interjects the speaker with
    * phrases like "yeah", "uh-huh" to signify interest and engagement). Backchannel
    * when enabled tends to show up more in longer user utterances. If not set, agent
    * will not backchannel.
    */
   enable_backchannel?: boolean;
-
-  /**
-   * If set to true, will format transcription to number, date, email, etc. If set to
-   * false, will return transcripts in raw words. If not set, default value of true
-   * will apply. This currently only applies to English.
-   */
-  enable_transcription_formatting?: boolean;
-
-  /**
-   * If set to true, will detect whether the call enters a voicemail. Note that this
-   * feature is only available for phone calls.
-   */
-  enable_voicemail_detection?: boolean;
 
   /**
    * If users stay silent for a period after agent speech, end the call. The minimum
@@ -740,8 +945,10 @@ export interface AgentCreateParams {
     | 'it-IT'
     | 'ko-KR'
     | 'nl-NL'
+    | 'nl-BE'
     | 'pl-PL'
     | 'tr-TR'
+    | 'th-TH'
     | 'vi-VN'
     | 'ro-RO'
     | 'bg-BG'
@@ -782,11 +989,9 @@ export interface AgentCreateParams {
   opt_in_signed_url?: boolean;
 
   /**
-   * Whether this agent opts out of sensitive data storage like transcript,
-   * recording, logging, inbound/outbound phone numbers, etc. These data can still be
-   * accessed securely via webhooks. If not set, default value of false will apply.
+   * Configuration for PII scrubbing from transcripts and recordings.
    */
-  opt_out_sensitive_data_storage?: boolean;
+  pii_config?: AgentCreateParams.PiiConfig;
 
   /**
    * Post call analysis data to extract from the call. This data will augment the
@@ -801,10 +1006,25 @@ export interface AgentCreateParams {
   > | null;
 
   /**
-   * The model to use for post call analysis. Currently only supports gpt-4o-mini and
-   * gpt-4o. Default to gpt-4o-mini.
+   * The model to use for post call analysis. Default to gpt-4o-mini.
    */
-  post_call_analysis_model?: 'gpt-4o-mini' | 'gpt-4o';
+  post_call_analysis_model?:
+    | 'gpt-4o'
+    | 'gpt-4o-mini'
+    | 'gpt-4.1'
+    | 'gpt-4.1-mini'
+    | 'gpt-4.1-nano'
+    | 'gpt-5'
+    | 'gpt-5-mini'
+    | 'gpt-5-nano'
+    | 'claude-4.5-sonnet'
+    | 'claude-4.0-sonnet'
+    | 'claude-3.7-sonnet'
+    | 'claude-3.5-haiku'
+    | 'gemini-2.0-flash'
+    | 'gemini-2.0-flash-lite'
+    | 'gemini-2.5-flash'
+    | 'gemini-2.5-flash-lite';
 
   /**
    * A list of words / phrases and their pronunciation to be used to guide the audio
@@ -848,10 +1068,14 @@ export interface AgentCreateParams {
    */
   stt_mode?: 'fast' | 'accurate';
 
+  user_dtmf_options?: AgentCreateParams.UserDtmfOptions | null;
+
   /**
-   * Version of the agent.
+   * If set, determines the vocabulary set to use for transcription. This setting
+   * only applies for English agents, for non English agent, this setting is a no-op.
+   * Default to general.
    */
-  version?: number | null;
+  vocab_specialization?: 'general' | 'medical';
 
   /**
    * Optionally set the voice model used for the selected voice. Currently only
@@ -865,8 +1089,8 @@ export interface AgentCreateParams {
     | 'eleven_turbo_v2_5'
     | 'eleven_flash_v2_5'
     | 'eleven_multilingual_v2'
-    | 'Play3.0-mini'
-    | 'PlayDialog'
+    | 'tts-1'
+    | 'gpt-4o-mini-tts'
     | null;
 
   /**
@@ -885,19 +1109,12 @@ export interface AgentCreateParams {
   voice_temperature?: number;
 
   /**
-   * Configures when to stop running voicemail detection, as it becomes unlikely to
-   * hit voicemail after a couple minutes, and keep running it will only have
-   * negative impact. The minimum value allowed is 5,000 ms (5 s), and maximum value
-   * allowed is 180,000 (3 minutes). By default, this is set to 30,000 (30 s).
+   * If this option is set, the call will try to detect voicemail in the first 3
+   * minutes of the call. Actions defined (hangup, or leave a message) will be
+   * applied when the voicemail is detected. Set this to null to disable voicemail
+   * detection.
    */
-  voicemail_detection_timeout_ms?: number;
-
-  /**
-   * The message to be played when the call enters a voicemail. Note that this
-   * feature is only available for phone calls. If you want to hangup after hitting
-   * voicemail, set this to empty string.
-   */
-  voicemail_message?: string;
+  voicemail_option?: AgentCreateParams.VoicemailOption | null;
 
   /**
    * If set, will control the volume of the agent. Value ranging from [0,2]. Lower
@@ -905,6 +1122,12 @@ export interface AgentCreateParams {
    * If unset, default value 1 will apply.
    */
   volume?: number;
+
+  /**
+   * The timeout for the webhook in milliseconds. If not set, default value of 10000
+   * will apply.
+   */
+  webhook_timeout_ms?: number;
 
   /**
    * The webhook for agent to listen to call events. See what events it would get at
@@ -962,6 +1185,35 @@ export namespace AgentCreateParams {
     version?: number | null;
   }
 
+  /**
+   * Configuration for PII scrubbing from transcripts and recordings.
+   */
+  export interface PiiConfig {
+    /**
+     * List of PII categories to scrub from transcripts and recordings.
+     */
+    categories: Array<
+      | 'person_name'
+      | 'address'
+      | 'email'
+      | 'phone_number'
+      | 'ssn'
+      | 'passport'
+      | 'driver_license'
+      | 'credit_card'
+      | 'bank_account'
+      | 'password'
+      | 'pin'
+      | 'medical_id'
+      | 'date_of_birth'
+    >;
+
+    /**
+     * The processing mode for PII scrubbing. Currently only post-call is supported.
+     */
+    mode: 'post_call';
+  }
+
   export interface StringAnalysisData {
     /**
      * Description of the variable.
@@ -1056,11 +1308,71 @@ export namespace AgentCreateParams {
      */
     word: string;
   }
+
+  export interface UserDtmfOptions {
+    /**
+     * The maximum number of digits allowed in the user's DTMF (Dual-Tone
+     * Multi-Frequency) input per turn. Once this limit is reached, the input is
+     * considered complete and a response will be generated immediately.
+     */
+    digit_limit?: number | null;
+
+    /**
+     * A single key that signals the end of DTMF input. Acceptable values include any
+     * digit (0–9), the pound/hash symbol (#), or the asterisk (\*).
+     */
+    termination_key?: string | null;
+
+    /**
+     * The time (in milliseconds) to wait for user DTMF input before timing out. The
+     * timer resets with each digit received.
+     */
+    timeout_ms?: number;
+  }
+
+  /**
+   * If this option is set, the call will try to detect voicemail in the first 3
+   * minutes of the call. Actions defined (hangup, or leave a message) will be
+   * applied when the voicemail is detected. Set this to null to disable voicemail
+   * detection.
+   */
+  export interface VoicemailOption {
+    action:
+      | VoicemailOption.VoicemailActionPrompt
+      | VoicemailOption.VoicemailActionStaticText
+      | VoicemailOption.VoicemailActionHangup;
+  }
+
+  export namespace VoicemailOption {
+    export interface VoicemailActionPrompt {
+      /**
+       * The prompt used to generate the text to be spoken when the call is detected to
+       * be in voicemail.
+       */
+      text: string;
+
+      type: 'prompt';
+    }
+
+    export interface VoicemailActionStaticText {
+      /**
+       * The text to be spoken when the call is detected to be in voicemail.
+       */
+      text: string;
+
+      type: 'static_text';
+    }
+
+    export interface VoicemailActionHangup {
+      type: 'hangup';
+    }
+  }
 }
 
 export interface AgentRetrieveParams {
   /**
-   * Optional version of the API to use for this request. Default to latest version.
+   * Optional version of the API to use for this request. If not provided, will
+   * default to latest version.
    */
   version?: number;
 }
@@ -1070,12 +1382,18 @@ export interface AgentUpdateParams {
    * Query param: Optional version of the API to use for this request. Default to
    * latest version.
    */
-  query_version?: number;
+  version?: number;
 
   /**
    * Body param: The name of the agent. Only used for your own reference.
    */
   agent_name?: string | null;
+
+  /**
+   * Body param: If set to true, DTMF input will be accepted and processed. If false,
+   * any DTMF input will be ignored. Default to true.
+   */
+  allow_user_dtmf?: boolean;
 
   /**
    * Body param: If set, will add ambient environment sound to the call to make
@@ -1132,7 +1450,7 @@ export interface AgentUpdateParams {
    * will apply. Check out
    * [backchannel default words](/agent/interaction-configuration#backchannel) for
    * more details. Note that certain voices do not work too well with certain words,
-   * so it's recommended to expeirment before adding any words.
+   * so it's recommended to experiment before adding any words.
    */
   backchannel_words?: Array<string> | null;
 
@@ -1152,25 +1470,31 @@ export interface AgentUpdateParams {
   boosted_keywords?: Array<string> | null;
 
   /**
+   * Body param: Granular setting to manage how Retell stores sensitive data
+   * (transcripts, recordings, logs, etc.). This replaces the deprecated
+   * `opt_out_sensitive_data_storage` field.
+   *
+   * - `everything`: Store all data including transcripts, recordings, and logs.
+   * - `everything_except_pii`: Store data without PII when PII is detected.
+   * - `basic_attributes_only`: Store only basic attributes; no
+   *   transcripts/recordings/logs. If not set, default value of "everything" will
+   *   apply.
+   */
+  data_storage_setting?: 'everything' | 'everything_except_pii' | 'basic_attributes_only';
+
+  /**
+   * Body param: If set, determines what denoising mode to use. Default to
+   * noise-cancellation.
+   */
+  denoising_mode?: 'noise-cancellation' | 'noise-and-background-speech-cancellation';
+
+  /**
    * Body param: Controls whether the agent would backchannel (agent interjects the
    * speaker with phrases like "yeah", "uh-huh" to signify interest and engagement).
    * Backchannel when enabled tends to show up more in longer user utterances. If not
    * set, agent will not backchannel.
    */
   enable_backchannel?: boolean;
-
-  /**
-   * Body param: If set to true, will format transcription to number, date, email,
-   * etc. If set to false, will return transcripts in raw words. If not set, default
-   * value of true will apply. This currently only applies to English.
-   */
-  enable_transcription_formatting?: boolean;
-
-  /**
-   * Body param: If set to true, will detect whether the call enters a voicemail.
-   * Note that this feature is only available for phone calls.
-   */
-  enable_voicemail_detection?: boolean;
 
   /**
    * Body param: If users stay silent for a period after agent speech, end the call.
@@ -1223,8 +1547,10 @@ export interface AgentUpdateParams {
     | 'it-IT'
     | 'ko-KR'
     | 'nl-NL'
+    | 'nl-BE'
     | 'pl-PL'
     | 'tr-TR'
+    | 'th-TH'
     | 'vi-VN'
     | 'ro-RO'
     | 'bg-BG'
@@ -1265,12 +1591,9 @@ export interface AgentUpdateParams {
   opt_in_signed_url?: boolean;
 
   /**
-   * Body param: Whether this agent opts out of sensitive data storage like
-   * transcript, recording, logging, inbound/outbound phone numbers, etc. These data
-   * can still be accessed securely via webhooks. If not set, default value of false
-   * will apply.
+   * Body param: Configuration for PII scrubbing from transcripts and recordings.
    */
-  opt_out_sensitive_data_storage?: boolean;
+  pii_config?: AgentUpdateParams.PiiConfig;
 
   /**
    * Body param: Post call analysis data to extract from the call. This data will
@@ -1285,10 +1608,25 @@ export interface AgentUpdateParams {
   > | null;
 
   /**
-   * Body param: The model to use for post call analysis. Currently only supports
-   * gpt-4o-mini and gpt-4o. Default to gpt-4o-mini.
+   * Body param: The model to use for post call analysis. Default to gpt-4o-mini.
    */
-  post_call_analysis_model?: 'gpt-4o-mini' | 'gpt-4o';
+  post_call_analysis_model?:
+    | 'gpt-4o'
+    | 'gpt-4o-mini'
+    | 'gpt-4.1'
+    | 'gpt-4.1-mini'
+    | 'gpt-4.1-nano'
+    | 'gpt-5'
+    | 'gpt-5-mini'
+    | 'gpt-5-nano'
+    | 'claude-4.5-sonnet'
+    | 'claude-4.0-sonnet'
+    | 'claude-3.7-sonnet'
+    | 'claude-3.5-haiku'
+    | 'gemini-2.0-flash'
+    | 'gemini-2.0-flash-lite'
+    | 'gemini-2.5-flash'
+    | 'gemini-2.5-flash-lite';
 
   /**
    * Body param: A list of words / phrases and their pronunciation to be used to
@@ -1345,9 +1683,16 @@ export interface AgentUpdateParams {
   stt_mode?: 'fast' | 'accurate';
 
   /**
-   * Body param: Version of the agent.
+   * Body param:
    */
-  body_version?: number | null;
+  user_dtmf_options?: AgentUpdateParams.UserDtmfOptions | null;
+
+  /**
+   * Body param: If set, determines the vocabulary set to use for transcription. This
+   * setting only applies for English agents, for non English agent, this setting is
+   * a no-op. Default to general.
+   */
+  vocab_specialization?: 'general' | 'medical';
 
   /**
    * Body param: Unique voice id used for the agent. Find list of available voices
@@ -1367,8 +1712,8 @@ export interface AgentUpdateParams {
     | 'eleven_turbo_v2_5'
     | 'eleven_flash_v2_5'
     | 'eleven_multilingual_v2'
-    | 'Play3.0-mini'
-    | 'PlayDialog'
+    | 'tts-1'
+    | 'gpt-4o-mini-tts'
     | null;
 
   /**
@@ -1387,19 +1732,12 @@ export interface AgentUpdateParams {
   voice_temperature?: number;
 
   /**
-   * Body param: Configures when to stop running voicemail detection, as it becomes
-   * unlikely to hit voicemail after a couple minutes, and keep running it will only
-   * have negative impact. The minimum value allowed is 5,000 ms (5 s), and maximum
-   * value allowed is 180,000 (3 minutes). By default, this is set to 30,000 (30 s).
+   * Body param: If this option is set, the call will try to detect voicemail in the
+   * first 3 minutes of the call. Actions defined (hangup, or leave a message) will
+   * be applied when the voicemail is detected. Set this to null to disable voicemail
+   * detection.
    */
-  voicemail_detection_timeout_ms?: number;
-
-  /**
-   * Body param: The message to be played when the call enters a voicemail. Note that
-   * this feature is only available for phone calls. If you want to hangup after
-   * hitting voicemail, set this to empty string.
-   */
-  voicemail_message?: string;
+  voicemail_option?: AgentUpdateParams.VoicemailOption | null;
 
   /**
    * Body param: If set, will control the volume of the agent. Value ranging from
@@ -1407,6 +1745,12 @@ export interface AgentUpdateParams {
    * agent speech. If unset, default value 1 will apply.
    */
   volume?: number;
+
+  /**
+   * Body param: The timeout for the webhook in milliseconds. If not set, default
+   * value of 10000 will apply.
+   */
+  webhook_timeout_ms?: number;
 
   /**
    * Body param: The webhook for agent to listen to call events. See what events it
@@ -1418,6 +1762,35 @@ export interface AgentUpdateParams {
 }
 
 export namespace AgentUpdateParams {
+  /**
+   * Configuration for PII scrubbing from transcripts and recordings.
+   */
+  export interface PiiConfig {
+    /**
+     * List of PII categories to scrub from transcripts and recordings.
+     */
+    categories: Array<
+      | 'person_name'
+      | 'address'
+      | 'email'
+      | 'phone_number'
+      | 'ssn'
+      | 'passport'
+      | 'driver_license'
+      | 'credit_card'
+      | 'bank_account'
+      | 'password'
+      | 'pin'
+      | 'medical_id'
+      | 'date_of_birth'
+    >;
+
+    /**
+     * The processing mode for PII scrubbing. Currently only post-call is supported.
+     */
+    mode: 'post_call';
+  }
+
   export interface StringAnalysisData {
     /**
      * Description of the variable.
@@ -1558,6 +1931,87 @@ export namespace AgentUpdateParams {
      */
     version?: number | null;
   }
+
+  export interface UserDtmfOptions {
+    /**
+     * The maximum number of digits allowed in the user's DTMF (Dual-Tone
+     * Multi-Frequency) input per turn. Once this limit is reached, the input is
+     * considered complete and a response will be generated immediately.
+     */
+    digit_limit?: number | null;
+
+    /**
+     * A single key that signals the end of DTMF input. Acceptable values include any
+     * digit (0–9), the pound/hash symbol (#), or the asterisk (\*).
+     */
+    termination_key?: string | null;
+
+    /**
+     * The time (in milliseconds) to wait for user DTMF input before timing out. The
+     * timer resets with each digit received.
+     */
+    timeout_ms?: number;
+  }
+
+  /**
+   * If this option is set, the call will try to detect voicemail in the first 3
+   * minutes of the call. Actions defined (hangup, or leave a message) will be
+   * applied when the voicemail is detected. Set this to null to disable voicemail
+   * detection.
+   */
+  export interface VoicemailOption {
+    action:
+      | VoicemailOption.VoicemailActionPrompt
+      | VoicemailOption.VoicemailActionStaticText
+      | VoicemailOption.VoicemailActionHangup;
+  }
+
+  export namespace VoicemailOption {
+    export interface VoicemailActionPrompt {
+      /**
+       * The prompt used to generate the text to be spoken when the call is detected to
+       * be in voicemail.
+       */
+      text: string;
+
+      type: 'prompt';
+    }
+
+    export interface VoicemailActionStaticText {
+      /**
+       * The text to be spoken when the call is detected to be in voicemail.
+       */
+      text: string;
+
+      type: 'static_text';
+    }
+
+    export interface VoicemailActionHangup {
+      type: 'hangup';
+    }
+  }
+}
+
+export interface AgentListParams {
+  /**
+   * A limit on the number of objects to be returned. Limit can range between 1 and
+   * 1000, and the default is 1000.
+   */
+  limit?: number;
+
+  /**
+   * The pagination key to continue fetching the next page of agents. Pagination key
+   * is represented by a agent id, pagination key and version pair is exclusive (not
+   * included in the fetched page). If not set, will start from the beginning.
+   */
+  pagination_key?: string;
+
+  /**
+   * Specifies the version of the agent associated with the pagination_key. When
+   * paginating, both the pagination_key and its version must be provided to ensure
+   * consistent ordering and to fetch the next page correctly.
+   */
+  pagination_key_version?: number;
 }
 
 export declare namespace Agent {
@@ -1568,5 +2022,6 @@ export declare namespace Agent {
     type AgentCreateParams as AgentCreateParams,
     type AgentRetrieveParams as AgentRetrieveParams,
     type AgentUpdateParams as AgentUpdateParams,
+    type AgentListParams as AgentListParams,
   };
 }

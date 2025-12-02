@@ -8,9 +8,11 @@ const client = new Retell({
   baseURL: process.env['TEST_API_BASE_URL'] ?? 'http://127.0.0.1:4010',
 });
 
-describe('resource llm', () => {
-  test('create', async () => {
-    const responsePromise = client.llm.create({});
+describe('resource chatAgent', () => {
+  test('create: only required params', async () => {
+    const responsePromise = client.chatAgent.create({
+      response_engine: { llm_id: 'llm_234sdertfsdsfsdf', type: 'retell-llm' },
+    });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
     const response = await responsePromise;
@@ -20,8 +22,32 @@ describe('resource llm', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
+  test('create: required and optional params', async () => {
+    const response = await client.chatAgent.create({
+      response_engine: { llm_id: 'llm_234sdertfsdsfsdf', type: 'retell-llm', version: 0 },
+      agent_name: 'Jarvis',
+      auto_close_message: 'Thank you for chatting. The conversation has ended.',
+      data_storage_setting: 'everything',
+      end_chat_after_silence_ms: 3600000,
+      language: 'en-US',
+      opt_in_signed_url: true,
+      pii_config: { categories: ['person_name'], mode: 'post_call' },
+      post_chat_analysis_data: [
+        {
+          description: 'The name of the customer.',
+          name: 'customer_name',
+          type: 'string',
+          examples: ['John Doe', 'Jane Smith'],
+        },
+      ],
+      post_chat_analysis_model: 'gpt-4.1-mini',
+      webhook_timeout_ms: 10000,
+      webhook_url: 'https://webhook-url-here',
+    });
+  });
+
   test('retrieve', async () => {
-    const responsePromise = client.llm.retrieve('16b980523634a6dc504898cda492e939');
+    const responsePromise = client.chatAgent.retrieve('16b980523634a6dc504898cda492e939');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
     const response = await responsePromise;
@@ -34,14 +60,14 @@ describe('resource llm', () => {
   test('retrieve: request options instead of params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
-      client.llm.retrieve('16b980523634a6dc504898cda492e939', { path: '/_stainless_unknown_path' }),
+      client.chatAgent.retrieve('16b980523634a6dc504898cda492e939', { path: '/_stainless_unknown_path' }),
     ).rejects.toThrow(Retell.NotFoundError);
   });
 
   test('retrieve: request options and params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
-      client.llm.retrieve(
+      client.chatAgent.retrieve(
         '16b980523634a6dc504898cda492e939',
         { version: 1 },
         { path: '/_stainless_unknown_path' },
@@ -50,7 +76,7 @@ describe('resource llm', () => {
   });
 
   test('update', async () => {
-    const responsePromise = client.llm.update('16b980523634a6dc504898cda492e939', {});
+    const responsePromise = client.chatAgent.update('16b980523634a6dc504898cda492e939', {});
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
     const response = await responsePromise;
@@ -61,7 +87,7 @@ describe('resource llm', () => {
   });
 
   test('list', async () => {
-    const responsePromise = client.llm.list();
+    const responsePromise = client.chatAgent.list();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
     const response = await responsePromise;
@@ -73,21 +99,23 @@ describe('resource llm', () => {
 
   test('list: request options instead of params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
-    await expect(client.llm.list({ path: '/_stainless_unknown_path' })).rejects.toThrow(Retell.NotFoundError);
+    await expect(client.chatAgent.list({ path: '/_stainless_unknown_path' })).rejects.toThrow(
+      Retell.NotFoundError,
+    );
   });
 
   test('list: request options and params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
-      client.llm.list(
-        { limit: 50, pagination_key: 'llm_1ffdb9717444d0e77346838911', pagination_key_version: 0 },
+      client.chatAgent.list(
+        { limit: 50, pagination_key: '16b980523634a6dc504898cda492e939', pagination_key_version: 0 },
         { path: '/_stainless_unknown_path' },
       ),
     ).rejects.toThrow(Retell.NotFoundError);
   });
 
   test('delete', async () => {
-    const responsePromise = client.llm.delete('oBeDLoLOeuAbiuaMFXRtDOLriTJ5tSxD');
+    const responsePromise = client.chatAgent.delete('oBeDLoLOeuAbiuaMFXRtDOLriTJ5tSxD');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
     const response = await responsePromise;
@@ -100,7 +128,43 @@ describe('resource llm', () => {
   test('delete: request options instead of params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
-      client.llm.delete('oBeDLoLOeuAbiuaMFXRtDOLriTJ5tSxD', { path: '/_stainless_unknown_path' }),
+      client.chatAgent.delete('oBeDLoLOeuAbiuaMFXRtDOLriTJ5tSxD', { path: '/_stainless_unknown_path' }),
+    ).rejects.toThrow(Retell.NotFoundError);
+  });
+
+  test('getVersions', async () => {
+    const responsePromise = client.chatAgent.getVersions('16b980523634a6dc504898cda492e939');
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  test('getVersions: request options instead of params are passed correctly', async () => {
+    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
+    await expect(
+      client.chatAgent.getVersions('16b980523634a6dc504898cda492e939', { path: '/_stainless_unknown_path' }),
+    ).rejects.toThrow(Retell.NotFoundError);
+  });
+
+  test('publish', async () => {
+    const responsePromise = client.chatAgent.publish('16b980523634a6dc504898cda492e939');
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  test('publish: request options instead of params are passed correctly', async () => {
+    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
+    await expect(
+      client.chatAgent.publish('16b980523634a6dc504898cda492e939', { path: '/_stainless_unknown_path' }),
     ).rejects.toThrow(Retell.NotFoundError);
   });
 });
