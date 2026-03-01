@@ -1,7 +1,10 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
-import { APIResource } from '../resource';
-import * as Core from '../core';
+import { APIResource } from '../core/resource';
+import { APIPromise } from '../core/api-promise';
+import { buildHeaders } from '../internal/headers';
+import { RequestOptions } from '../internal/request-options';
+import { path } from '../internal/utils/path';
 
 export class Chat extends APIResource {
   /**
@@ -14,7 +17,7 @@ export class Chat extends APIResource {
    * });
    * ```
    */
-  create(body: ChatCreateParams, options?: Core.RequestOptions): Core.APIPromise<ChatResponse> {
+  create(body: ChatCreateParams, options?: RequestOptions): APIPromise<ChatResponse> {
     return this._client.post('/create-chat', { body, ...options });
   }
 
@@ -28,8 +31,8 @@ export class Chat extends APIResource {
    * );
    * ```
    */
-  retrieve(chatId: string, options?: Core.RequestOptions): Core.APIPromise<ChatResponse> {
-    return this._client.get(`/get-chat/${chatId}`, options);
+  retrieve(chatID: string, options?: RequestOptions): APIPromise<ChatResponse> {
+    return this._client.get(path`/get-chat/${chatID}`, options);
   }
 
   /**
@@ -52,12 +55,8 @@ export class Chat extends APIResource {
    * );
    * ```
    */
-  update(
-    chatId: string,
-    body: ChatUpdateParams,
-    options?: Core.RequestOptions,
-  ): Core.APIPromise<ChatResponse> {
-    return this._client.patch(`/update-chat/${chatId}`, { body, ...options });
+  update(chatID: string, body: ChatUpdateParams, options?: RequestOptions): APIPromise<ChatResponse> {
+    return this._client.patch(path`/update-chat/${chatID}`, { body, ...options });
   }
 
   /**
@@ -68,8 +67,15 @@ export class Chat extends APIResource {
    * const chatResponses = await client.chat.list();
    * ```
    */
-  list(options?: Core.RequestOptions): Core.APIPromise<ChatListResponse> {
-    return this._client.get('/list-chat', options);
+  list(
+    query: ChatListParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<ChatListResponse> {
+    return this._client.get('/list-chat', {
+      query,
+      timeout: (this._client as any)._options.timeout ?? 300000,
+      ...options,
+    });
   }
 
   /**
@@ -85,9 +91,13 @@ export class Chat extends APIResource {
    */
   createChatCompletion(
     body: ChatCreateChatCompletionParams,
-    options?: Core.RequestOptions,
-  ): Core.APIPromise<ChatCreateChatCompletionResponse> {
-    return this._client.post('/create-chat-completion', { body, ...options });
+    options?: RequestOptions,
+  ): APIPromise<ChatCreateChatCompletionResponse> {
+    return this._client.post('/create-chat-completion', {
+      body,
+      timeout: (this._client as any)._options.timeout ?? 300000,
+      ...options,
+    });
   }
 
   /**
@@ -103,7 +113,7 @@ export class Chat extends APIResource {
    * });
    * ```
    */
-  createSMSChat(body: ChatCreateSMSChatParams, options?: Core.RequestOptions): Core.APIPromise<ChatResponse> {
+  createSMSChat(body: ChatCreateSMSChatParams, options?: RequestOptions): APIPromise<ChatResponse> {
     return this._client.post('/create-sms-chat', { body, ...options });
   }
 
@@ -115,10 +125,10 @@ export class Chat extends APIResource {
    * await client.chat.end('16b980523634a6dc504898cda492e939');
    * ```
    */
-  end(chatId: string, options?: Core.RequestOptions): Core.APIPromise<void> {
-    return this._client.patch(`/end-chat/${chatId}`, {
+  end(chatID: string, options?: RequestOptions): APIPromise<void> {
+    return this._client.patch(path`/end-chat/${chatID}`, {
       ...options,
-      headers: { Accept: '*/*', ...options?.headers },
+      headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
     });
   }
 }
@@ -139,9 +149,7 @@ export interface ChatResponse {
    *
    * - `ongoing`: Chat session is ongoing, chat agent can receive new message and
    *   generate response.
-   *
-   * - `ended`: Chat session has ended can not generate new response.
-   *
+   * - `ended`: Chat session has ended, and no longer can generate new response.
    * - `error`: Chat encountered error.
    */
   chat_status: 'ongoing' | 'ended' | 'error';
@@ -156,14 +164,24 @@ export interface ChatResponse {
   chat_cost?: ChatResponse.ChatCost;
 
   /**
+   * Type of the chat
+   */
+  chat_type?: 'api_chat' | 'sms_chat';
+
+  /**
    * Dynamic variables collected from the chat. Only available after the chat ends.
    */
   collected_dynamic_variables?: { [key: string]: unknown };
 
   /**
+   * Custom attributes for the chat
+   */
+  custom_attributes?: { [key: string]: string | number | boolean };
+
+  /**
    * End timestamp (milliseconds since epoch) of the chat. Available after chat ends.
    */
-  end_timestamp?: number;
+  end_timestamp?: number | null;
 
   /**
    * Transcript of the chat weaved with tool call invocation and results.
@@ -200,6 +218,11 @@ export interface ChatResponse {
    * Transcription of the chat.
    */
   transcript?: string;
+
+  /**
+   * The version of the agent
+   */
+  version?: number | null;
 }
 
 export namespace ChatResponse {
@@ -257,6 +280,11 @@ export namespace ChatResponse {
       product: string;
 
       /**
+       * True if this cost item is for a transfer segment.
+       */
+      is_transfer_leg_cost?: boolean;
+
+      /**
        * Unit price of the product in cents per second.
        */
       unit_price?: number;
@@ -275,7 +303,7 @@ export namespace ChatResponse {
     created_timestamp: number;
 
     /**
-     * Unique id ot the message
+     * Unique id of the message
      */
     message_id: string;
 
@@ -292,7 +320,7 @@ export namespace ChatResponse {
     arguments: string;
 
     /**
-     * Unique id ot the message
+     * Unique id of the message
      */
     message_id: string;
 
@@ -315,6 +343,12 @@ export namespace ChatResponse {
      * Create timestamp of the message
      */
     created_timestamp?: number;
+
+    /**
+     * Optional thought signature from Google Gemini thinking models. This is used
+     * internally to maintain reasoning chain in multi-turn function calling.
+     */
+    thought_signature?: string;
   }
 
   export interface ToolCallResultMessage {
@@ -329,12 +363,12 @@ export namespace ChatResponse {
     created_timestamp: number;
 
     /**
-     * Unique id ot the message
+     * Unique id of the message
      */
     message_id: string;
 
     /**
-     * This is result of a tool call.
+     * This is the result of a tool call.
      */
     role: 'tool_call_result';
 
@@ -342,6 +376,11 @@ export namespace ChatResponse {
      * Tool call id, globally unique.
      */
     tool_call_id: string;
+
+    /**
+     * Whether the tool call was successful.
+     */
+    successful?: boolean;
   }
 
   export interface NodeTransitionMessage {
@@ -351,12 +390,12 @@ export namespace ChatResponse {
     created_timestamp: number;
 
     /**
-     * Unique id ot the message
+     * Unique id of the message
      */
     message_id: string;
 
     /**
-     * This is node transition.
+     * This is a node transition.
      */
     role: 'node_transition';
 
@@ -388,12 +427,12 @@ export namespace ChatResponse {
     created_timestamp: number;
 
     /**
-     * Unique id ot the message
+     * Unique id of the message
      */
     message_id: string;
 
     /**
-     * This is state transition for .
+     * This is a state transition.
      */
     role: 'state_transition';
 
@@ -439,7 +478,7 @@ export namespace ChatCreateChatCompletionResponse {
     created_timestamp: number;
 
     /**
-     * Unique id ot the message
+     * Unique id of the message
      */
     message_id: string;
 
@@ -456,7 +495,7 @@ export namespace ChatCreateChatCompletionResponse {
     arguments: string;
 
     /**
-     * Unique id ot the message
+     * Unique id of the message
      */
     message_id: string;
 
@@ -479,6 +518,12 @@ export namespace ChatCreateChatCompletionResponse {
      * Create timestamp of the message
      */
     created_timestamp?: number;
+
+    /**
+     * Optional thought signature from Google Gemini thinking models. This is used
+     * internally to maintain reasoning chain in multi-turn function calling.
+     */
+    thought_signature?: string;
   }
 
   export interface ToolCallResultMessage {
@@ -493,12 +538,12 @@ export namespace ChatCreateChatCompletionResponse {
     created_timestamp: number;
 
     /**
-     * Unique id ot the message
+     * Unique id of the message
      */
     message_id: string;
 
     /**
-     * This is result of a tool call.
+     * This is the result of a tool call.
      */
     role: 'tool_call_result';
 
@@ -506,6 +551,11 @@ export namespace ChatCreateChatCompletionResponse {
      * Tool call id, globally unique.
      */
     tool_call_id: string;
+
+    /**
+     * Whether the tool call was successful.
+     */
+    successful?: boolean;
   }
 
   export interface NodeTransitionMessage {
@@ -515,12 +565,12 @@ export namespace ChatCreateChatCompletionResponse {
     created_timestamp: number;
 
     /**
-     * Unique id ot the message
+     * Unique id of the message
      */
     message_id: string;
 
     /**
-     * This is node transition.
+     * This is a node transition.
      */
     role: 'node_transition';
 
@@ -552,12 +602,12 @@ export namespace ChatCreateChatCompletionResponse {
     created_timestamp: number;
 
     /**
-     * Unique id ot the message
+     * Unique id of the message
      */
     message_id: string;
 
     /**
-     * This is state transition for .
+     * This is a state transition.
      */
     role: 'state_transition';
 
@@ -602,6 +652,11 @@ export interface ChatCreateParams {
 
 export interface ChatUpdateParams {
   /**
+   * Custom attributes for the chat
+   */
+  custom_attributes?: { [key: string]: string | number | boolean };
+
+  /**
    * Data storage setting for this chat. Overrides the agent's default setting.
    * "everything" stores all data, "basic_attributes_only" stores only metadata.
    * Cannot be downgraded from more restrictive to less restrictive settings.
@@ -623,6 +678,28 @@ export interface ChatUpdateParams {
    * override.
    */
   override_dynamic_variables?: { [key: string]: string } | null;
+}
+
+export interface ChatListParams {
+  /**
+   * Limit the number of chats returned. Default 50, Max 1000. To retrieve more than
+   * 1000, use pagination_key to continue fetching the next page.
+   */
+  limit?: number;
+
+  /**
+   * The pagination key to continue fetching the next page of chats. Pagination key
+   * is represented by a chat id here, and it's exclusive (not included in the
+   * fetched chats). The last chat id from the list chats is usually used as
+   * pagination key here. If not set, will start from the beginning.
+   */
+  pagination_key?: string;
+
+  /**
+   * The chats will be sorted by `start_timestamp`, whether to return the chats in
+   * ascending or descending order.
+   */
+  sort_order?: 'ascending' | 'descending';
 }
 
 export interface ChatCreateChatCompletionParams {
@@ -684,6 +761,7 @@ export declare namespace Chat {
     type ChatCreateChatCompletionResponse as ChatCreateChatCompletionResponse,
     type ChatCreateParams as ChatCreateParams,
     type ChatUpdateParams as ChatUpdateParams,
+    type ChatListParams as ChatListParams,
     type ChatCreateChatCompletionParams as ChatCreateChatCompletionParams,
     type ChatCreateSMSChatParams as ChatCreateSMSChatParams,
   };

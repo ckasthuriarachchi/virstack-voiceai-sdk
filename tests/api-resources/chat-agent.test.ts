@@ -1,7 +1,6 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 import Retell from 'retell-sdk';
-import { Response } from 'node-fetch';
 
 const client = new Retell({
   apiKey: 'YOUR_RETELL_API_KEY',
@@ -9,7 +8,8 @@ const client = new Retell({
 });
 
 describe('resource chatAgent', () => {
-  test('create: only required params', async () => {
+  // Mock server tests are disabled
+  test.skip('create: only required params', async () => {
     const responsePromise = client.chatAgent.create({
       response_engine: { llm_id: 'llm_234sdertfsdsfsdf', type: 'retell-llm' },
     });
@@ -22,13 +22,26 @@ describe('resource chatAgent', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  test('create: required and optional params', async () => {
+  // Mock server tests are disabled
+  test.skip('create: required and optional params', async () => {
     const response = await client.chatAgent.create({
-      response_engine: { llm_id: 'llm_234sdertfsdsfsdf', type: 'retell-llm', version: 0 },
+      response_engine: {
+        llm_id: 'llm_234sdertfsdsfsdf',
+        type: 'retell-llm',
+        version: 0,
+      },
       agent_name: 'Jarvis',
+      analysis_successful_prompt:
+        'The agent finished the task and the call was complete without being cutoff.',
+      analysis_summary_prompt: 'Summarize the call in a few sentences.',
+      analysis_user_sentiment_prompt:
+        "Evaluate the user's sentiment based on their tone and satisfaction level.",
       auto_close_message: 'Thank you for chatting. The conversation has ended.',
+      data_storage_retention_days: 30,
       data_storage_setting: 'everything',
       end_chat_after_silence_ms: 3600000,
+      guardrail_config: { input_topics: ['platform_integrity_jailbreaking'], output_topics: ['harassment'] },
+      is_public: false,
       language: 'en-US',
       opt_in_signed_url: true,
       pii_config: { categories: ['person_name'], mode: 'post_call' },
@@ -41,12 +54,15 @@ describe('resource chatAgent', () => {
         },
       ],
       post_chat_analysis_model: 'gpt-4.1-mini',
+      signed_url_expiration_ms: 86400000,
+      webhook_events: ['chat_started'],
       webhook_timeout_ms: 10000,
       webhook_url: 'https://webhook-url-here',
     });
   });
 
-  test('retrieve', async () => {
+  // Mock server tests are disabled
+  test.skip('retrieve', async () => {
     const responsePromise = client.chatAgent.retrieve('16b980523634a6dc504898cda492e939');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -57,14 +73,8 @@ describe('resource chatAgent', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  test('retrieve: request options instead of params are passed correctly', async () => {
-    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
-    await expect(
-      client.chatAgent.retrieve('16b980523634a6dc504898cda492e939', { path: '/_stainless_unknown_path' }),
-    ).rejects.toThrow(Retell.NotFoundError);
-  });
-
-  test('retrieve: request options and params are passed correctly', async () => {
+  // Mock server tests are disabled
+  test.skip('retrieve: request options and params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
       client.chatAgent.retrieve(
@@ -75,7 +85,8 @@ describe('resource chatAgent', () => {
     ).rejects.toThrow(Retell.NotFoundError);
   });
 
-  test('update', async () => {
+  // Mock server tests are disabled
+  test.skip('update', async () => {
     const responsePromise = client.chatAgent.update('16b980523634a6dc504898cda492e939', {});
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -86,7 +97,8 @@ describe('resource chatAgent', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  test('list', async () => {
+  // Mock server tests are disabled
+  test.skip('list', async () => {
     const responsePromise = client.chatAgent.list();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -97,24 +109,23 @@ describe('resource chatAgent', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  test('list: request options instead of params are passed correctly', async () => {
-    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
-    await expect(client.chatAgent.list({ path: '/_stainless_unknown_path' })).rejects.toThrow(
-      Retell.NotFoundError,
-    );
-  });
-
-  test('list: request options and params are passed correctly', async () => {
+  // Mock server tests are disabled
+  test.skip('list: request options and params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
       client.chatAgent.list(
-        { limit: 50, pagination_key: '16b980523634a6dc504898cda492e939', pagination_key_version: 0 },
+        {
+          limit: 50,
+          pagination_key: '16b980523634a6dc504898cda492e939',
+          pagination_key_version: 0,
+        },
         { path: '/_stainless_unknown_path' },
       ),
     ).rejects.toThrow(Retell.NotFoundError);
   });
 
-  test('delete', async () => {
+  // Mock server tests are disabled
+  test.skip('delete', async () => {
     const responsePromise = client.chatAgent.delete('oBeDLoLOeuAbiuaMFXRtDOLriTJ5tSxD');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -125,14 +136,8 @@ describe('resource chatAgent', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  test('delete: request options instead of params are passed correctly', async () => {
-    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
-    await expect(
-      client.chatAgent.delete('oBeDLoLOeuAbiuaMFXRtDOLriTJ5tSxD', { path: '/_stainless_unknown_path' }),
-    ).rejects.toThrow(Retell.NotFoundError);
-  });
-
-  test('getVersions', async () => {
+  // Mock server tests are disabled
+  test.skip('getVersions', async () => {
     const responsePromise = client.chatAgent.getVersions('16b980523634a6dc504898cda492e939');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -143,14 +148,8 @@ describe('resource chatAgent', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  test('getVersions: request options instead of params are passed correctly', async () => {
-    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
-    await expect(
-      client.chatAgent.getVersions('16b980523634a6dc504898cda492e939', { path: '/_stainless_unknown_path' }),
-    ).rejects.toThrow(Retell.NotFoundError);
-  });
-
-  test('publish', async () => {
+  // Mock server tests are disabled
+  test.skip('publish', async () => {
     const responsePromise = client.chatAgent.publish('16b980523634a6dc504898cda492e939');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -159,12 +158,5 @@ describe('resource chatAgent', () => {
     const dataAndResponse = await responsePromise.withResponse();
     expect(dataAndResponse.data).toBe(response);
     expect(dataAndResponse.response).toBe(rawResponse);
-  });
-
-  test('publish: request options instead of params are passed correctly', async () => {
-    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
-    await expect(
-      client.chatAgent.publish('16b980523634a6dc504898cda492e939', { path: '/_stainless_unknown_path' }),
-    ).rejects.toThrow(Retell.NotFoundError);
   });
 });

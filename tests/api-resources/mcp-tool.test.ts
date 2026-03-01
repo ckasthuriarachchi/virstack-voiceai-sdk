@@ -1,7 +1,6 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 import Retell from 'retell-sdk';
-import { Response } from 'node-fetch';
 
 const client = new Retell({
   apiKey: 'YOUR_RETELL_API_KEY',
@@ -9,7 +8,8 @@ const client = new Retell({
 });
 
 describe('resource mcpTool', () => {
-  test('getMcpTools: only required params', async () => {
+  // Mock server tests are disabled
+  test.skip('getMcpTools: only required params', async () => {
     const responsePromise = client.mcpTool.getMcpTools('oBeDLoLOeuAbiuaMFXRtDOLriTJ5tSxD', {
       mcp_id: 'mcp-server-1',
     });
@@ -22,9 +22,11 @@ describe('resource mcpTool', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  test('getMcpTools: required and optional params', async () => {
+  // Mock server tests are disabled
+  test.skip('getMcpTools: required and optional params', async () => {
     const response = await client.mcpTool.getMcpTools('oBeDLoLOeuAbiuaMFXRtDOLriTJ5tSxD', {
       mcp_id: 'mcp-server-1',
+      component_id: 'component-123',
       version: 1,
     });
   });

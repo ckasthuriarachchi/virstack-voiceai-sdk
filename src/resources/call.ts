@@ -1,7 +1,10 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
-import { APIResource } from '../resource';
-import * as Core from '../core';
+import { APIResource } from '../core/resource';
+import { APIPromise } from '../core/api-promise';
+import { buildHeaders } from '../internal/headers';
+import { RequestOptions } from '../internal/request-options';
+import { path } from '../internal/utils/path';
 
 export class Call extends APIResource {
   /**
@@ -14,8 +17,8 @@ export class Call extends APIResource {
    * );
    * ```
    */
-  retrieve(callId: string, options?: Core.RequestOptions): Core.APIPromise<CallResponse> {
-    return this._client.get(`/v2/get-call/${callId}`, options);
+  retrieve(callID: string, options?: RequestOptions): APIPromise<CallResponse> {
+    return this._client.get(path`/v2/get-call/${callID}`, options);
   }
 
   /**
@@ -35,12 +38,8 @@ export class Call extends APIResource {
    * );
    * ```
    */
-  update(
-    callId: string,
-    body: CallUpdateParams,
-    options?: Core.RequestOptions,
-  ): Core.APIPromise<CallResponse> {
-    return this._client.patch(`/v2/update-call/${callId}`, { body, ...options });
+  update(callID: string, body: CallUpdateParams, options?: RequestOptions): APIPromise<CallResponse> {
+    return this._client.patch(path`/v2/update-call/${callID}`, { body, ...options });
   }
 
   /**
@@ -51,8 +50,12 @@ export class Call extends APIResource {
    * const callResponses = await client.call.list();
    * ```
    */
-  list(body: CallListParams, options?: Core.RequestOptions): Core.APIPromise<CallListResponse> {
-    return this._client.post('/v2/list-calls', { body, ...options });
+  list(body: CallListParams, options?: RequestOptions): APIPromise<CallListResponse> {
+    return this._client.post('/v2/list-calls', {
+      body,
+      timeout: (this._client as any)._options.timeout ?? 300000,
+      ...options,
+    });
   }
 
   /**
@@ -65,10 +68,10 @@ export class Call extends APIResource {
    * );
    * ```
    */
-  delete(callId: string, options?: Core.RequestOptions): Core.APIPromise<void> {
-    return this._client.delete(`/v2/delete-call/${callId}`, {
+  delete(callID: string, options?: RequestOptions): APIPromise<void> {
+    return this._client.delete(path`/v2/delete-call/${callID}`, {
       ...options,
-      headers: { Accept: '*/*', ...options?.headers },
+      headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
     });
   }
 
@@ -85,11 +88,12 @@ export class Call extends APIResource {
    * );
    * ```
    */
-  createPhoneCall(
-    body: CallCreatePhoneCallParams,
-    options?: Core.RequestOptions,
-  ): Core.APIPromise<PhoneCallResponse> {
-    return this._client.post('/v2/create-phone-call', { body, ...options });
+  createPhoneCall(body: CallCreatePhoneCallParams, options?: RequestOptions): APIPromise<PhoneCallResponse> {
+    return this._client.post('/v2/create-phone-call', {
+      body,
+      timeout: (this._client as any)._options.timeout ?? 120000,
+      ...options,
+    });
   }
 
   /**
@@ -102,10 +106,7 @@ export class Call extends APIResource {
    * });
    * ```
    */
-  createWebCall(
-    body: CallCreateWebCallParams,
-    options?: Core.RequestOptions,
-  ): Core.APIPromise<WebCallResponse> {
+  createWebCall(body: CallCreateWebCallParams, options?: RequestOptions): APIPromise<WebCallResponse> {
     return this._client.post('/v2/create-web-call', { body, ...options });
   }
 
@@ -122,8 +123,8 @@ export class Call extends APIResource {
    */
   registerPhoneCall(
     body: CallRegisterPhoneCallParams,
-    options?: Core.RequestOptions,
-  ): Core.APIPromise<PhoneCallResponse> {
+    options?: RequestOptions,
+  ): APIPromise<PhoneCallResponse> {
     return this._client.post('/v2/register-phone-call', { body, ...options });
   }
 }
@@ -142,8 +143,8 @@ export interface PhoneCallResponse {
   agent_version: number;
 
   /**
-   * Unique id of the call. Used to identify in LLM websocket and used to
-   * authenticate in audio websocket.
+   * Unique id of the call. Used to identify the call in the LLM websocket and used
+   * to authenticate in the audio websocket.
    */
   call_id: string;
 
@@ -151,12 +152,9 @@ export interface PhoneCallResponse {
    * Status of call.
    *
    * - `registered`: Call id issued, starting to make a call using this id.
-   *
    * - `ongoing`: Call connected and ongoing.
-   *
    * - `ended`: The underlying websocket has ended for the call. Either user or agent
-   *   hanged up, or call transferred.
-   *
+   *   hung up, or call transferred.
    * - `error`: Call encountered error.
    */
   call_status: 'registered' | 'not_connected' | 'ongoing' | 'ended' | 'error';
@@ -225,6 +223,7 @@ export interface PhoneCallResponse {
     | 'agent_hangup'
     | 'call_transfer'
     | 'voicemail_reached'
+    | 'ivr_reached'
     | 'inactivity'
     | 'max_duration_reached'
     | 'concurrency_limit_reached'
@@ -248,7 +247,9 @@ export interface PhoneCallResponse {
     | 'error_retell'
     | 'error_unknown'
     | 'error_user_not_joined'
-    | 'registered_call_timeout';
+    | 'registered_call_timeout'
+    | 'transfer_bridged'
+    | 'transfer_cancelled';
 
   /**
    * Duration of the call in milliseconds. Available after call ends.
@@ -303,7 +304,7 @@ export interface PhoneCallResponse {
   public_log_url?: string;
 
   /**
-   * Recording of the call, with each party’s audio stored in a separate channel.
+   * Recording of the call, with each party's audio stored in a separate channel.
    * Available after the call ends.
    */
   recording_multi_channel_url?: string;
@@ -321,7 +322,7 @@ export interface PhoneCallResponse {
   retell_llm_dynamic_variables?: { [key: string]: unknown };
 
   /**
-   * Recording of the call without PII, with each party’s audio stored in a separate
+   * Recording of the call without PII, with each party's audio stored in a separate
    * channel. Available after the call ends.
    */
   scrubbed_recording_multi_channel_url?: string;
@@ -340,6 +341,7 @@ export interface PhoneCallResponse {
     | PhoneCallResponse.Utterance
     | PhoneCallResponse.ToolCallInvocationUtterance
     | PhoneCallResponse.ToolCallResultUtterance
+    | PhoneCallResponse.NodeTransitionUtterance
     | PhoneCallResponse.DtmfUtterance
   >;
 
@@ -375,6 +377,7 @@ export interface PhoneCallResponse {
     | PhoneCallResponse.Utterance
     | PhoneCallResponse.ToolCallInvocationUtterance
     | PhoneCallResponse.ToolCallResultUtterance
+    | PhoneCallResponse.NodeTransitionUtterance
     | PhoneCallResponse.DtmfUtterance
   >;
 
@@ -383,9 +386,15 @@ export interface PhoneCallResponse {
    * populated when the disconnection reason was `call_transfer`. Can be a phone
    * number or a SIP URI. SIP URIs are prefixed with "sip:" and may include a
    * ";transport=..." portion (if transport is known) where the transport type can be
-   * "tls", "tcp", "udp", or "auto".
+   * "tls", "tcp" or "udp".
    */
   transfer_destination?: string | null;
+
+  /**
+   * Transfer end timestamp (milliseconds since epoch) of the call. Available after
+   * transfer call ends.
+   */
+  transfer_end_timestamp?: number;
 }
 
 export namespace PhoneCallResponse {
@@ -461,6 +470,11 @@ export namespace PhoneCallResponse {
       product: string;
 
       /**
+       * True if this cost item is for a transfer segment.
+       */
+      is_transfer_leg_cost?: boolean;
+
+      /**
        * Unit price of the product in cents per second.
        */
       unit_price?: number;
@@ -472,6 +486,12 @@ export namespace PhoneCallResponse {
    * will be available, as it depends on the type of call and feature used.
    */
   export interface Latency {
+    /**
+     * Transcription latency (diff between the duration of the chunks streamed and the
+     * durations of the transcribed part) tracking of the call.
+     */
+    asr?: Latency.Asr;
+
     /**
      * End to end latency (from user stops talking to agent start talking) tracking of
      * the call. This latency does not account for the network trip time from Retell
@@ -515,6 +535,52 @@ export namespace PhoneCallResponse {
   }
 
   export namespace Latency {
+    /**
+     * Transcription latency (diff between the duration of the chunks streamed and the
+     * durations of the transcribed part) tracking of the call.
+     */
+    export interface Asr {
+      /**
+       * Maximum latency in the call, measured in milliseconds.
+       */
+      max?: number;
+
+      /**
+       * Minimum latency in the call, measured in milliseconds.
+       */
+      min?: number;
+
+      /**
+       * Number of data points (number of times latency is tracked).
+       */
+      num?: number;
+
+      /**
+       * 50 percentile of latency, measured in milliseconds.
+       */
+      p50?: number;
+
+      /**
+       * 90 percentile of latency, measured in milliseconds.
+       */
+      p90?: number;
+
+      /**
+       * 95 percentile of latency, measured in milliseconds.
+       */
+      p95?: number;
+
+      /**
+       * 99 percentile of latency, measured in milliseconds.
+       */
+      p99?: number;
+
+      /**
+       * All the latency data points in the call, measured in milliseconds.
+       */
+      values?: Array<number>;
+    }
+
     /**
      * End to end latency (from user stops talking to agent start talking) tracking of
      * the call. This latency does not account for the network trip time from Retell
@@ -878,6 +944,12 @@ export namespace PhoneCallResponse {
      * Tool call id, globally unique.
      */
     tool_call_id: string;
+
+    /**
+     * Optional thought signature from Google Gemini thinking models. This is used
+     * internally to maintain reasoning chain in multi-turn function calling.
+     */
+    thought_signature?: string;
   }
 
   export interface ToolCallResultUtterance {
@@ -887,7 +959,7 @@ export namespace PhoneCallResponse {
     content: string;
 
     /**
-     * This is result of a tool call.
+     * This is the result of a tool call.
      */
     role: 'tool_call_result';
 
@@ -895,6 +967,38 @@ export namespace PhoneCallResponse {
      * Tool call id, globally unique.
      */
     tool_call_id: string;
+
+    /**
+     * Whether the tool call was successful.
+     */
+    successful?: boolean;
+  }
+
+  export interface NodeTransitionUtterance {
+    /**
+     * Former node id
+     */
+    former_node_id: string;
+
+    /**
+     * Former node name
+     */
+    former_node_name: string;
+
+    /**
+     * New node id
+     */
+    new_node_id: string;
+
+    /**
+     * New node name
+     */
+    new_node_name: string;
+
+    /**
+     * This is result of a node transition
+     */
+    role: 'node_transition';
   }
 
   export interface DtmfUtterance {
@@ -905,7 +1009,7 @@ export namespace PhoneCallResponse {
     digit: string;
 
     /**
-     * This is user pressed digit from their phone keypad.
+     * Digit pressed by the user from their phone keypad.
      */
     role: 'dtmf';
   }
@@ -1021,6 +1125,12 @@ export namespace PhoneCallResponse {
      * Tool call id, globally unique.
      */
     tool_call_id: string;
+
+    /**
+     * Optional thought signature from Google Gemini thinking models. This is used
+     * internally to maintain reasoning chain in multi-turn function calling.
+     */
+    thought_signature?: string;
   }
 
   export interface ToolCallResultUtterance {
@@ -1030,7 +1140,7 @@ export namespace PhoneCallResponse {
     content: string;
 
     /**
-     * This is result of a tool call.
+     * This is the result of a tool call.
      */
     role: 'tool_call_result';
 
@@ -1038,6 +1148,38 @@ export namespace PhoneCallResponse {
      * Tool call id, globally unique.
      */
     tool_call_id: string;
+
+    /**
+     * Whether the tool call was successful.
+     */
+    successful?: boolean;
+  }
+
+  export interface NodeTransitionUtterance {
+    /**
+     * Former node id
+     */
+    former_node_id: string;
+
+    /**
+     * Former node name
+     */
+    former_node_name: string;
+
+    /**
+     * New node id
+     */
+    new_node_id: string;
+
+    /**
+     * New node name
+     */
+    new_node_name: string;
+
+    /**
+     * This is result of a node transition
+     */
+    role: 'node_transition';
   }
 
   export interface DtmfUtterance {
@@ -1048,7 +1190,7 @@ export namespace PhoneCallResponse {
     digit: string;
 
     /**
-     * This is user pressed digit from their phone keypad.
+     * Digit pressed by the user from their phone keypad.
      */
     role: 'dtmf';
   }
@@ -1072,8 +1214,8 @@ export interface WebCallResponse {
   agent_version: number;
 
   /**
-   * Unique id of the call. Used to identify in LLM websocket and used to
-   * authenticate in audio websocket.
+   * Unique id of the call. Used to identify the call in the LLM websocket and used
+   * to authenticate in the audio websocket.
    */
   call_id: string;
 
@@ -1081,12 +1223,9 @@ export interface WebCallResponse {
    * Status of call.
    *
    * - `registered`: Call id issued, starting to make a call using this id.
-   *
    * - `ongoing`: Call connected and ongoing.
-   *
    * - `ended`: The underlying websocket has ended for the call. Either user or agent
-   *   hanged up, or call transferred.
-   *
+   *   hung up, or call transferred.
    * - `error`: Call encountered error.
    */
   call_status: 'registered' | 'not_connected' | 'ongoing' | 'ended' | 'error';
@@ -1140,6 +1279,7 @@ export interface WebCallResponse {
     | 'agent_hangup'
     | 'call_transfer'
     | 'voicemail_reached'
+    | 'ivr_reached'
     | 'inactivity'
     | 'max_duration_reached'
     | 'concurrency_limit_reached'
@@ -1163,7 +1303,9 @@ export interface WebCallResponse {
     | 'error_retell'
     | 'error_unknown'
     | 'error_user_not_joined'
-    | 'registered_call_timeout';
+    | 'registered_call_timeout'
+    | 'transfer_bridged'
+    | 'transfer_cancelled';
 
   /**
    * Duration of the call in milliseconds. Available after call ends.
@@ -1218,7 +1360,7 @@ export interface WebCallResponse {
   public_log_url?: string;
 
   /**
-   * Recording of the call, with each party’s audio stored in a separate channel.
+   * Recording of the call, with each party's audio stored in a separate channel.
    * Available after the call ends.
    */
   recording_multi_channel_url?: string;
@@ -1236,7 +1378,7 @@ export interface WebCallResponse {
   retell_llm_dynamic_variables?: { [key: string]: unknown };
 
   /**
-   * Recording of the call without PII, with each party’s audio stored in a separate
+   * Recording of the call without PII, with each party's audio stored in a separate
    * channel. Available after the call ends.
    */
   scrubbed_recording_multi_channel_url?: string;
@@ -1255,6 +1397,7 @@ export interface WebCallResponse {
     | WebCallResponse.Utterance
     | WebCallResponse.ToolCallInvocationUtterance
     | WebCallResponse.ToolCallResultUtterance
+    | WebCallResponse.NodeTransitionUtterance
     | WebCallResponse.DtmfUtterance
   >;
 
@@ -1284,6 +1427,7 @@ export interface WebCallResponse {
     | WebCallResponse.Utterance
     | WebCallResponse.ToolCallInvocationUtterance
     | WebCallResponse.ToolCallResultUtterance
+    | WebCallResponse.NodeTransitionUtterance
     | WebCallResponse.DtmfUtterance
   >;
 
@@ -1292,9 +1436,15 @@ export interface WebCallResponse {
    * populated when the disconnection reason was `call_transfer`. Can be a phone
    * number or a SIP URI. SIP URIs are prefixed with "sip:" and may include a
    * ";transport=..." portion (if transport is known) where the transport type can be
-   * "tls", "tcp", "udp", or "auto".
+   * "tls", "tcp" or "udp".
    */
   transfer_destination?: string | null;
+
+  /**
+   * Transfer end timestamp (milliseconds since epoch) of the call. Available after
+   * transfer call ends.
+   */
+  transfer_end_timestamp?: number;
 }
 
 export namespace WebCallResponse {
@@ -1370,6 +1520,11 @@ export namespace WebCallResponse {
       product: string;
 
       /**
+       * True if this cost item is for a transfer segment.
+       */
+      is_transfer_leg_cost?: boolean;
+
+      /**
        * Unit price of the product in cents per second.
        */
       unit_price?: number;
@@ -1381,6 +1536,12 @@ export namespace WebCallResponse {
    * will be available, as it depends on the type of call and feature used.
    */
   export interface Latency {
+    /**
+     * Transcription latency (diff between the duration of the chunks streamed and the
+     * durations of the transcribed part) tracking of the call.
+     */
+    asr?: Latency.Asr;
+
     /**
      * End to end latency (from user stops talking to agent start talking) tracking of
      * the call. This latency does not account for the network trip time from Retell
@@ -1424,6 +1585,52 @@ export namespace WebCallResponse {
   }
 
   export namespace Latency {
+    /**
+     * Transcription latency (diff between the duration of the chunks streamed and the
+     * durations of the transcribed part) tracking of the call.
+     */
+    export interface Asr {
+      /**
+       * Maximum latency in the call, measured in milliseconds.
+       */
+      max?: number;
+
+      /**
+       * Minimum latency in the call, measured in milliseconds.
+       */
+      min?: number;
+
+      /**
+       * Number of data points (number of times latency is tracked).
+       */
+      num?: number;
+
+      /**
+       * 50 percentile of latency, measured in milliseconds.
+       */
+      p50?: number;
+
+      /**
+       * 90 percentile of latency, measured in milliseconds.
+       */
+      p90?: number;
+
+      /**
+       * 95 percentile of latency, measured in milliseconds.
+       */
+      p95?: number;
+
+      /**
+       * 99 percentile of latency, measured in milliseconds.
+       */
+      p99?: number;
+
+      /**
+       * All the latency data points in the call, measured in milliseconds.
+       */
+      values?: Array<number>;
+    }
+
     /**
      * End to end latency (from user stops talking to agent start talking) tracking of
      * the call. This latency does not account for the network trip time from Retell
@@ -1787,6 +1994,12 @@ export namespace WebCallResponse {
      * Tool call id, globally unique.
      */
     tool_call_id: string;
+
+    /**
+     * Optional thought signature from Google Gemini thinking models. This is used
+     * internally to maintain reasoning chain in multi-turn function calling.
+     */
+    thought_signature?: string;
   }
 
   export interface ToolCallResultUtterance {
@@ -1796,7 +2009,7 @@ export namespace WebCallResponse {
     content: string;
 
     /**
-     * This is result of a tool call.
+     * This is the result of a tool call.
      */
     role: 'tool_call_result';
 
@@ -1804,6 +2017,38 @@ export namespace WebCallResponse {
      * Tool call id, globally unique.
      */
     tool_call_id: string;
+
+    /**
+     * Whether the tool call was successful.
+     */
+    successful?: boolean;
+  }
+
+  export interface NodeTransitionUtterance {
+    /**
+     * Former node id
+     */
+    former_node_id: string;
+
+    /**
+     * Former node name
+     */
+    former_node_name: string;
+
+    /**
+     * New node id
+     */
+    new_node_id: string;
+
+    /**
+     * New node name
+     */
+    new_node_name: string;
+
+    /**
+     * This is result of a node transition
+     */
+    role: 'node_transition';
   }
 
   export interface DtmfUtterance {
@@ -1814,7 +2059,7 @@ export namespace WebCallResponse {
     digit: string;
 
     /**
-     * This is user pressed digit from their phone keypad.
+     * Digit pressed by the user from their phone keypad.
      */
     role: 'dtmf';
   }
@@ -1919,6 +2164,12 @@ export namespace WebCallResponse {
      * Tool call id, globally unique.
      */
     tool_call_id: string;
+
+    /**
+     * Optional thought signature from Google Gemini thinking models. This is used
+     * internally to maintain reasoning chain in multi-turn function calling.
+     */
+    thought_signature?: string;
   }
 
   export interface ToolCallResultUtterance {
@@ -1928,7 +2179,7 @@ export namespace WebCallResponse {
     content: string;
 
     /**
-     * This is result of a tool call.
+     * This is the result of a tool call.
      */
     role: 'tool_call_result';
 
@@ -1936,6 +2187,38 @@ export namespace WebCallResponse {
      * Tool call id, globally unique.
      */
     tool_call_id: string;
+
+    /**
+     * Whether the tool call was successful.
+     */
+    successful?: boolean;
+  }
+
+  export interface NodeTransitionUtterance {
+    /**
+     * Former node id
+     */
+    former_node_id: string;
+
+    /**
+     * Former node name
+     */
+    former_node_name: string;
+
+    /**
+     * New node id
+     */
+    new_node_id: string;
+
+    /**
+     * New node name
+     */
+    new_node_name: string;
+
+    /**
+     * This is result of a node transition
+     */
+    role: 'node_transition';
   }
 
   export interface DtmfUtterance {
@@ -1946,7 +2229,7 @@ export namespace WebCallResponse {
     digit: string;
 
     /**
-     * This is user pressed digit from their phone keypad.
+     * Digit pressed by the user from their phone keypad.
      */
     role: 'dtmf';
   }
@@ -1955,6 +2238,11 @@ export namespace WebCallResponse {
 export type CallListResponse = Array<CallResponse>;
 
 export interface CallUpdateParams {
+  /**
+   * Custom attributes for the call
+   */
+  custom_attributes?: { [key: string]: string | number | boolean };
+
   /**
    * Data storage setting for this call. Overrides the agent's default setting.
    * "everything" stores all data, "everything_except_pii" excludes PII when
@@ -2025,7 +2313,7 @@ export namespace CallListParams {
     /**
      * Only retrieve calls with specific call status(es).
      */
-    call_status?: Array<'registered' | 'not_connected' | 'ongoing' | 'ended' | 'error'>;
+    call_status?: Array<'not_connected' | 'ongoing' | 'ended' | 'error'>;
 
     /**
      * Only retrieve calls with specific call successful(s).
@@ -2050,6 +2338,7 @@ export namespace CallListParams {
       | 'agent_hangup'
       | 'call_transfer'
       | 'voicemail_reached'
+      | 'ivr_reached'
       | 'inactivity'
       | 'max_duration_reached'
       | 'concurrency_limit_reached'
@@ -2074,6 +2363,8 @@ export namespace CallListParams {
       | 'error_unknown'
       | 'error_user_not_joined'
       | 'registered_call_timeout'
+      | 'transfer_bridged'
+      | 'transfer_cancelled'
     >;
 
     /**
@@ -2081,7 +2372,18 @@ export namespace CallListParams {
      */
     duration_ms?: FilterCriteria.DurationMs;
 
+    /**
+     * Filter by dynamic variables using dot notation (e.g., `dynamic_variables.name`).
+     * Values are matched exactly as strings.
+     */
+    dynamic_variables?: { [key: string]: Array<string> };
+
     e2e_latency_p50?: FilterCriteria.E2ELatencyP50;
+
+    /**
+     * Only retrieve calls with specific range of end timestamp(s).
+     */
+    end_timestamp?: FilterCriteria.EndTimestamp;
 
     /**
      * Only retrieve calls with specific from number(s).
@@ -2092,6 +2394,12 @@ export namespace CallListParams {
      * Only retrieve calls that are in voicemail or not in voicemail.
      */
     in_voicemail?: Array<boolean>;
+
+    /**
+     * Filter by metadata fields using dot notation (e.g., `metadata.customer_id`).
+     * Values are matched exactly as strings.
+     */
+    metadata?: { [key: string]: Array<string> };
 
     /**
      * Only retrieve calls with specific range of start timestamp(s).
@@ -2125,6 +2433,15 @@ export namespace CallListParams {
     }
 
     export interface E2ELatencyP50 {
+      lower_threshold?: number;
+
+      upper_threshold?: number;
+    }
+
+    /**
+     * Only retrieve calls with specific range of end timestamp(s).
+     */
+    export interface EndTimestamp {
       lower_threshold?: number;
 
       upper_threshold?: number;
@@ -2256,24 +2573,18 @@ export namespace CallCreatePhoneCallParams {
        *
        * - `coffee-shop`: Coffee shop ambience with people chatting in background.
        *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/coffee-shop.wav)
-       *
        * - `convention-hall`: Convention hall ambience, with some echo and people
        *   chatting in background.
        *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/convention-hall.wav)
-       *
        * - `summer-outdoor`: Summer outdoor ambience with cicada chirping.
        *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/summer-outdoor.wav)
-       *
        * - `mountain-outdoor`: Mountain outdoor ambience with birds singing.
        *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/mountain-outdoor.wav)
-       *
        * - `static-noise`: Constant static noise.
        *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/static-noise.wav)
-       *
        * - `call-center`: Call center work noise.
        *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/call-center.wav)
-       *
-       * Set to `null` to remove ambient sound from this agent.
+       *   Set to `null` to remove ambient sound from this agent.
        */
       ambient_sound?:
         | 'coffee-shop'
@@ -2290,6 +2601,26 @@ export namespace CallCreatePhoneCallParams {
        * sound. If unset, default value 1 will apply.
        */
       ambient_sound_volume?: number;
+
+      /**
+       * Prompt to determine whether the post call or chat analysis should mark the
+       * interaction as successful. Set to null to use the default prompt.
+       */
+      analysis_successful_prompt?: string | null;
+
+      /**
+       * Prompt to guide how the post call or chat analysis summary should be generated.
+       * When unset, the default system prompt is used. Set to null to use the default
+       * prompt.
+       */
+      analysis_summary_prompt?: string | null;
+
+      /**
+       * Prompt to guide how the post call or chat analysis should evaluate user
+       * sentiment. When unset, the default system prompt is used. Set to null to use the
+       * default prompt.
+       */
+      analysis_user_sentiment_prompt?: string | null;
 
       /**
        * Only applicable when enable_backchannel is true. Controls how often the agent
@@ -2325,6 +2656,18 @@ export namespace CallCreatePhoneCallParams {
       boosted_keywords?: Array<string> | null;
 
       /**
+       * Custom STT configuration. Only used when stt_mode is set to custom.
+       */
+      custom_stt_config?: Agent.CustomSttConfig;
+
+      /**
+       * Number of days to retain call/chat data before automatic deletion. Must be
+       * between 1 and 730 days. If not set, data is retained forever (no automatic
+       * deletion).
+       */
+      data_storage_retention_days?: number | null;
+
+      /**
        * Granular setting to manage how Retell stores sensitive data (transcripts,
        * recordings, logs, etc.). This replaces the deprecated
        * `opt_out_sensitive_data_storage` field.
@@ -2338,9 +2681,10 @@ export namespace CallCreatePhoneCallParams {
       data_storage_setting?: 'everything' | 'everything_except_pii' | 'basic_attributes_only';
 
       /**
-       * If set, determines what denoising mode to use. Default to noise-cancellation.
+       * If set, determines what denoising mode to use. Use "no-denoise" to bypass all
+       * audio denoising. Default to noise-cancellation.
        */
-      denoising_mode?: 'noise-cancellation' | 'noise-and-background-speech-cancellation';
+      denoising_mode?: 'no-denoise' | 'noise-cancellation' | 'noise-and-background-speech-cancellation';
 
       /**
        * Controls whether the agent would backchannel (agent interjects the speaker with
@@ -2349,6 +2693,25 @@ export namespace CallCreatePhoneCallParams {
        * will not backchannel.
        */
       enable_backchannel?: boolean;
+
+      /**
+       * If set to true, the agent will dynamically adjust how quickly it responds based
+       * on the user's speech rate and past turn-taking behavior in the call. If unset,
+       * default value false will apply.
+       */
+      enable_dynamic_responsiveness?: boolean;
+
+      /**
+       * If set to true, will enable dynamic voice speed adjustment based on the user's
+       * speech rate and conversation context. If unset, default value false will apply.
+       */
+      enable_dynamic_voice_speed?: boolean;
+
+      /**
+       * If set to true, will detect whether the call enters a voicemail. Note that this
+       * feature is only available for phone calls.
+       */
+      enable_voicemail_detection?: boolean;
 
       /**
        * If users stay silent for a period after agent speech, end the call. The minimum
@@ -2366,6 +2729,12 @@ export namespace CallCreatePhoneCallParams {
       fallback_voice_ids?: Array<string> | null;
 
       /**
+       * Configuration for guardrail checks to detect and prevent prohibited topics in
+       * agent output and user input.
+       */
+      guardrail_config?: Agent.GuardrailConfig;
+
+      /**
        * Controls how sensitive the agent is to user interruptions. Value ranging from
        * [0,1]. Lower value means it will take longer / more words for user to interrupt
        * agent, while higher value means it's easier for user to interrupt agent. If
@@ -2375,10 +2744,23 @@ export namespace CallCreatePhoneCallParams {
       interruption_sensitivity?: number;
 
       /**
+       * Whether the agent is public. When set to true, the agent is available for public
+       * agent preview link.
+       */
+      is_public?: boolean | null;
+
+      /**
+       * If this option is set, the call will try to detect IVR in the first 3 minutes of
+       * the call. Actions defined will be applied when the IVR is detected. Set this to
+       * null to disable IVR detection.
+       */
+      ivr_option?: Agent.IvrOption | null;
+
+      /**
        * Specifies what language (and dialect) the speech recognition will operate in.
        * For instance, selecting `en-GB` optimizes speech recognition for British
        * English. If unset, will use default value `en-US`. Select `multi` for
-       * multilingual support, currently this supports Spanish and English.
+       * multilingual support.
        */
       language?:
         | 'en-US'
@@ -2403,11 +2785,11 @@ export namespace CallCreatePhoneCallParams {
         | 'nl-BE'
         | 'pl-PL'
         | 'tr-TR'
-        | 'th-TH'
         | 'vi-VN'
         | 'ro-RO'
         | 'bg-BG'
         | 'ca-ES'
+        | 'th-TH'
         | 'da-DK'
         | 'fi-FI'
         | 'el-GR'
@@ -2416,6 +2798,34 @@ export namespace CallCreatePhoneCallParams {
         | 'no-NO'
         | 'sk-SK'
         | 'sv-SE'
+        | 'lt-LT'
+        | 'lv-LV'
+        | 'cs-CZ'
+        | 'ms-MY'
+        | 'af-ZA'
+        | 'ar-SA'
+        | 'az-AZ'
+        | 'bs-BA'
+        | 'cy-GB'
+        | 'fa-IR'
+        | 'fil-PH'
+        | 'gl-ES'
+        | 'he-IL'
+        | 'hr-HR'
+        | 'hy-AM'
+        | 'is-IS'
+        | 'kk-KZ'
+        | 'kn-IN'
+        | 'mk-MK'
+        | 'mr-IN'
+        | 'ne-NP'
+        | 'sl-SI'
+        | 'sr-RS'
+        | 'sw-KE'
+        | 'ta-IN'
+        | 'ur-IN'
+        | 'yue-CN'
+        | 'uk-UA'
         | 'multi';
 
       /**
@@ -2461,30 +2871,29 @@ export namespace CallCreatePhoneCallParams {
       > | null;
 
       /**
-       * The model to use for post call analysis. Default to gpt-4o-mini.
+       * The model to use for post call analysis. Default to gpt-4.1-mini.
        */
       post_call_analysis_model?:
-        | 'gpt-4o'
-        | 'gpt-4o-mini'
         | 'gpt-4.1'
         | 'gpt-4.1-mini'
         | 'gpt-4.1-nano'
         | 'gpt-5'
+        | 'gpt-5.1'
+        | 'gpt-5.2'
         | 'gpt-5-mini'
         | 'gpt-5-nano'
         | 'claude-4.5-sonnet'
-        | 'claude-4.0-sonnet'
-        | 'claude-3.7-sonnet'
-        | 'claude-3.5-haiku'
-        | 'gemini-2.0-flash'
-        | 'gemini-2.0-flash-lite'
+        | 'claude-4.5-haiku'
         | 'gemini-2.5-flash'
-        | 'gemini-2.5-flash-lite';
+        | 'gemini-2.5-flash-lite'
+        | 'gemini-3.0-flash'
+        | null;
 
       /**
        * A list of words / phrases and their pronunciation to be used to guide the audio
-       * synthesize for consistent pronunciation. Currently only supported for English &
-       * 11labs voices. Set to null to remove pronunciation dictionary from this agent.
+       * synthesize for consistent pronunciation. Check the dashboard to see what
+       * provider supports this feature. Set to null to remove pronunciation dictionary
+       * from this agent.
        */
       pronunciation_dictionary?: Array<Agent.PronunciationDictionary> | null;
 
@@ -2528,12 +2937,25 @@ export namespace CallCreatePhoneCallParams {
       ring_duration_ms?: number;
 
       /**
-       * If set, determines whether speech to text should focus on latency or accuracy.
-       * Default to fast mode.
+       * The expiration time for the signed url in milliseconds. Only applicable when
+       * opt_in_signed_url is true. If not set, default value of 86400000 (24 hours) will
+       * apply.
        */
-      stt_mode?: 'fast' | 'accurate';
+      signed_url_expiration_ms?: number | null;
+
+      /**
+       * If set, determines whether speech to text should focus on latency or accuracy.
+       * Default to fast mode. When set to custom, custom_stt_config must be provided.
+       */
+      stt_mode?: 'fast' | 'accurate' | 'custom';
 
       user_dtmf_options?: Agent.UserDtmfOptions | null;
+
+      /**
+       * Optional description of the agent version. Used for your own reference and
+       * documentation.
+       */
+      version_description?: string | null;
 
       /**
        * If set, determines the vocabulary set to use for transcription. This setting
@@ -2543,16 +2965,21 @@ export namespace CallCreatePhoneCallParams {
       vocab_specialization?: 'general' | 'medical';
 
       /**
+       * Controls the emotional tone of the agent's voice. Currently supported for
+       * Cartesia and Minimax TTS providers. If unset, no emotion will be used.
+       */
+      voice_emotion?: 'calm' | 'sympathetic' | 'happy' | 'sad' | 'angry' | 'fearful' | 'surprised' | null;
+
+      /**
        * Unique voice id used for the agent. Find list of available voices and their
        * preview in Dashboard.
        */
       voice_id?: string;
 
       /**
-       * Optionally set the voice model used for the selected voice. Currently only
-       * elevenlab voices have voice model selections. Set to null to remove voice model
-       * selection, and default ones will apply. Check out the dashboard for details on
-       * each voice model.
+       * Select the voice model used for the selected voice. Each provider has a set of
+       * available voice models. Set to null to remove voice model selection, and default
+       * ones will apply. Check out dashboard for more details of each voice model.
        */
       voice_model?:
         | 'eleven_turbo_v2'
@@ -2560,8 +2987,15 @@ export namespace CallCreatePhoneCallParams {
         | 'eleven_turbo_v2_5'
         | 'eleven_flash_v2_5'
         | 'eleven_multilingual_v2'
+        | 'sonic-2'
+        | 'sonic-3'
+        | 'sonic-3-latest'
+        | 'sonic-turbo'
         | 'tts-1'
         | 'gpt-4o-mini-tts'
+        | 'speech-02-turbo'
+        | 'speech-2.8-turbo'
+        | 's1'
         | null;
 
       /**
@@ -2573,11 +3007,26 @@ export namespace CallCreatePhoneCallParams {
 
       /**
        * Controls how stable the voice is. Value ranging from [0,2]. Lower value means
-       * more stable, and higher value means more variant speech generation. Currently
-       * this setting only applies to `11labs` voices. If unset, default value 1 will
-       * apply.
+       * more stable, and higher value means more variant speech generation. Check the
+       * dashboard to see what provider supports this feature. If unset, default value 1
+       * will apply.
        */
       voice_temperature?: number;
+
+      /**
+       * Configures when to stop running voicemail detection, as it becomes unlikely to
+       * hit voicemail after a couple minutes, and keep running it will only have
+       * negative impact. The minimum value allowed is 5,000 ms (5 s), and maximum value
+       * allowed is 180,000 (3 minutes). By default, this is set to 30,000 (30 s).
+       */
+      voicemail_detection_timeout_ms?: number;
+
+      /**
+       * The message to be played when the call enters a voicemail. Note that this
+       * feature is only available for phone calls. If you want to hangup after hitting
+       * voicemail, set this to empty string.
+       */
+      voicemail_message?: string;
 
       /**
        * If this option is set, the call will try to detect voicemail in the first 3
@@ -2595,6 +3044,21 @@ export namespace CallCreatePhoneCallParams {
       volume?: number;
 
       /**
+       * Which webhook events this agent should receive. If not set, defaults to
+       * call_started, call_ended, call_analyzed.
+       */
+      webhook_events?: Array<
+        | 'call_started'
+        | 'call_ended'
+        | 'call_analyzed'
+        | 'transcript_updated'
+        | 'transfer_started'
+        | 'transfer_bridged'
+        | 'transfer_cancelled'
+        | 'transfer_ended'
+      > | null;
+
+      /**
        * The timeout for the webhook in milliseconds. If not set, default value of 10000
        * will apply.
        */
@@ -2610,6 +3074,65 @@ export namespace CallCreatePhoneCallParams {
     }
 
     export namespace Agent {
+      /**
+       * Custom STT configuration. Only used when stt_mode is set to custom.
+       */
+      export interface CustomSttConfig {
+        /**
+         * Endpointing timeout in milliseconds. Minimum is 100 for azure, 10 for deepgram.
+         */
+        endpointing_ms: number;
+
+        /**
+         * The STT provider to use.
+         */
+        provider: 'azure' | 'deepgram';
+      }
+
+      /**
+       * Configuration for guardrail checks to detect and prevent prohibited topics in
+       * agent output and user input.
+       */
+      export interface GuardrailConfig {
+        /**
+         * Selected prohibited user topic categories to check. When user messages contain
+         * these topics, the agent will respond with a placeholder message instead of
+         * processing the request.
+         */
+        input_topics?: Array<'platform_integrity_jailbreaking'> | null;
+
+        /**
+         * Selected prohibited agent topic categories to check. When agent messages contain
+         * these topics, they will be replaced with a placeholder message.
+         */
+        output_topics?: Array<
+          | 'harassment'
+          | 'self_harm'
+          | 'sexual_exploitation'
+          | 'violence'
+          | 'defense_and_national_security'
+          | 'illicit_and_harmful_activity'
+          | 'gambling'
+          | 'regulated_professional_advice'
+          | 'child_safety_and_exploitation'
+        > | null;
+      }
+
+      /**
+       * If this option is set, the call will try to detect IVR in the first 3 minutes of
+       * the call. Actions defined will be applied when the IVR is detected. Set this to
+       * null to disable IVR detection.
+       */
+      export interface IvrOption {
+        action: IvrOption.Action;
+      }
+
+      export namespace IvrOption {
+        export interface Action {
+          type: 'hangup';
+        }
+      }
+
       /**
        * Configuration for PII scrubbing from transcripts and recordings.
        */
@@ -2631,6 +3154,7 @@ export namespace CallCreatePhoneCallParams {
           | 'pin'
           | 'medical_id'
           | 'date_of_birth'
+          | 'customer_account_number'
         >;
 
         /**
@@ -2790,7 +3314,7 @@ export namespace CallCreatePhoneCallParams {
 
         /**
          * A single key that signals the end of DTMF input. Acceptable values include any
-         * digit (0–9), the pound/hash symbol (#), or the asterisk (\*).
+         * digit (0-9), the pound/hash symbol (#), or the asterisk (\*).
          */
         termination_key?: string | null;
 
@@ -2811,7 +3335,8 @@ export namespace CallCreatePhoneCallParams {
         action:
           | VoicemailOption.VoicemailActionPrompt
           | VoicemailOption.VoicemailActionStaticText
-          | VoicemailOption.VoicemailActionHangup;
+          | VoicemailOption.VoicemailActionHangup
+          | VoicemailOption.VoicemailActionBridgeTransfer;
       }
 
       export namespace VoicemailOption {
@@ -2836,6 +3361,10 @@ export namespace CallCreatePhoneCallParams {
 
         export interface VoicemailActionHangup {
           type: 'hangup';
+        }
+
+        export interface VoicemailActionBridgeTransfer {
+          type: 'bridge_transfer';
         }
       }
     }
@@ -2912,20 +3441,19 @@ export namespace CallCreatePhoneCallParams {
          * The LLM model to use
          */
         model:
-          | 'gpt-5'
-          | 'gpt-5-mini'
-          | 'gpt-5-nano'
-          | 'gpt-4o'
-          | 'gpt-4o-mini'
           | 'gpt-4.1'
           | 'gpt-4.1-mini'
           | 'gpt-4.1-nano'
-          | 'claude-3.7-sonnet'
-          | 'claude-3.5-haiku'
-          | 'gemini-2.0-flash'
-          | 'gemini-2.0-flash-lite'
+          | 'gpt-5'
+          | 'gpt-5.1'
+          | 'gpt-5.2'
+          | 'gpt-5-mini'
+          | 'gpt-5-nano'
+          | 'claude-4.5-sonnet'
+          | 'claude-4.5-haiku'
           | 'gemini-2.5-flash'
-          | 'gemini-2.5-flash-lite';
+          | 'gemini-2.5-flash-lite'
+          | 'gemini-3.0-flash';
 
         /**
          * Type of model choice
@@ -2975,20 +3503,19 @@ export namespace CallCreatePhoneCallParams {
        * Select the underlying text LLM. If not set, would default to gpt-4.1.
        */
       model?:
-        | 'gpt-5'
-        | 'gpt-5-mini'
-        | 'gpt-5-nano'
-        | 'gpt-4o'
-        | 'gpt-4o-mini'
         | 'gpt-4.1'
         | 'gpt-4.1-mini'
         | 'gpt-4.1-nano'
-        | 'claude-3.7-sonnet'
-        | 'claude-3.5-haiku'
-        | 'gemini-2.0-flash'
-        | 'gemini-2.0-flash-lite'
+        | 'gpt-5'
+        | 'gpt-5.1'
+        | 'gpt-5.2'
+        | 'gpt-5-mini'
+        | 'gpt-5-nano'
+        | 'claude-4.5-sonnet'
+        | 'claude-4.5-haiku'
         | 'gemini-2.5-flash'
         | 'gemini-2.5-flash-lite'
+        | 'gemini-3.0-flash'
         | null;
 
       /**
@@ -3010,7 +3537,7 @@ export namespace CallCreatePhoneCallParams {
        * Select the underlying speech to speech model. Can only set this or model, not
        * both.
        */
-      s2s_model?: 'gpt-4o-realtime' | 'gpt-4o-mini-realtime' | 'gpt-realtime' | null;
+      s2s_model?: 'gpt-4o-realtime' | 'gpt-4o-mini-realtime' | 'gpt-realtime' | 'gpt-realtime-mini' | null;
 
       /**
        * The speaker who starts the conversation. Required. Must be either 'user' or
@@ -3132,24 +3659,18 @@ export namespace CallCreateWebCallParams {
        *
        * - `coffee-shop`: Coffee shop ambience with people chatting in background.
        *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/coffee-shop.wav)
-       *
        * - `convention-hall`: Convention hall ambience, with some echo and people
        *   chatting in background.
        *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/convention-hall.wav)
-       *
        * - `summer-outdoor`: Summer outdoor ambience with cicada chirping.
        *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/summer-outdoor.wav)
-       *
        * - `mountain-outdoor`: Mountain outdoor ambience with birds singing.
        *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/mountain-outdoor.wav)
-       *
        * - `static-noise`: Constant static noise.
        *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/static-noise.wav)
-       *
        * - `call-center`: Call center work noise.
        *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/call-center.wav)
-       *
-       * Set to `null` to remove ambient sound from this agent.
+       *   Set to `null` to remove ambient sound from this agent.
        */
       ambient_sound?:
         | 'coffee-shop'
@@ -3166,6 +3687,26 @@ export namespace CallCreateWebCallParams {
        * sound. If unset, default value 1 will apply.
        */
       ambient_sound_volume?: number;
+
+      /**
+       * Prompt to determine whether the post call or chat analysis should mark the
+       * interaction as successful. Set to null to use the default prompt.
+       */
+      analysis_successful_prompt?: string | null;
+
+      /**
+       * Prompt to guide how the post call or chat analysis summary should be generated.
+       * When unset, the default system prompt is used. Set to null to use the default
+       * prompt.
+       */
+      analysis_summary_prompt?: string | null;
+
+      /**
+       * Prompt to guide how the post call or chat analysis should evaluate user
+       * sentiment. When unset, the default system prompt is used. Set to null to use the
+       * default prompt.
+       */
+      analysis_user_sentiment_prompt?: string | null;
 
       /**
        * Only applicable when enable_backchannel is true. Controls how often the agent
@@ -3201,6 +3742,18 @@ export namespace CallCreateWebCallParams {
       boosted_keywords?: Array<string> | null;
 
       /**
+       * Custom STT configuration. Only used when stt_mode is set to custom.
+       */
+      custom_stt_config?: Agent.CustomSttConfig;
+
+      /**
+       * Number of days to retain call/chat data before automatic deletion. Must be
+       * between 1 and 730 days. If not set, data is retained forever (no automatic
+       * deletion).
+       */
+      data_storage_retention_days?: number | null;
+
+      /**
        * Granular setting to manage how Retell stores sensitive data (transcripts,
        * recordings, logs, etc.). This replaces the deprecated
        * `opt_out_sensitive_data_storage` field.
@@ -3214,9 +3767,10 @@ export namespace CallCreateWebCallParams {
       data_storage_setting?: 'everything' | 'everything_except_pii' | 'basic_attributes_only';
 
       /**
-       * If set, determines what denoising mode to use. Default to noise-cancellation.
+       * If set, determines what denoising mode to use. Use "no-denoise" to bypass all
+       * audio denoising. Default to noise-cancellation.
        */
-      denoising_mode?: 'noise-cancellation' | 'noise-and-background-speech-cancellation';
+      denoising_mode?: 'no-denoise' | 'noise-cancellation' | 'noise-and-background-speech-cancellation';
 
       /**
        * Controls whether the agent would backchannel (agent interjects the speaker with
@@ -3225,6 +3779,25 @@ export namespace CallCreateWebCallParams {
        * will not backchannel.
        */
       enable_backchannel?: boolean;
+
+      /**
+       * If set to true, the agent will dynamically adjust how quickly it responds based
+       * on the user's speech rate and past turn-taking behavior in the call. If unset,
+       * default value false will apply.
+       */
+      enable_dynamic_responsiveness?: boolean;
+
+      /**
+       * If set to true, will enable dynamic voice speed adjustment based on the user's
+       * speech rate and conversation context. If unset, default value false will apply.
+       */
+      enable_dynamic_voice_speed?: boolean;
+
+      /**
+       * If set to true, will detect whether the call enters a voicemail. Note that this
+       * feature is only available for phone calls.
+       */
+      enable_voicemail_detection?: boolean;
 
       /**
        * If users stay silent for a period after agent speech, end the call. The minimum
@@ -3242,6 +3815,12 @@ export namespace CallCreateWebCallParams {
       fallback_voice_ids?: Array<string> | null;
 
       /**
+       * Configuration for guardrail checks to detect and prevent prohibited topics in
+       * agent output and user input.
+       */
+      guardrail_config?: Agent.GuardrailConfig;
+
+      /**
        * Controls how sensitive the agent is to user interruptions. Value ranging from
        * [0,1]. Lower value means it will take longer / more words for user to interrupt
        * agent, while higher value means it's easier for user to interrupt agent. If
@@ -3251,10 +3830,23 @@ export namespace CallCreateWebCallParams {
       interruption_sensitivity?: number;
 
       /**
+       * Whether the agent is public. When set to true, the agent is available for public
+       * agent preview link.
+       */
+      is_public?: boolean | null;
+
+      /**
+       * If this option is set, the call will try to detect IVR in the first 3 minutes of
+       * the call. Actions defined will be applied when the IVR is detected. Set this to
+       * null to disable IVR detection.
+       */
+      ivr_option?: Agent.IvrOption | null;
+
+      /**
        * Specifies what language (and dialect) the speech recognition will operate in.
        * For instance, selecting `en-GB` optimizes speech recognition for British
        * English. If unset, will use default value `en-US`. Select `multi` for
-       * multilingual support, currently this supports Spanish and English.
+       * multilingual support.
        */
       language?:
         | 'en-US'
@@ -3279,11 +3871,11 @@ export namespace CallCreateWebCallParams {
         | 'nl-BE'
         | 'pl-PL'
         | 'tr-TR'
-        | 'th-TH'
         | 'vi-VN'
         | 'ro-RO'
         | 'bg-BG'
         | 'ca-ES'
+        | 'th-TH'
         | 'da-DK'
         | 'fi-FI'
         | 'el-GR'
@@ -3292,6 +3884,34 @@ export namespace CallCreateWebCallParams {
         | 'no-NO'
         | 'sk-SK'
         | 'sv-SE'
+        | 'lt-LT'
+        | 'lv-LV'
+        | 'cs-CZ'
+        | 'ms-MY'
+        | 'af-ZA'
+        | 'ar-SA'
+        | 'az-AZ'
+        | 'bs-BA'
+        | 'cy-GB'
+        | 'fa-IR'
+        | 'fil-PH'
+        | 'gl-ES'
+        | 'he-IL'
+        | 'hr-HR'
+        | 'hy-AM'
+        | 'is-IS'
+        | 'kk-KZ'
+        | 'kn-IN'
+        | 'mk-MK'
+        | 'mr-IN'
+        | 'ne-NP'
+        | 'sl-SI'
+        | 'sr-RS'
+        | 'sw-KE'
+        | 'ta-IN'
+        | 'ur-IN'
+        | 'yue-CN'
+        | 'uk-UA'
         | 'multi';
 
       /**
@@ -3337,30 +3957,29 @@ export namespace CallCreateWebCallParams {
       > | null;
 
       /**
-       * The model to use for post call analysis. Default to gpt-4o-mini.
+       * The model to use for post call analysis. Default to gpt-4.1-mini.
        */
       post_call_analysis_model?:
-        | 'gpt-4o'
-        | 'gpt-4o-mini'
         | 'gpt-4.1'
         | 'gpt-4.1-mini'
         | 'gpt-4.1-nano'
         | 'gpt-5'
+        | 'gpt-5.1'
+        | 'gpt-5.2'
         | 'gpt-5-mini'
         | 'gpt-5-nano'
         | 'claude-4.5-sonnet'
-        | 'claude-4.0-sonnet'
-        | 'claude-3.7-sonnet'
-        | 'claude-3.5-haiku'
-        | 'gemini-2.0-flash'
-        | 'gemini-2.0-flash-lite'
+        | 'claude-4.5-haiku'
         | 'gemini-2.5-flash'
-        | 'gemini-2.5-flash-lite';
+        | 'gemini-2.5-flash-lite'
+        | 'gemini-3.0-flash'
+        | null;
 
       /**
        * A list of words / phrases and their pronunciation to be used to guide the audio
-       * synthesize for consistent pronunciation. Currently only supported for English &
-       * 11labs voices. Set to null to remove pronunciation dictionary from this agent.
+       * synthesize for consistent pronunciation. Check the dashboard to see what
+       * provider supports this feature. Set to null to remove pronunciation dictionary
+       * from this agent.
        */
       pronunciation_dictionary?: Array<Agent.PronunciationDictionary> | null;
 
@@ -3404,12 +4023,25 @@ export namespace CallCreateWebCallParams {
       ring_duration_ms?: number;
 
       /**
-       * If set, determines whether speech to text should focus on latency or accuracy.
-       * Default to fast mode.
+       * The expiration time for the signed url in milliseconds. Only applicable when
+       * opt_in_signed_url is true. If not set, default value of 86400000 (24 hours) will
+       * apply.
        */
-      stt_mode?: 'fast' | 'accurate';
+      signed_url_expiration_ms?: number | null;
+
+      /**
+       * If set, determines whether speech to text should focus on latency or accuracy.
+       * Default to fast mode. When set to custom, custom_stt_config must be provided.
+       */
+      stt_mode?: 'fast' | 'accurate' | 'custom';
 
       user_dtmf_options?: Agent.UserDtmfOptions | null;
+
+      /**
+       * Optional description of the agent version. Used for your own reference and
+       * documentation.
+       */
+      version_description?: string | null;
 
       /**
        * If set, determines the vocabulary set to use for transcription. This setting
@@ -3419,16 +4051,21 @@ export namespace CallCreateWebCallParams {
       vocab_specialization?: 'general' | 'medical';
 
       /**
+       * Controls the emotional tone of the agent's voice. Currently supported for
+       * Cartesia and Minimax TTS providers. If unset, no emotion will be used.
+       */
+      voice_emotion?: 'calm' | 'sympathetic' | 'happy' | 'sad' | 'angry' | 'fearful' | 'surprised' | null;
+
+      /**
        * Unique voice id used for the agent. Find list of available voices and their
        * preview in Dashboard.
        */
       voice_id?: string;
 
       /**
-       * Optionally set the voice model used for the selected voice. Currently only
-       * elevenlab voices have voice model selections. Set to null to remove voice model
-       * selection, and default ones will apply. Check out the dashboard for details on
-       * each voice model.
+       * Select the voice model used for the selected voice. Each provider has a set of
+       * available voice models. Set to null to remove voice model selection, and default
+       * ones will apply. Check out dashboard for more details of each voice model.
        */
       voice_model?:
         | 'eleven_turbo_v2'
@@ -3436,8 +4073,15 @@ export namespace CallCreateWebCallParams {
         | 'eleven_turbo_v2_5'
         | 'eleven_flash_v2_5'
         | 'eleven_multilingual_v2'
+        | 'sonic-2'
+        | 'sonic-3'
+        | 'sonic-3-latest'
+        | 'sonic-turbo'
         | 'tts-1'
         | 'gpt-4o-mini-tts'
+        | 'speech-02-turbo'
+        | 'speech-2.8-turbo'
+        | 's1'
         | null;
 
       /**
@@ -3449,11 +4093,26 @@ export namespace CallCreateWebCallParams {
 
       /**
        * Controls how stable the voice is. Value ranging from [0,2]. Lower value means
-       * more stable, and higher value means more variant speech generation. Currently
-       * this setting only applies to `11labs` voices. If unset, default value 1 will
-       * apply.
+       * more stable, and higher value means more variant speech generation. Check the
+       * dashboard to see what provider supports this feature. If unset, default value 1
+       * will apply.
        */
       voice_temperature?: number;
+
+      /**
+       * Configures when to stop running voicemail detection, as it becomes unlikely to
+       * hit voicemail after a couple minutes, and keep running it will only have
+       * negative impact. The minimum value allowed is 5,000 ms (5 s), and maximum value
+       * allowed is 180,000 (3 minutes). By default, this is set to 30,000 (30 s).
+       */
+      voicemail_detection_timeout_ms?: number;
+
+      /**
+       * The message to be played when the call enters a voicemail. Note that this
+       * feature is only available for phone calls. If you want to hangup after hitting
+       * voicemail, set this to empty string.
+       */
+      voicemail_message?: string;
 
       /**
        * If this option is set, the call will try to detect voicemail in the first 3
@@ -3471,6 +4130,21 @@ export namespace CallCreateWebCallParams {
       volume?: number;
 
       /**
+       * Which webhook events this agent should receive. If not set, defaults to
+       * call_started, call_ended, call_analyzed.
+       */
+      webhook_events?: Array<
+        | 'call_started'
+        | 'call_ended'
+        | 'call_analyzed'
+        | 'transcript_updated'
+        | 'transfer_started'
+        | 'transfer_bridged'
+        | 'transfer_cancelled'
+        | 'transfer_ended'
+      > | null;
+
+      /**
        * The timeout for the webhook in milliseconds. If not set, default value of 10000
        * will apply.
        */
@@ -3486,6 +4160,65 @@ export namespace CallCreateWebCallParams {
     }
 
     export namespace Agent {
+      /**
+       * Custom STT configuration. Only used when stt_mode is set to custom.
+       */
+      export interface CustomSttConfig {
+        /**
+         * Endpointing timeout in milliseconds. Minimum is 100 for azure, 10 for deepgram.
+         */
+        endpointing_ms: number;
+
+        /**
+         * The STT provider to use.
+         */
+        provider: 'azure' | 'deepgram';
+      }
+
+      /**
+       * Configuration for guardrail checks to detect and prevent prohibited topics in
+       * agent output and user input.
+       */
+      export interface GuardrailConfig {
+        /**
+         * Selected prohibited user topic categories to check. When user messages contain
+         * these topics, the agent will respond with a placeholder message instead of
+         * processing the request.
+         */
+        input_topics?: Array<'platform_integrity_jailbreaking'> | null;
+
+        /**
+         * Selected prohibited agent topic categories to check. When agent messages contain
+         * these topics, they will be replaced with a placeholder message.
+         */
+        output_topics?: Array<
+          | 'harassment'
+          | 'self_harm'
+          | 'sexual_exploitation'
+          | 'violence'
+          | 'defense_and_national_security'
+          | 'illicit_and_harmful_activity'
+          | 'gambling'
+          | 'regulated_professional_advice'
+          | 'child_safety_and_exploitation'
+        > | null;
+      }
+
+      /**
+       * If this option is set, the call will try to detect IVR in the first 3 minutes of
+       * the call. Actions defined will be applied when the IVR is detected. Set this to
+       * null to disable IVR detection.
+       */
+      export interface IvrOption {
+        action: IvrOption.Action;
+      }
+
+      export namespace IvrOption {
+        export interface Action {
+          type: 'hangup';
+        }
+      }
+
       /**
        * Configuration for PII scrubbing from transcripts and recordings.
        */
@@ -3507,6 +4240,7 @@ export namespace CallCreateWebCallParams {
           | 'pin'
           | 'medical_id'
           | 'date_of_birth'
+          | 'customer_account_number'
         >;
 
         /**
@@ -3666,7 +4400,7 @@ export namespace CallCreateWebCallParams {
 
         /**
          * A single key that signals the end of DTMF input. Acceptable values include any
-         * digit (0–9), the pound/hash symbol (#), or the asterisk (\*).
+         * digit (0-9), the pound/hash symbol (#), or the asterisk (\*).
          */
         termination_key?: string | null;
 
@@ -3687,7 +4421,8 @@ export namespace CallCreateWebCallParams {
         action:
           | VoicemailOption.VoicemailActionPrompt
           | VoicemailOption.VoicemailActionStaticText
-          | VoicemailOption.VoicemailActionHangup;
+          | VoicemailOption.VoicemailActionHangup
+          | VoicemailOption.VoicemailActionBridgeTransfer;
       }
 
       export namespace VoicemailOption {
@@ -3712,6 +4447,10 @@ export namespace CallCreateWebCallParams {
 
         export interface VoicemailActionHangup {
           type: 'hangup';
+        }
+
+        export interface VoicemailActionBridgeTransfer {
+          type: 'bridge_transfer';
         }
       }
     }
@@ -3788,20 +4527,19 @@ export namespace CallCreateWebCallParams {
          * The LLM model to use
          */
         model:
-          | 'gpt-5'
-          | 'gpt-5-mini'
-          | 'gpt-5-nano'
-          | 'gpt-4o'
-          | 'gpt-4o-mini'
           | 'gpt-4.1'
           | 'gpt-4.1-mini'
           | 'gpt-4.1-nano'
-          | 'claude-3.7-sonnet'
-          | 'claude-3.5-haiku'
-          | 'gemini-2.0-flash'
-          | 'gemini-2.0-flash-lite'
+          | 'gpt-5'
+          | 'gpt-5.1'
+          | 'gpt-5.2'
+          | 'gpt-5-mini'
+          | 'gpt-5-nano'
+          | 'claude-4.5-sonnet'
+          | 'claude-4.5-haiku'
           | 'gemini-2.5-flash'
-          | 'gemini-2.5-flash-lite';
+          | 'gemini-2.5-flash-lite'
+          | 'gemini-3.0-flash';
 
         /**
          * Type of model choice
@@ -3851,20 +4589,19 @@ export namespace CallCreateWebCallParams {
        * Select the underlying text LLM. If not set, would default to gpt-4.1.
        */
       model?:
-        | 'gpt-5'
-        | 'gpt-5-mini'
-        | 'gpt-5-nano'
-        | 'gpt-4o'
-        | 'gpt-4o-mini'
         | 'gpt-4.1'
         | 'gpt-4.1-mini'
         | 'gpt-4.1-nano'
-        | 'claude-3.7-sonnet'
-        | 'claude-3.5-haiku'
-        | 'gemini-2.0-flash'
-        | 'gemini-2.0-flash-lite'
+        | 'gpt-5'
+        | 'gpt-5.1'
+        | 'gpt-5.2'
+        | 'gpt-5-mini'
+        | 'gpt-5-nano'
+        | 'claude-4.5-sonnet'
+        | 'claude-4.5-haiku'
         | 'gemini-2.5-flash'
         | 'gemini-2.5-flash-lite'
+        | 'gemini-3.0-flash'
         | null;
 
       /**
@@ -3886,7 +4623,7 @@ export namespace CallCreateWebCallParams {
        * Select the underlying speech to speech model. Can only set this or model, not
        * both.
        */
-      s2s_model?: 'gpt-4o-realtime' | 'gpt-4o-mini-realtime' | 'gpt-realtime' | null;
+      s2s_model?: 'gpt-4o-realtime' | 'gpt-4o-mini-realtime' | 'gpt-realtime' | 'gpt-realtime-mini' | null;
 
       /**
        * The speaker who starts the conversation. Required. Must be either 'user' or
@@ -4022,24 +4759,18 @@ export namespace CallRegisterPhoneCallParams {
        *
        * - `coffee-shop`: Coffee shop ambience with people chatting in background.
        *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/coffee-shop.wav)
-       *
        * - `convention-hall`: Convention hall ambience, with some echo and people
        *   chatting in background.
        *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/convention-hall.wav)
-       *
        * - `summer-outdoor`: Summer outdoor ambience with cicada chirping.
        *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/summer-outdoor.wav)
-       *
        * - `mountain-outdoor`: Mountain outdoor ambience with birds singing.
        *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/mountain-outdoor.wav)
-       *
        * - `static-noise`: Constant static noise.
        *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/static-noise.wav)
-       *
        * - `call-center`: Call center work noise.
        *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/call-center.wav)
-       *
-       * Set to `null` to remove ambient sound from this agent.
+       *   Set to `null` to remove ambient sound from this agent.
        */
       ambient_sound?:
         | 'coffee-shop'
@@ -4056,6 +4787,26 @@ export namespace CallRegisterPhoneCallParams {
        * sound. If unset, default value 1 will apply.
        */
       ambient_sound_volume?: number;
+
+      /**
+       * Prompt to determine whether the post call or chat analysis should mark the
+       * interaction as successful. Set to null to use the default prompt.
+       */
+      analysis_successful_prompt?: string | null;
+
+      /**
+       * Prompt to guide how the post call or chat analysis summary should be generated.
+       * When unset, the default system prompt is used. Set to null to use the default
+       * prompt.
+       */
+      analysis_summary_prompt?: string | null;
+
+      /**
+       * Prompt to guide how the post call or chat analysis should evaluate user
+       * sentiment. When unset, the default system prompt is used. Set to null to use the
+       * default prompt.
+       */
+      analysis_user_sentiment_prompt?: string | null;
 
       /**
        * Only applicable when enable_backchannel is true. Controls how often the agent
@@ -4091,6 +4842,18 @@ export namespace CallRegisterPhoneCallParams {
       boosted_keywords?: Array<string> | null;
 
       /**
+       * Custom STT configuration. Only used when stt_mode is set to custom.
+       */
+      custom_stt_config?: Agent.CustomSttConfig;
+
+      /**
+       * Number of days to retain call/chat data before automatic deletion. Must be
+       * between 1 and 730 days. If not set, data is retained forever (no automatic
+       * deletion).
+       */
+      data_storage_retention_days?: number | null;
+
+      /**
        * Granular setting to manage how Retell stores sensitive data (transcripts,
        * recordings, logs, etc.). This replaces the deprecated
        * `opt_out_sensitive_data_storage` field.
@@ -4104,9 +4867,10 @@ export namespace CallRegisterPhoneCallParams {
       data_storage_setting?: 'everything' | 'everything_except_pii' | 'basic_attributes_only';
 
       /**
-       * If set, determines what denoising mode to use. Default to noise-cancellation.
+       * If set, determines what denoising mode to use. Use "no-denoise" to bypass all
+       * audio denoising. Default to noise-cancellation.
        */
-      denoising_mode?: 'noise-cancellation' | 'noise-and-background-speech-cancellation';
+      denoising_mode?: 'no-denoise' | 'noise-cancellation' | 'noise-and-background-speech-cancellation';
 
       /**
        * Controls whether the agent would backchannel (agent interjects the speaker with
@@ -4115,6 +4879,25 @@ export namespace CallRegisterPhoneCallParams {
        * will not backchannel.
        */
       enable_backchannel?: boolean;
+
+      /**
+       * If set to true, the agent will dynamically adjust how quickly it responds based
+       * on the user's speech rate and past turn-taking behavior in the call. If unset,
+       * default value false will apply.
+       */
+      enable_dynamic_responsiveness?: boolean;
+
+      /**
+       * If set to true, will enable dynamic voice speed adjustment based on the user's
+       * speech rate and conversation context. If unset, default value false will apply.
+       */
+      enable_dynamic_voice_speed?: boolean;
+
+      /**
+       * If set to true, will detect whether the call enters a voicemail. Note that this
+       * feature is only available for phone calls.
+       */
+      enable_voicemail_detection?: boolean;
 
       /**
        * If users stay silent for a period after agent speech, end the call. The minimum
@@ -4132,6 +4915,12 @@ export namespace CallRegisterPhoneCallParams {
       fallback_voice_ids?: Array<string> | null;
 
       /**
+       * Configuration for guardrail checks to detect and prevent prohibited topics in
+       * agent output and user input.
+       */
+      guardrail_config?: Agent.GuardrailConfig;
+
+      /**
        * Controls how sensitive the agent is to user interruptions. Value ranging from
        * [0,1]. Lower value means it will take longer / more words for user to interrupt
        * agent, while higher value means it's easier for user to interrupt agent. If
@@ -4141,10 +4930,23 @@ export namespace CallRegisterPhoneCallParams {
       interruption_sensitivity?: number;
 
       /**
+       * Whether the agent is public. When set to true, the agent is available for public
+       * agent preview link.
+       */
+      is_public?: boolean | null;
+
+      /**
+       * If this option is set, the call will try to detect IVR in the first 3 minutes of
+       * the call. Actions defined will be applied when the IVR is detected. Set this to
+       * null to disable IVR detection.
+       */
+      ivr_option?: Agent.IvrOption | null;
+
+      /**
        * Specifies what language (and dialect) the speech recognition will operate in.
        * For instance, selecting `en-GB` optimizes speech recognition for British
        * English. If unset, will use default value `en-US`. Select `multi` for
-       * multilingual support, currently this supports Spanish and English.
+       * multilingual support.
        */
       language?:
         | 'en-US'
@@ -4169,11 +4971,11 @@ export namespace CallRegisterPhoneCallParams {
         | 'nl-BE'
         | 'pl-PL'
         | 'tr-TR'
-        | 'th-TH'
         | 'vi-VN'
         | 'ro-RO'
         | 'bg-BG'
         | 'ca-ES'
+        | 'th-TH'
         | 'da-DK'
         | 'fi-FI'
         | 'el-GR'
@@ -4182,6 +4984,34 @@ export namespace CallRegisterPhoneCallParams {
         | 'no-NO'
         | 'sk-SK'
         | 'sv-SE'
+        | 'lt-LT'
+        | 'lv-LV'
+        | 'cs-CZ'
+        | 'ms-MY'
+        | 'af-ZA'
+        | 'ar-SA'
+        | 'az-AZ'
+        | 'bs-BA'
+        | 'cy-GB'
+        | 'fa-IR'
+        | 'fil-PH'
+        | 'gl-ES'
+        | 'he-IL'
+        | 'hr-HR'
+        | 'hy-AM'
+        | 'is-IS'
+        | 'kk-KZ'
+        | 'kn-IN'
+        | 'mk-MK'
+        | 'mr-IN'
+        | 'ne-NP'
+        | 'sl-SI'
+        | 'sr-RS'
+        | 'sw-KE'
+        | 'ta-IN'
+        | 'ur-IN'
+        | 'yue-CN'
+        | 'uk-UA'
         | 'multi';
 
       /**
@@ -4227,30 +5057,29 @@ export namespace CallRegisterPhoneCallParams {
       > | null;
 
       /**
-       * The model to use for post call analysis. Default to gpt-4o-mini.
+       * The model to use for post call analysis. Default to gpt-4.1-mini.
        */
       post_call_analysis_model?:
-        | 'gpt-4o'
-        | 'gpt-4o-mini'
         | 'gpt-4.1'
         | 'gpt-4.1-mini'
         | 'gpt-4.1-nano'
         | 'gpt-5'
+        | 'gpt-5.1'
+        | 'gpt-5.2'
         | 'gpt-5-mini'
         | 'gpt-5-nano'
         | 'claude-4.5-sonnet'
-        | 'claude-4.0-sonnet'
-        | 'claude-3.7-sonnet'
-        | 'claude-3.5-haiku'
-        | 'gemini-2.0-flash'
-        | 'gemini-2.0-flash-lite'
+        | 'claude-4.5-haiku'
         | 'gemini-2.5-flash'
-        | 'gemini-2.5-flash-lite';
+        | 'gemini-2.5-flash-lite'
+        | 'gemini-3.0-flash'
+        | null;
 
       /**
        * A list of words / phrases and their pronunciation to be used to guide the audio
-       * synthesize for consistent pronunciation. Currently only supported for English &
-       * 11labs voices. Set to null to remove pronunciation dictionary from this agent.
+       * synthesize for consistent pronunciation. Check the dashboard to see what
+       * provider supports this feature. Set to null to remove pronunciation dictionary
+       * from this agent.
        */
       pronunciation_dictionary?: Array<Agent.PronunciationDictionary> | null;
 
@@ -4294,12 +5123,25 @@ export namespace CallRegisterPhoneCallParams {
       ring_duration_ms?: number;
 
       /**
-       * If set, determines whether speech to text should focus on latency or accuracy.
-       * Default to fast mode.
+       * The expiration time for the signed url in milliseconds. Only applicable when
+       * opt_in_signed_url is true. If not set, default value of 86400000 (24 hours) will
+       * apply.
        */
-      stt_mode?: 'fast' | 'accurate';
+      signed_url_expiration_ms?: number | null;
+
+      /**
+       * If set, determines whether speech to text should focus on latency or accuracy.
+       * Default to fast mode. When set to custom, custom_stt_config must be provided.
+       */
+      stt_mode?: 'fast' | 'accurate' | 'custom';
 
       user_dtmf_options?: Agent.UserDtmfOptions | null;
+
+      /**
+       * Optional description of the agent version. Used for your own reference and
+       * documentation.
+       */
+      version_description?: string | null;
 
       /**
        * If set, determines the vocabulary set to use for transcription. This setting
@@ -4309,16 +5151,21 @@ export namespace CallRegisterPhoneCallParams {
       vocab_specialization?: 'general' | 'medical';
 
       /**
+       * Controls the emotional tone of the agent's voice. Currently supported for
+       * Cartesia and Minimax TTS providers. If unset, no emotion will be used.
+       */
+      voice_emotion?: 'calm' | 'sympathetic' | 'happy' | 'sad' | 'angry' | 'fearful' | 'surprised' | null;
+
+      /**
        * Unique voice id used for the agent. Find list of available voices and their
        * preview in Dashboard.
        */
       voice_id?: string;
 
       /**
-       * Optionally set the voice model used for the selected voice. Currently only
-       * elevenlab voices have voice model selections. Set to null to remove voice model
-       * selection, and default ones will apply. Check out the dashboard for details on
-       * each voice model.
+       * Select the voice model used for the selected voice. Each provider has a set of
+       * available voice models. Set to null to remove voice model selection, and default
+       * ones will apply. Check out dashboard for more details of each voice model.
        */
       voice_model?:
         | 'eleven_turbo_v2'
@@ -4326,8 +5173,15 @@ export namespace CallRegisterPhoneCallParams {
         | 'eleven_turbo_v2_5'
         | 'eleven_flash_v2_5'
         | 'eleven_multilingual_v2'
+        | 'sonic-2'
+        | 'sonic-3'
+        | 'sonic-3-latest'
+        | 'sonic-turbo'
         | 'tts-1'
         | 'gpt-4o-mini-tts'
+        | 'speech-02-turbo'
+        | 'speech-2.8-turbo'
+        | 's1'
         | null;
 
       /**
@@ -4339,11 +5193,26 @@ export namespace CallRegisterPhoneCallParams {
 
       /**
        * Controls how stable the voice is. Value ranging from [0,2]. Lower value means
-       * more stable, and higher value means more variant speech generation. Currently
-       * this setting only applies to `11labs` voices. If unset, default value 1 will
-       * apply.
+       * more stable, and higher value means more variant speech generation. Check the
+       * dashboard to see what provider supports this feature. If unset, default value 1
+       * will apply.
        */
       voice_temperature?: number;
+
+      /**
+       * Configures when to stop running voicemail detection, as it becomes unlikely to
+       * hit voicemail after a couple minutes, and keep running it will only have
+       * negative impact. The minimum value allowed is 5,000 ms (5 s), and maximum value
+       * allowed is 180,000 (3 minutes). By default, this is set to 30,000 (30 s).
+       */
+      voicemail_detection_timeout_ms?: number;
+
+      /**
+       * The message to be played when the call enters a voicemail. Note that this
+       * feature is only available for phone calls. If you want to hangup after hitting
+       * voicemail, set this to empty string.
+       */
+      voicemail_message?: string;
 
       /**
        * If this option is set, the call will try to detect voicemail in the first 3
@@ -4361,6 +5230,21 @@ export namespace CallRegisterPhoneCallParams {
       volume?: number;
 
       /**
+       * Which webhook events this agent should receive. If not set, defaults to
+       * call_started, call_ended, call_analyzed.
+       */
+      webhook_events?: Array<
+        | 'call_started'
+        | 'call_ended'
+        | 'call_analyzed'
+        | 'transcript_updated'
+        | 'transfer_started'
+        | 'transfer_bridged'
+        | 'transfer_cancelled'
+        | 'transfer_ended'
+      > | null;
+
+      /**
        * The timeout for the webhook in milliseconds. If not set, default value of 10000
        * will apply.
        */
@@ -4376,6 +5260,65 @@ export namespace CallRegisterPhoneCallParams {
     }
 
     export namespace Agent {
+      /**
+       * Custom STT configuration. Only used when stt_mode is set to custom.
+       */
+      export interface CustomSttConfig {
+        /**
+         * Endpointing timeout in milliseconds. Minimum is 100 for azure, 10 for deepgram.
+         */
+        endpointing_ms: number;
+
+        /**
+         * The STT provider to use.
+         */
+        provider: 'azure' | 'deepgram';
+      }
+
+      /**
+       * Configuration for guardrail checks to detect and prevent prohibited topics in
+       * agent output and user input.
+       */
+      export interface GuardrailConfig {
+        /**
+         * Selected prohibited user topic categories to check. When user messages contain
+         * these topics, the agent will respond with a placeholder message instead of
+         * processing the request.
+         */
+        input_topics?: Array<'platform_integrity_jailbreaking'> | null;
+
+        /**
+         * Selected prohibited agent topic categories to check. When agent messages contain
+         * these topics, they will be replaced with a placeholder message.
+         */
+        output_topics?: Array<
+          | 'harassment'
+          | 'self_harm'
+          | 'sexual_exploitation'
+          | 'violence'
+          | 'defense_and_national_security'
+          | 'illicit_and_harmful_activity'
+          | 'gambling'
+          | 'regulated_professional_advice'
+          | 'child_safety_and_exploitation'
+        > | null;
+      }
+
+      /**
+       * If this option is set, the call will try to detect IVR in the first 3 minutes of
+       * the call. Actions defined will be applied when the IVR is detected. Set this to
+       * null to disable IVR detection.
+       */
+      export interface IvrOption {
+        action: IvrOption.Action;
+      }
+
+      export namespace IvrOption {
+        export interface Action {
+          type: 'hangup';
+        }
+      }
+
       /**
        * Configuration for PII scrubbing from transcripts and recordings.
        */
@@ -4397,6 +5340,7 @@ export namespace CallRegisterPhoneCallParams {
           | 'pin'
           | 'medical_id'
           | 'date_of_birth'
+          | 'customer_account_number'
         >;
 
         /**
@@ -4556,7 +5500,7 @@ export namespace CallRegisterPhoneCallParams {
 
         /**
          * A single key that signals the end of DTMF input. Acceptable values include any
-         * digit (0–9), the pound/hash symbol (#), or the asterisk (\*).
+         * digit (0-9), the pound/hash symbol (#), or the asterisk (\*).
          */
         termination_key?: string | null;
 
@@ -4577,7 +5521,8 @@ export namespace CallRegisterPhoneCallParams {
         action:
           | VoicemailOption.VoicemailActionPrompt
           | VoicemailOption.VoicemailActionStaticText
-          | VoicemailOption.VoicemailActionHangup;
+          | VoicemailOption.VoicemailActionHangup
+          | VoicemailOption.VoicemailActionBridgeTransfer;
       }
 
       export namespace VoicemailOption {
@@ -4602,6 +5547,10 @@ export namespace CallRegisterPhoneCallParams {
 
         export interface VoicemailActionHangup {
           type: 'hangup';
+        }
+
+        export interface VoicemailActionBridgeTransfer {
+          type: 'bridge_transfer';
         }
       }
     }
@@ -4678,20 +5627,19 @@ export namespace CallRegisterPhoneCallParams {
          * The LLM model to use
          */
         model:
-          | 'gpt-5'
-          | 'gpt-5-mini'
-          | 'gpt-5-nano'
-          | 'gpt-4o'
-          | 'gpt-4o-mini'
           | 'gpt-4.1'
           | 'gpt-4.1-mini'
           | 'gpt-4.1-nano'
-          | 'claude-3.7-sonnet'
-          | 'claude-3.5-haiku'
-          | 'gemini-2.0-flash'
-          | 'gemini-2.0-flash-lite'
+          | 'gpt-5'
+          | 'gpt-5.1'
+          | 'gpt-5.2'
+          | 'gpt-5-mini'
+          | 'gpt-5-nano'
+          | 'claude-4.5-sonnet'
+          | 'claude-4.5-haiku'
           | 'gemini-2.5-flash'
-          | 'gemini-2.5-flash-lite';
+          | 'gemini-2.5-flash-lite'
+          | 'gemini-3.0-flash';
 
         /**
          * Type of model choice
@@ -4741,20 +5689,19 @@ export namespace CallRegisterPhoneCallParams {
        * Select the underlying text LLM. If not set, would default to gpt-4.1.
        */
       model?:
-        | 'gpt-5'
-        | 'gpt-5-mini'
-        | 'gpt-5-nano'
-        | 'gpt-4o'
-        | 'gpt-4o-mini'
         | 'gpt-4.1'
         | 'gpt-4.1-mini'
         | 'gpt-4.1-nano'
-        | 'claude-3.7-sonnet'
-        | 'claude-3.5-haiku'
-        | 'gemini-2.0-flash'
-        | 'gemini-2.0-flash-lite'
+        | 'gpt-5'
+        | 'gpt-5.1'
+        | 'gpt-5.2'
+        | 'gpt-5-mini'
+        | 'gpt-5-nano'
+        | 'claude-4.5-sonnet'
+        | 'claude-4.5-haiku'
         | 'gemini-2.5-flash'
         | 'gemini-2.5-flash-lite'
+        | 'gemini-3.0-flash'
         | null;
 
       /**
@@ -4776,7 +5723,7 @@ export namespace CallRegisterPhoneCallParams {
        * Select the underlying speech to speech model. Can only set this or model, not
        * both.
        */
-      s2s_model?: 'gpt-4o-realtime' | 'gpt-4o-mini-realtime' | 'gpt-realtime' | null;
+      s2s_model?: 'gpt-4o-realtime' | 'gpt-4o-mini-realtime' | 'gpt-realtime' | 'gpt-realtime-mini' | null;
 
       /**
        * The speaker who starts the conversation. Required. Must be either 'user' or

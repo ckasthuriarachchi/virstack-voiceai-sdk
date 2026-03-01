@@ -1,8 +1,10 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
-import { APIResource } from '../resource';
-import { isRequestOptions } from '../core';
-import * as Core from '../core';
+import { APIResource } from '../core/resource';
+import { APIPromise } from '../core/api-promise';
+import { buildHeaders } from '../internal/headers';
+import { RequestOptions } from '../internal/request-options';
+import { path } from '../internal/utils/path';
 
 export class Agent extends APIResource {
   /**
@@ -15,11 +17,11 @@ export class Agent extends APIResource {
    *     llm_id: 'llm_234sdertfsdsfsdf',
    *     type: 'retell-llm',
    *   },
-   *   voice_id: '11labs-Adrian',
+   *   voice_id: 'retell-Cimo',
    * });
    * ```
    */
-  create(body: AgentCreateParams, options?: Core.RequestOptions): Core.APIPromise<AgentResponse> {
+  create(body: AgentCreateParams, options?: RequestOptions): APIPromise<AgentResponse> {
     return this._client.post('/create-agent', { body, ...options });
   }
 
@@ -34,20 +36,11 @@ export class Agent extends APIResource {
    * ```
    */
   retrieve(
-    agentId: string,
-    query?: AgentRetrieveParams,
-    options?: Core.RequestOptions,
-  ): Core.APIPromise<AgentResponse>;
-  retrieve(agentId: string, options?: Core.RequestOptions): Core.APIPromise<AgentResponse>;
-  retrieve(
-    agentId: string,
-    query: AgentRetrieveParams | Core.RequestOptions = {},
-    options?: Core.RequestOptions,
-  ): Core.APIPromise<AgentResponse> {
-    if (isRequestOptions(query)) {
-      return this.retrieve(agentId, {}, query);
-    }
-    return this._client.get(`/get-agent/${agentId}`, { query, ...options });
+    agentID: string,
+    query: AgentRetrieveParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<AgentResponse> {
+    return this._client.get(path`/get-agent/${agentID}`, { query, ...options });
   }
 
   /**
@@ -61,13 +54,9 @@ export class Agent extends APIResource {
    * );
    * ```
    */
-  update(
-    agentId: string,
-    params: AgentUpdateParams,
-    options?: Core.RequestOptions,
-  ): Core.APIPromise<AgentResponse> {
+  update(agentID: string, params: AgentUpdateParams, options?: RequestOptions): APIPromise<AgentResponse> {
     const { version, ...body } = params;
-    return this._client.patch(`/update-agent/${agentId}`, { query: { version }, body, ...options });
+    return this._client.patch(path`/update-agent/${agentID}`, { query: { version }, body, ...options });
   }
 
   /**
@@ -78,15 +67,10 @@ export class Agent extends APIResource {
    * const agentResponses = await client.agent.list();
    * ```
    */
-  list(query?: AgentListParams, options?: Core.RequestOptions): Core.APIPromise<AgentListResponse>;
-  list(options?: Core.RequestOptions): Core.APIPromise<AgentListResponse>;
   list(
-    query: AgentListParams | Core.RequestOptions = {},
-    options?: Core.RequestOptions,
-  ): Core.APIPromise<AgentListResponse> {
-    if (isRequestOptions(query)) {
-      return this.list({}, query);
-    }
+    query: AgentListParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<AgentListResponse> {
     return this._client.get('/list-agents', { query, ...options });
   }
 
@@ -100,10 +84,10 @@ export class Agent extends APIResource {
    * );
    * ```
    */
-  delete(agentId: string, options?: Core.RequestOptions): Core.APIPromise<void> {
-    return this._client.delete(`/delete-agent/${agentId}`, {
+  delete(agentID: string, options?: RequestOptions): APIPromise<void> {
+    return this._client.delete(path`/delete-agent/${agentID}`, {
       ...options,
-      headers: { Accept: '*/*', ...options?.headers },
+      headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
     });
   }
 
@@ -117,8 +101,8 @@ export class Agent extends APIResource {
    * );
    * ```
    */
-  getVersions(agentId: string, options?: Core.RequestOptions): Core.APIPromise<AgentGetVersionsResponse> {
-    return this._client.get(`/get-agent-versions/${agentId}`, options);
+  getVersions(agentID: string, options?: RequestOptions): APIPromise<AgentGetVersionsResponse> {
+    return this._client.get(path`/get-agent-versions/${agentID}`, options);
   }
 
   /**
@@ -132,10 +116,10 @@ export class Agent extends APIResource {
    * );
    * ```
    */
-  publish(agentId: string, options?: Core.RequestOptions): Core.APIPromise<void> {
-    return this._client.post(`/publish-agent/${agentId}`, {
+  publish(agentID: string, options?: RequestOptions): APIPromise<void> {
+    return this._client.post(path`/publish-agent/${agentID}`, {
       ...options,
-      headers: { Accept: '*/*', ...options?.headers },
+      headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
     });
   }
 }
@@ -163,6 +147,11 @@ export interface AgentResponse {
     | AgentResponse.ResponseEngineConversationFlow;
 
   /**
+   * Version of the agent.
+   */
+  version: number;
+
+  /**
    * Unique voice id used for the agent. Find list of available voices and their
    * preview in Dashboard.
    */
@@ -185,24 +174,18 @@ export interface AgentResponse {
    *
    * - `coffee-shop`: Coffee shop ambience with people chatting in background.
    *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/coffee-shop.wav)
-   *
    * - `convention-hall`: Convention hall ambience, with some echo and people
    *   chatting in background.
    *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/convention-hall.wav)
-   *
    * - `summer-outdoor`: Summer outdoor ambience with cicada chirping.
    *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/summer-outdoor.wav)
-   *
    * - `mountain-outdoor`: Mountain outdoor ambience with birds singing.
    *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/mountain-outdoor.wav)
-   *
    * - `static-noise`: Constant static noise.
    *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/static-noise.wav)
-   *
    * - `call-center`: Call center work noise.
    *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/call-center.wav)
-   *
-   * Set to `null` to remove ambient sound from this agent.
+   *   Set to `null` to remove ambient sound from this agent.
    */
   ambient_sound?:
     | 'coffee-shop'
@@ -219,6 +202,26 @@ export interface AgentResponse {
    * sound. If unset, default value 1 will apply.
    */
   ambient_sound_volume?: number;
+
+  /**
+   * Prompt to determine whether the post call or chat analysis should mark the
+   * interaction as successful. Set to null to use the default prompt.
+   */
+  analysis_successful_prompt?: string | null;
+
+  /**
+   * Prompt to guide how the post call or chat analysis summary should be generated.
+   * When unset, the default system prompt is used. Set to null to use the default
+   * prompt.
+   */
+  analysis_summary_prompt?: string | null;
+
+  /**
+   * Prompt to guide how the post call or chat analysis should evaluate user
+   * sentiment. When unset, the default system prompt is used. Set to null to use the
+   * default prompt.
+   */
+  analysis_user_sentiment_prompt?: string | null;
 
   /**
    * Only applicable when enable_backchannel is true. Controls how often the agent
@@ -254,6 +257,18 @@ export interface AgentResponse {
   boosted_keywords?: Array<string> | null;
 
   /**
+   * Custom STT configuration. Only used when stt_mode is set to custom.
+   */
+  custom_stt_config?: AgentResponse.CustomSttConfig;
+
+  /**
+   * Number of days to retain call/chat data before automatic deletion. Must be
+   * between 1 and 730 days. If not set, data is retained forever (no automatic
+   * deletion).
+   */
+  data_storage_retention_days?: number | null;
+
+  /**
    * Granular setting to manage how Retell stores sensitive data (transcripts,
    * recordings, logs, etc.). This replaces the deprecated
    * `opt_out_sensitive_data_storage` field.
@@ -267,9 +282,10 @@ export interface AgentResponse {
   data_storage_setting?: 'everything' | 'everything_except_pii' | 'basic_attributes_only';
 
   /**
-   * If set, determines what denoising mode to use. Default to noise-cancellation.
+   * If set, determines what denoising mode to use. Use "no-denoise" to bypass all
+   * audio denoising. Default to noise-cancellation.
    */
-  denoising_mode?: 'noise-cancellation' | 'noise-and-background-speech-cancellation';
+  denoising_mode?: 'no-denoise' | 'noise-cancellation' | 'noise-and-background-speech-cancellation';
 
   /**
    * Controls whether the agent would backchannel (agent interjects the speaker with
@@ -278,6 +294,25 @@ export interface AgentResponse {
    * will not backchannel.
    */
   enable_backchannel?: boolean;
+
+  /**
+   * If set to true, the agent will dynamically adjust how quickly it responds based
+   * on the user's speech rate and past turn-taking behavior in the call. If unset,
+   * default value false will apply.
+   */
+  enable_dynamic_responsiveness?: boolean;
+
+  /**
+   * If set to true, will enable dynamic voice speed adjustment based on the user's
+   * speech rate and conversation context. If unset, default value false will apply.
+   */
+  enable_dynamic_voice_speed?: boolean;
+
+  /**
+   * If set to true, will detect whether the call enters a voicemail. Note that this
+   * feature is only available for phone calls.
+   */
+  enable_voicemail_detection?: boolean;
 
   /**
    * If users stay silent for a period after agent speech, end the call. The minimum
@@ -295,6 +330,12 @@ export interface AgentResponse {
   fallback_voice_ids?: Array<string> | null;
 
   /**
+   * Configuration for guardrail checks to detect and prevent prohibited topics in
+   * agent output and user input.
+   */
+  guardrail_config?: AgentResponse.GuardrailConfig;
+
+  /**
    * Controls how sensitive the agent is to user interruptions. Value ranging from
    * [0,1]. Lower value means it will take longer / more words for user to interrupt
    * agent, while higher value means it's easier for user to interrupt agent. If
@@ -304,15 +345,28 @@ export interface AgentResponse {
   interruption_sensitivity?: number;
 
   /**
+   * Whether the agent is public. When set to true, the agent is available for public
+   * agent preview link.
+   */
+  is_public?: boolean | null;
+
+  /**
    * Whether the agent is published.
    */
   is_published?: boolean;
 
   /**
+   * If this option is set, the call will try to detect IVR in the first 3 minutes of
+   * the call. Actions defined will be applied when the IVR is detected. Set this to
+   * null to disable IVR detection.
+   */
+  ivr_option?: AgentResponse.IvrOption | null;
+
+  /**
    * Specifies what language (and dialect) the speech recognition will operate in.
    * For instance, selecting `en-GB` optimizes speech recognition for British
    * English. If unset, will use default value `en-US`. Select `multi` for
-   * multilingual support, currently this supports Spanish and English.
+   * multilingual support.
    */
   language?:
     | 'en-US'
@@ -337,11 +391,11 @@ export interface AgentResponse {
     | 'nl-BE'
     | 'pl-PL'
     | 'tr-TR'
-    | 'th-TH'
     | 'vi-VN'
     | 'ro-RO'
     | 'bg-BG'
     | 'ca-ES'
+    | 'th-TH'
     | 'da-DK'
     | 'fi-FI'
     | 'el-GR'
@@ -350,6 +404,34 @@ export interface AgentResponse {
     | 'no-NO'
     | 'sk-SK'
     | 'sv-SE'
+    | 'lt-LT'
+    | 'lv-LV'
+    | 'cs-CZ'
+    | 'ms-MY'
+    | 'af-ZA'
+    | 'ar-SA'
+    | 'az-AZ'
+    | 'bs-BA'
+    | 'cy-GB'
+    | 'fa-IR'
+    | 'fil-PH'
+    | 'gl-ES'
+    | 'he-IL'
+    | 'hr-HR'
+    | 'hy-AM'
+    | 'is-IS'
+    | 'kk-KZ'
+    | 'kn-IN'
+    | 'mk-MK'
+    | 'mr-IN'
+    | 'ne-NP'
+    | 'sl-SI'
+    | 'sr-RS'
+    | 'sw-KE'
+    | 'ta-IN'
+    | 'ur-IN'
+    | 'yue-CN'
+    | 'uk-UA'
     | 'multi';
 
   /**
@@ -395,30 +477,29 @@ export interface AgentResponse {
   > | null;
 
   /**
-   * The model to use for post call analysis. Default to gpt-4o-mini.
+   * The model to use for post call analysis. Default to gpt-4.1-mini.
    */
   post_call_analysis_model?:
-    | 'gpt-4o'
-    | 'gpt-4o-mini'
     | 'gpt-4.1'
     | 'gpt-4.1-mini'
     | 'gpt-4.1-nano'
     | 'gpt-5'
+    | 'gpt-5.1'
+    | 'gpt-5.2'
     | 'gpt-5-mini'
     | 'gpt-5-nano'
     | 'claude-4.5-sonnet'
-    | 'claude-4.0-sonnet'
-    | 'claude-3.7-sonnet'
-    | 'claude-3.5-haiku'
-    | 'gemini-2.0-flash'
-    | 'gemini-2.0-flash-lite'
+    | 'claude-4.5-haiku'
     | 'gemini-2.5-flash'
-    | 'gemini-2.5-flash-lite';
+    | 'gemini-2.5-flash-lite'
+    | 'gemini-3.0-flash'
+    | null;
 
   /**
    * A list of words / phrases and their pronunciation to be used to guide the audio
-   * synthesize for consistent pronunciation. Currently only supported for English &
-   * 11labs voices. Set to null to remove pronunciation dictionary from this agent.
+   * synthesize for consistent pronunciation. Check the dashboard to see what
+   * provider supports this feature. Set to null to remove pronunciation dictionary
+   * from this agent.
    */
   pronunciation_dictionary?: Array<AgentResponse.PronunciationDictionary> | null;
 
@@ -452,17 +533,25 @@ export interface AgentResponse {
   ring_duration_ms?: number;
 
   /**
-   * If set, determines whether speech to text should focus on latency or accuracy.
-   * Default to fast mode.
+   * The expiration time for the signed url in milliseconds. Only applicable when
+   * opt_in_signed_url is true. If not set, default value of 86400000 (24 hours) will
+   * apply.
    */
-  stt_mode?: 'fast' | 'accurate';
+  signed_url_expiration_ms?: number | null;
+
+  /**
+   * If set, determines whether speech to text should focus on latency or accuracy.
+   * Default to fast mode. When set to custom, custom_stt_config must be provided.
+   */
+  stt_mode?: 'fast' | 'accurate' | 'custom';
 
   user_dtmf_options?: AgentResponse.UserDtmfOptions | null;
 
   /**
-   * Version of the agent.
+   * Optional description of the agent version. Used for your own reference and
+   * documentation.
    */
-  version?: number;
+  version_description?: string | null;
 
   /**
    * If set, determines the vocabulary set to use for transcription. This setting
@@ -472,10 +561,15 @@ export interface AgentResponse {
   vocab_specialization?: 'general' | 'medical';
 
   /**
-   * Optionally set the voice model used for the selected voice. Currently only
-   * elevenlab voices have voice model selections. Set to null to remove voice model
-   * selection, and default ones will apply. Check out the dashboard for details on
-   * each voice model.
+   * Controls the emotional tone of the agent's voice. Currently supported for
+   * Cartesia and Minimax TTS providers. If unset, no emotion will be used.
+   */
+  voice_emotion?: 'calm' | 'sympathetic' | 'happy' | 'sad' | 'angry' | 'fearful' | 'surprised' | null;
+
+  /**
+   * Select the voice model used for the selected voice. Each provider has a set of
+   * available voice models. Set to null to remove voice model selection, and default
+   * ones will apply. Check out dashboard for more details of each voice model.
    */
   voice_model?:
     | 'eleven_turbo_v2'
@@ -483,8 +577,15 @@ export interface AgentResponse {
     | 'eleven_turbo_v2_5'
     | 'eleven_flash_v2_5'
     | 'eleven_multilingual_v2'
+    | 'sonic-2'
+    | 'sonic-3'
+    | 'sonic-3-latest'
+    | 'sonic-turbo'
     | 'tts-1'
     | 'gpt-4o-mini-tts'
+    | 'speech-02-turbo'
+    | 'speech-2.8-turbo'
+    | 's1'
     | null;
 
   /**
@@ -496,11 +597,26 @@ export interface AgentResponse {
 
   /**
    * Controls how stable the voice is. Value ranging from [0,2]. Lower value means
-   * more stable, and higher value means more variant speech generation. Currently
-   * this setting only applies to `11labs` voices. If unset, default value 1 will
-   * apply.
+   * more stable, and higher value means more variant speech generation. Check the
+   * dashboard to see what provider supports this feature. If unset, default value 1
+   * will apply.
    */
   voice_temperature?: number;
+
+  /**
+   * Configures when to stop running voicemail detection, as it becomes unlikely to
+   * hit voicemail after a couple minutes, and keep running it will only have
+   * negative impact. The minimum value allowed is 5,000 ms (5 s), and maximum value
+   * allowed is 180,000 (3 minutes). By default, this is set to 30,000 (30 s).
+   */
+  voicemail_detection_timeout_ms?: number;
+
+  /**
+   * The message to be played when the call enters a voicemail. Note that this
+   * feature is only available for phone calls. If you want to hangup after hitting
+   * voicemail, set this to empty string.
+   */
+  voicemail_message?: string;
 
   /**
    * If this option is set, the call will try to detect voicemail in the first 3
@@ -516,6 +632,21 @@ export interface AgentResponse {
    * If unset, default value 1 will apply.
    */
   volume?: number;
+
+  /**
+   * Which webhook events this agent should receive. If not set, defaults to
+   * call_started, call_ended, call_analyzed.
+   */
+  webhook_events?: Array<
+    | 'call_started'
+    | 'call_ended'
+    | 'call_analyzed'
+    | 'transcript_updated'
+    | 'transfer_started'
+    | 'transfer_bridged'
+    | 'transfer_cancelled'
+    | 'transfer_ended'
+  > | null;
 
   /**
    * The timeout for the webhook in milliseconds. If not set, default value of 10000
@@ -580,6 +711,65 @@ export namespace AgentResponse {
   }
 
   /**
+   * Custom STT configuration. Only used when stt_mode is set to custom.
+   */
+  export interface CustomSttConfig {
+    /**
+     * Endpointing timeout in milliseconds. Minimum is 100 for azure, 10 for deepgram.
+     */
+    endpointing_ms: number;
+
+    /**
+     * The STT provider to use.
+     */
+    provider: 'azure' | 'deepgram';
+  }
+
+  /**
+   * Configuration for guardrail checks to detect and prevent prohibited topics in
+   * agent output and user input.
+   */
+  export interface GuardrailConfig {
+    /**
+     * Selected prohibited user topic categories to check. When user messages contain
+     * these topics, the agent will respond with a placeholder message instead of
+     * processing the request.
+     */
+    input_topics?: Array<'platform_integrity_jailbreaking'> | null;
+
+    /**
+     * Selected prohibited agent topic categories to check. When agent messages contain
+     * these topics, they will be replaced with a placeholder message.
+     */
+    output_topics?: Array<
+      | 'harassment'
+      | 'self_harm'
+      | 'sexual_exploitation'
+      | 'violence'
+      | 'defense_and_national_security'
+      | 'illicit_and_harmful_activity'
+      | 'gambling'
+      | 'regulated_professional_advice'
+      | 'child_safety_and_exploitation'
+    > | null;
+  }
+
+  /**
+   * If this option is set, the call will try to detect IVR in the first 3 minutes of
+   * the call. Actions defined will be applied when the IVR is detected. Set this to
+   * null to disable IVR detection.
+   */
+  export interface IvrOption {
+    action: IvrOption.Action;
+  }
+
+  export namespace IvrOption {
+    export interface Action {
+      type: 'hangup';
+    }
+  }
+
+  /**
    * Configuration for PII scrubbing from transcripts and recordings.
    */
   export interface PiiConfig {
@@ -600,6 +790,7 @@ export namespace AgentResponse {
       | 'pin'
       | 'medical_id'
       | 'date_of_birth'
+      | 'customer_account_number'
     >;
 
     /**
@@ -713,7 +904,7 @@ export namespace AgentResponse {
 
     /**
      * A single key that signals the end of DTMF input. Acceptable values include any
-     * digit (0–9), the pound/hash symbol (#), or the asterisk (\*).
+     * digit (0-9), the pound/hash symbol (#), or the asterisk (\*).
      */
     termination_key?: string | null;
 
@@ -734,7 +925,8 @@ export namespace AgentResponse {
     action:
       | VoicemailOption.VoicemailActionPrompt
       | VoicemailOption.VoicemailActionStaticText
-      | VoicemailOption.VoicemailActionHangup;
+      | VoicemailOption.VoicemailActionHangup
+      | VoicemailOption.VoicemailActionBridgeTransfer;
   }
 
   export namespace VoicemailOption {
@@ -759,6 +951,10 @@ export namespace AgentResponse {
 
     export interface VoicemailActionHangup {
       type: 'hangup';
+    }
+
+    export interface VoicemailActionBridgeTransfer {
+      type: 'bridge_transfer';
     }
   }
 }
@@ -801,24 +997,18 @@ export interface AgentCreateParams {
    *
    * - `coffee-shop`: Coffee shop ambience with people chatting in background.
    *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/coffee-shop.wav)
-   *
    * - `convention-hall`: Convention hall ambience, with some echo and people
    *   chatting in background.
    *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/convention-hall.wav)
-   *
    * - `summer-outdoor`: Summer outdoor ambience with cicada chirping.
    *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/summer-outdoor.wav)
-   *
    * - `mountain-outdoor`: Mountain outdoor ambience with birds singing.
    *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/mountain-outdoor.wav)
-   *
    * - `static-noise`: Constant static noise.
    *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/static-noise.wav)
-   *
    * - `call-center`: Call center work noise.
    *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/call-center.wav)
-   *
-   * Set to `null` to remove ambient sound from this agent.
+   *   Set to `null` to remove ambient sound from this agent.
    */
   ambient_sound?:
     | 'coffee-shop'
@@ -835,6 +1025,26 @@ export interface AgentCreateParams {
    * sound. If unset, default value 1 will apply.
    */
   ambient_sound_volume?: number;
+
+  /**
+   * Prompt to determine whether the post call or chat analysis should mark the
+   * interaction as successful. Set to null to use the default prompt.
+   */
+  analysis_successful_prompt?: string | null;
+
+  /**
+   * Prompt to guide how the post call or chat analysis summary should be generated.
+   * When unset, the default system prompt is used. Set to null to use the default
+   * prompt.
+   */
+  analysis_summary_prompt?: string | null;
+
+  /**
+   * Prompt to guide how the post call or chat analysis should evaluate user
+   * sentiment. When unset, the default system prompt is used. Set to null to use the
+   * default prompt.
+   */
+  analysis_user_sentiment_prompt?: string | null;
 
   /**
    * Only applicable when enable_backchannel is true. Controls how often the agent
@@ -870,6 +1080,18 @@ export interface AgentCreateParams {
   boosted_keywords?: Array<string> | null;
 
   /**
+   * Custom STT configuration. Only used when stt_mode is set to custom.
+   */
+  custom_stt_config?: AgentCreateParams.CustomSttConfig;
+
+  /**
+   * Number of days to retain call/chat data before automatic deletion. Must be
+   * between 1 and 730 days. If not set, data is retained forever (no automatic
+   * deletion).
+   */
+  data_storage_retention_days?: number | null;
+
+  /**
    * Granular setting to manage how Retell stores sensitive data (transcripts,
    * recordings, logs, etc.). This replaces the deprecated
    * `opt_out_sensitive_data_storage` field.
@@ -883,9 +1105,10 @@ export interface AgentCreateParams {
   data_storage_setting?: 'everything' | 'everything_except_pii' | 'basic_attributes_only';
 
   /**
-   * If set, determines what denoising mode to use. Default to noise-cancellation.
+   * If set, determines what denoising mode to use. Use "no-denoise" to bypass all
+   * audio denoising. Default to noise-cancellation.
    */
-  denoising_mode?: 'noise-cancellation' | 'noise-and-background-speech-cancellation';
+  denoising_mode?: 'no-denoise' | 'noise-cancellation' | 'noise-and-background-speech-cancellation';
 
   /**
    * Controls whether the agent would backchannel (agent interjects the speaker with
@@ -894,6 +1117,25 @@ export interface AgentCreateParams {
    * will not backchannel.
    */
   enable_backchannel?: boolean;
+
+  /**
+   * If set to true, the agent will dynamically adjust how quickly it responds based
+   * on the user's speech rate and past turn-taking behavior in the call. If unset,
+   * default value false will apply.
+   */
+  enable_dynamic_responsiveness?: boolean;
+
+  /**
+   * If set to true, will enable dynamic voice speed adjustment based on the user's
+   * speech rate and conversation context. If unset, default value false will apply.
+   */
+  enable_dynamic_voice_speed?: boolean;
+
+  /**
+   * If set to true, will detect whether the call enters a voicemail. Note that this
+   * feature is only available for phone calls.
+   */
+  enable_voicemail_detection?: boolean;
 
   /**
    * If users stay silent for a period after agent speech, end the call. The minimum
@@ -911,6 +1153,12 @@ export interface AgentCreateParams {
   fallback_voice_ids?: Array<string> | null;
 
   /**
+   * Configuration for guardrail checks to detect and prevent prohibited topics in
+   * agent output and user input.
+   */
+  guardrail_config?: AgentCreateParams.GuardrailConfig;
+
+  /**
    * Controls how sensitive the agent is to user interruptions. Value ranging from
    * [0,1]. Lower value means it will take longer / more words for user to interrupt
    * agent, while higher value means it's easier for user to interrupt agent. If
@@ -920,10 +1168,23 @@ export interface AgentCreateParams {
   interruption_sensitivity?: number;
 
   /**
+   * Whether the agent is public. When set to true, the agent is available for public
+   * agent preview link.
+   */
+  is_public?: boolean | null;
+
+  /**
+   * If this option is set, the call will try to detect IVR in the first 3 minutes of
+   * the call. Actions defined will be applied when the IVR is detected. Set this to
+   * null to disable IVR detection.
+   */
+  ivr_option?: AgentCreateParams.IvrOption | null;
+
+  /**
    * Specifies what language (and dialect) the speech recognition will operate in.
    * For instance, selecting `en-GB` optimizes speech recognition for British
    * English. If unset, will use default value `en-US`. Select `multi` for
-   * multilingual support, currently this supports Spanish and English.
+   * multilingual support.
    */
   language?:
     | 'en-US'
@@ -948,11 +1209,11 @@ export interface AgentCreateParams {
     | 'nl-BE'
     | 'pl-PL'
     | 'tr-TR'
-    | 'th-TH'
     | 'vi-VN'
     | 'ro-RO'
     | 'bg-BG'
     | 'ca-ES'
+    | 'th-TH'
     | 'da-DK'
     | 'fi-FI'
     | 'el-GR'
@@ -961,6 +1222,34 @@ export interface AgentCreateParams {
     | 'no-NO'
     | 'sk-SK'
     | 'sv-SE'
+    | 'lt-LT'
+    | 'lv-LV'
+    | 'cs-CZ'
+    | 'ms-MY'
+    | 'af-ZA'
+    | 'ar-SA'
+    | 'az-AZ'
+    | 'bs-BA'
+    | 'cy-GB'
+    | 'fa-IR'
+    | 'fil-PH'
+    | 'gl-ES'
+    | 'he-IL'
+    | 'hr-HR'
+    | 'hy-AM'
+    | 'is-IS'
+    | 'kk-KZ'
+    | 'kn-IN'
+    | 'mk-MK'
+    | 'mr-IN'
+    | 'ne-NP'
+    | 'sl-SI'
+    | 'sr-RS'
+    | 'sw-KE'
+    | 'ta-IN'
+    | 'ur-IN'
+    | 'yue-CN'
+    | 'uk-UA'
     | 'multi';
 
   /**
@@ -1006,30 +1295,29 @@ export interface AgentCreateParams {
   > | null;
 
   /**
-   * The model to use for post call analysis. Default to gpt-4o-mini.
+   * The model to use for post call analysis. Default to gpt-4.1-mini.
    */
   post_call_analysis_model?:
-    | 'gpt-4o'
-    | 'gpt-4o-mini'
     | 'gpt-4.1'
     | 'gpt-4.1-mini'
     | 'gpt-4.1-nano'
     | 'gpt-5'
+    | 'gpt-5.1'
+    | 'gpt-5.2'
     | 'gpt-5-mini'
     | 'gpt-5-nano'
     | 'claude-4.5-sonnet'
-    | 'claude-4.0-sonnet'
-    | 'claude-3.7-sonnet'
-    | 'claude-3.5-haiku'
-    | 'gemini-2.0-flash'
-    | 'gemini-2.0-flash-lite'
+    | 'claude-4.5-haiku'
     | 'gemini-2.5-flash'
-    | 'gemini-2.5-flash-lite';
+    | 'gemini-2.5-flash-lite'
+    | 'gemini-3.0-flash'
+    | null;
 
   /**
    * A list of words / phrases and their pronunciation to be used to guide the audio
-   * synthesize for consistent pronunciation. Currently only supported for English &
-   * 11labs voices. Set to null to remove pronunciation dictionary from this agent.
+   * synthesize for consistent pronunciation. Check the dashboard to see what
+   * provider supports this feature. Set to null to remove pronunciation dictionary
+   * from this agent.
    */
   pronunciation_dictionary?: Array<AgentCreateParams.PronunciationDictionary> | null;
 
@@ -1063,12 +1351,25 @@ export interface AgentCreateParams {
   ring_duration_ms?: number;
 
   /**
-   * If set, determines whether speech to text should focus on latency or accuracy.
-   * Default to fast mode.
+   * The expiration time for the signed url in milliseconds. Only applicable when
+   * opt_in_signed_url is true. If not set, default value of 86400000 (24 hours) will
+   * apply.
    */
-  stt_mode?: 'fast' | 'accurate';
+  signed_url_expiration_ms?: number | null;
+
+  /**
+   * If set, determines whether speech to text should focus on latency or accuracy.
+   * Default to fast mode. When set to custom, custom_stt_config must be provided.
+   */
+  stt_mode?: 'fast' | 'accurate' | 'custom';
 
   user_dtmf_options?: AgentCreateParams.UserDtmfOptions | null;
+
+  /**
+   * Optional description of the agent version. Used for your own reference and
+   * documentation.
+   */
+  version_description?: string | null;
 
   /**
    * If set, determines the vocabulary set to use for transcription. This setting
@@ -1078,10 +1379,15 @@ export interface AgentCreateParams {
   vocab_specialization?: 'general' | 'medical';
 
   /**
-   * Optionally set the voice model used for the selected voice. Currently only
-   * elevenlab voices have voice model selections. Set to null to remove voice model
-   * selection, and default ones will apply. Check out the dashboard for details on
-   * each voice model.
+   * Controls the emotional tone of the agent's voice. Currently supported for
+   * Cartesia and Minimax TTS providers. If unset, no emotion will be used.
+   */
+  voice_emotion?: 'calm' | 'sympathetic' | 'happy' | 'sad' | 'angry' | 'fearful' | 'surprised' | null;
+
+  /**
+   * Select the voice model used for the selected voice. Each provider has a set of
+   * available voice models. Set to null to remove voice model selection, and default
+   * ones will apply. Check out dashboard for more details of each voice model.
    */
   voice_model?:
     | 'eleven_turbo_v2'
@@ -1089,8 +1395,15 @@ export interface AgentCreateParams {
     | 'eleven_turbo_v2_5'
     | 'eleven_flash_v2_5'
     | 'eleven_multilingual_v2'
+    | 'sonic-2'
+    | 'sonic-3'
+    | 'sonic-3-latest'
+    | 'sonic-turbo'
     | 'tts-1'
     | 'gpt-4o-mini-tts'
+    | 'speech-02-turbo'
+    | 'speech-2.8-turbo'
+    | 's1'
     | null;
 
   /**
@@ -1102,11 +1415,26 @@ export interface AgentCreateParams {
 
   /**
    * Controls how stable the voice is. Value ranging from [0,2]. Lower value means
-   * more stable, and higher value means more variant speech generation. Currently
-   * this setting only applies to `11labs` voices. If unset, default value 1 will
-   * apply.
+   * more stable, and higher value means more variant speech generation. Check the
+   * dashboard to see what provider supports this feature. If unset, default value 1
+   * will apply.
    */
   voice_temperature?: number;
+
+  /**
+   * Configures when to stop running voicemail detection, as it becomes unlikely to
+   * hit voicemail after a couple minutes, and keep running it will only have
+   * negative impact. The minimum value allowed is 5,000 ms (5 s), and maximum value
+   * allowed is 180,000 (3 minutes). By default, this is set to 30,000 (30 s).
+   */
+  voicemail_detection_timeout_ms?: number;
+
+  /**
+   * The message to be played when the call enters a voicemail. Note that this
+   * feature is only available for phone calls. If you want to hangup after hitting
+   * voicemail, set this to empty string.
+   */
+  voicemail_message?: string;
 
   /**
    * If this option is set, the call will try to detect voicemail in the first 3
@@ -1122,6 +1450,21 @@ export interface AgentCreateParams {
    * If unset, default value 1 will apply.
    */
   volume?: number;
+
+  /**
+   * Which webhook events this agent should receive. If not set, defaults to
+   * call_started, call_ended, call_analyzed.
+   */
+  webhook_events?: Array<
+    | 'call_started'
+    | 'call_ended'
+    | 'call_analyzed'
+    | 'transcript_updated'
+    | 'transfer_started'
+    | 'transfer_bridged'
+    | 'transfer_cancelled'
+    | 'transfer_ended'
+  > | null;
 
   /**
    * The timeout for the webhook in milliseconds. If not set, default value of 10000
@@ -1186,6 +1529,65 @@ export namespace AgentCreateParams {
   }
 
   /**
+   * Custom STT configuration. Only used when stt_mode is set to custom.
+   */
+  export interface CustomSttConfig {
+    /**
+     * Endpointing timeout in milliseconds. Minimum is 100 for azure, 10 for deepgram.
+     */
+    endpointing_ms: number;
+
+    /**
+     * The STT provider to use.
+     */
+    provider: 'azure' | 'deepgram';
+  }
+
+  /**
+   * Configuration for guardrail checks to detect and prevent prohibited topics in
+   * agent output and user input.
+   */
+  export interface GuardrailConfig {
+    /**
+     * Selected prohibited user topic categories to check. When user messages contain
+     * these topics, the agent will respond with a placeholder message instead of
+     * processing the request.
+     */
+    input_topics?: Array<'platform_integrity_jailbreaking'> | null;
+
+    /**
+     * Selected prohibited agent topic categories to check. When agent messages contain
+     * these topics, they will be replaced with a placeholder message.
+     */
+    output_topics?: Array<
+      | 'harassment'
+      | 'self_harm'
+      | 'sexual_exploitation'
+      | 'violence'
+      | 'defense_and_national_security'
+      | 'illicit_and_harmful_activity'
+      | 'gambling'
+      | 'regulated_professional_advice'
+      | 'child_safety_and_exploitation'
+    > | null;
+  }
+
+  /**
+   * If this option is set, the call will try to detect IVR in the first 3 minutes of
+   * the call. Actions defined will be applied when the IVR is detected. Set this to
+   * null to disable IVR detection.
+   */
+  export interface IvrOption {
+    action: IvrOption.Action;
+  }
+
+  export namespace IvrOption {
+    export interface Action {
+      type: 'hangup';
+    }
+  }
+
+  /**
    * Configuration for PII scrubbing from transcripts and recordings.
    */
   export interface PiiConfig {
@@ -1206,6 +1608,7 @@ export namespace AgentCreateParams {
       | 'pin'
       | 'medical_id'
       | 'date_of_birth'
+      | 'customer_account_number'
     >;
 
     /**
@@ -1319,7 +1722,7 @@ export namespace AgentCreateParams {
 
     /**
      * A single key that signals the end of DTMF input. Acceptable values include any
-     * digit (0–9), the pound/hash symbol (#), or the asterisk (\*).
+     * digit (0-9), the pound/hash symbol (#), or the asterisk (\*).
      */
     termination_key?: string | null;
 
@@ -1340,7 +1743,8 @@ export namespace AgentCreateParams {
     action:
       | VoicemailOption.VoicemailActionPrompt
       | VoicemailOption.VoicemailActionStaticText
-      | VoicemailOption.VoicemailActionHangup;
+      | VoicemailOption.VoicemailActionHangup
+      | VoicemailOption.VoicemailActionBridgeTransfer;
   }
 
   export namespace VoicemailOption {
@@ -1365,6 +1769,10 @@ export namespace AgentCreateParams {
 
     export interface VoicemailActionHangup {
       type: 'hangup';
+    }
+
+    export interface VoicemailActionBridgeTransfer {
+      type: 'bridge_transfer';
     }
   }
 }
@@ -1401,24 +1809,18 @@ export interface AgentUpdateParams {
    *
    * - `coffee-shop`: Coffee shop ambience with people chatting in background.
    *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/coffee-shop.wav)
-   *
    * - `convention-hall`: Convention hall ambience, with some echo and people
    *   chatting in background.
    *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/convention-hall.wav)
-   *
    * - `summer-outdoor`: Summer outdoor ambience with cicada chirping.
    *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/summer-outdoor.wav)
-   *
    * - `mountain-outdoor`: Mountain outdoor ambience with birds singing.
    *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/mountain-outdoor.wav)
-   *
    * - `static-noise`: Constant static noise.
    *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/static-noise.wav)
-   *
    * - `call-center`: Call center work noise.
    *   [Listen to Ambience](https://retell-utils-public.s3.us-west-2.amazonaws.com/call-center.wav)
-   *
-   * Set to `null` to remove ambient sound from this agent.
+   *   Set to `null` to remove ambient sound from this agent.
    */
   ambient_sound?:
     | 'coffee-shop'
@@ -1435,6 +1837,26 @@ export interface AgentUpdateParams {
    * louder ambient sound. If unset, default value 1 will apply.
    */
   ambient_sound_volume?: number;
+
+  /**
+   * Body param: Prompt to determine whether the post call or chat analysis should
+   * mark the interaction as successful. Set to null to use the default prompt.
+   */
+  analysis_successful_prompt?: string | null;
+
+  /**
+   * Body param: Prompt to guide how the post call or chat analysis summary should be
+   * generated. When unset, the default system prompt is used. Set to null to use the
+   * default prompt.
+   */
+  analysis_summary_prompt?: string | null;
+
+  /**
+   * Body param: Prompt to guide how the post call or chat analysis should evaluate
+   * user sentiment. When unset, the default system prompt is used. Set to null to
+   * use the default prompt.
+   */
+  analysis_user_sentiment_prompt?: string | null;
 
   /**
    * Body param: Only applicable when enable_backchannel is true. Controls how often
@@ -1470,6 +1892,18 @@ export interface AgentUpdateParams {
   boosted_keywords?: Array<string> | null;
 
   /**
+   * Body param: Custom STT configuration. Only used when stt_mode is set to custom.
+   */
+  custom_stt_config?: AgentUpdateParams.CustomSttConfig;
+
+  /**
+   * Body param: Number of days to retain call/chat data before automatic deletion.
+   * Must be between 1 and 730 days. If not set, data is retained forever (no
+   * automatic deletion).
+   */
+  data_storage_retention_days?: number | null;
+
+  /**
    * Body param: Granular setting to manage how Retell stores sensitive data
    * (transcripts, recordings, logs, etc.). This replaces the deprecated
    * `opt_out_sensitive_data_storage` field.
@@ -1483,10 +1917,10 @@ export interface AgentUpdateParams {
   data_storage_setting?: 'everything' | 'everything_except_pii' | 'basic_attributes_only';
 
   /**
-   * Body param: If set, determines what denoising mode to use. Default to
-   * noise-cancellation.
+   * Body param: If set, determines what denoising mode to use. Use "no-denoise" to
+   * bypass all audio denoising. Default to noise-cancellation.
    */
-  denoising_mode?: 'noise-cancellation' | 'noise-and-background-speech-cancellation';
+  denoising_mode?: 'no-denoise' | 'noise-cancellation' | 'noise-and-background-speech-cancellation';
 
   /**
    * Body param: Controls whether the agent would backchannel (agent interjects the
@@ -1495,6 +1929,26 @@ export interface AgentUpdateParams {
    * set, agent will not backchannel.
    */
   enable_backchannel?: boolean;
+
+  /**
+   * Body param: If set to true, the agent will dynamically adjust how quickly it
+   * responds based on the user's speech rate and past turn-taking behavior in the
+   * call. If unset, default value false will apply.
+   */
+  enable_dynamic_responsiveness?: boolean;
+
+  /**
+   * Body param: If set to true, will enable dynamic voice speed adjustment based on
+   * the user's speech rate and conversation context. If unset, default value false
+   * will apply.
+   */
+  enable_dynamic_voice_speed?: boolean;
+
+  /**
+   * Body param: If set to true, will detect whether the call enters a voicemail.
+   * Note that this feature is only available for phone calls.
+   */
+  enable_voicemail_detection?: boolean;
 
   /**
    * Body param: If users stay silent for a period after agent speech, end the call.
@@ -1513,6 +1967,12 @@ export interface AgentUpdateParams {
   fallback_voice_ids?: Array<string> | null;
 
   /**
+   * Body param: Configuration for guardrail checks to detect and prevent prohibited
+   * topics in agent output and user input.
+   */
+  guardrail_config?: AgentUpdateParams.GuardrailConfig;
+
+  /**
    * Body param: Controls how sensitive the agent is to user interruptions. Value
    * ranging from [0,1]. Lower value means it will take longer / more words for user
    * to interrupt agent, while higher value means it's easier for user to interrupt
@@ -1522,10 +1982,23 @@ export interface AgentUpdateParams {
   interruption_sensitivity?: number;
 
   /**
+   * Body param: Whether the agent is public. When set to true, the agent is
+   * available for public agent preview link.
+   */
+  is_public?: boolean | null;
+
+  /**
+   * Body param: If this option is set, the call will try to detect IVR in the first
+   * 3 minutes of the call. Actions defined will be applied when the IVR is detected.
+   * Set this to null to disable IVR detection.
+   */
+  ivr_option?: AgentUpdateParams.IvrOption | null;
+
+  /**
    * Body param: Specifies what language (and dialect) the speech recognition will
    * operate in. For instance, selecting `en-GB` optimizes speech recognition for
    * British English. If unset, will use default value `en-US`. Select `multi` for
-   * multilingual support, currently this supports Spanish and English.
+   * multilingual support.
    */
   language?:
     | 'en-US'
@@ -1550,11 +2023,11 @@ export interface AgentUpdateParams {
     | 'nl-BE'
     | 'pl-PL'
     | 'tr-TR'
-    | 'th-TH'
     | 'vi-VN'
     | 'ro-RO'
     | 'bg-BG'
     | 'ca-ES'
+    | 'th-TH'
     | 'da-DK'
     | 'fi-FI'
     | 'el-GR'
@@ -1563,6 +2036,34 @@ export interface AgentUpdateParams {
     | 'no-NO'
     | 'sk-SK'
     | 'sv-SE'
+    | 'lt-LT'
+    | 'lv-LV'
+    | 'cs-CZ'
+    | 'ms-MY'
+    | 'af-ZA'
+    | 'ar-SA'
+    | 'az-AZ'
+    | 'bs-BA'
+    | 'cy-GB'
+    | 'fa-IR'
+    | 'fil-PH'
+    | 'gl-ES'
+    | 'he-IL'
+    | 'hr-HR'
+    | 'hy-AM'
+    | 'is-IS'
+    | 'kk-KZ'
+    | 'kn-IN'
+    | 'mk-MK'
+    | 'mr-IN'
+    | 'ne-NP'
+    | 'sl-SI'
+    | 'sr-RS'
+    | 'sw-KE'
+    | 'ta-IN'
+    | 'ur-IN'
+    | 'yue-CN'
+    | 'uk-UA'
     | 'multi';
 
   /**
@@ -1608,30 +2109,28 @@ export interface AgentUpdateParams {
   > | null;
 
   /**
-   * Body param: The model to use for post call analysis. Default to gpt-4o-mini.
+   * Body param: The model to use for post call analysis. Default to gpt-4.1-mini.
    */
   post_call_analysis_model?:
-    | 'gpt-4o'
-    | 'gpt-4o-mini'
     | 'gpt-4.1'
     | 'gpt-4.1-mini'
     | 'gpt-4.1-nano'
     | 'gpt-5'
+    | 'gpt-5.1'
+    | 'gpt-5.2'
     | 'gpt-5-mini'
     | 'gpt-5-nano'
     | 'claude-4.5-sonnet'
-    | 'claude-4.0-sonnet'
-    | 'claude-3.7-sonnet'
-    | 'claude-3.5-haiku'
-    | 'gemini-2.0-flash'
-    | 'gemini-2.0-flash-lite'
+    | 'claude-4.5-haiku'
     | 'gemini-2.5-flash'
-    | 'gemini-2.5-flash-lite';
+    | 'gemini-2.5-flash-lite'
+    | 'gemini-3.0-flash'
+    | null;
 
   /**
    * Body param: A list of words / phrases and their pronunciation to be used to
-   * guide the audio synthesize for consistent pronunciation. Currently only
-   * supported for English & 11labs voices. Set to null to remove pronunciation
+   * guide the audio synthesize for consistent pronunciation. Check the dashboard to
+   * see what provider supports this feature. Set to null to remove pronunciation
    * dictionary from this agent.
    */
   pronunciation_dictionary?: Array<AgentUpdateParams.PronunciationDictionary> | null;
@@ -1677,15 +2176,29 @@ export interface AgentUpdateParams {
   ring_duration_ms?: number;
 
   /**
-   * Body param: If set, determines whether speech to text should focus on latency or
-   * accuracy. Default to fast mode.
+   * Body param: The expiration time for the signed url in milliseconds. Only
+   * applicable when opt_in_signed_url is true. If not set, default value of 86400000
+   * (24 hours) will apply.
    */
-  stt_mode?: 'fast' | 'accurate';
+  signed_url_expiration_ms?: number | null;
 
   /**
-   * Body param:
+   * Body param: If set, determines whether speech to text should focus on latency or
+   * accuracy. Default to fast mode. When set to custom, custom_stt_config must be
+   * provided.
+   */
+  stt_mode?: 'fast' | 'accurate' | 'custom';
+
+  /**
+   * Body param
    */
   user_dtmf_options?: AgentUpdateParams.UserDtmfOptions | null;
+
+  /**
+   * Body param: Optional description of the agent version. Used for your own
+   * reference and documentation.
+   */
+  version_description?: string | null;
 
   /**
    * Body param: If set, determines the vocabulary set to use for transcription. This
@@ -1695,16 +2208,23 @@ export interface AgentUpdateParams {
   vocab_specialization?: 'general' | 'medical';
 
   /**
+   * Body param: Controls the emotional tone of the agent's voice. Currently
+   * supported for Cartesia and Minimax TTS providers. If unset, no emotion will be
+   * used.
+   */
+  voice_emotion?: 'calm' | 'sympathetic' | 'happy' | 'sad' | 'angry' | 'fearful' | 'surprised' | null;
+
+  /**
    * Body param: Unique voice id used for the agent. Find list of available voices
    * and their preview in Dashboard.
    */
   voice_id?: string;
 
   /**
-   * Body param: Optionally set the voice model used for the selected voice.
-   * Currently only elevenlab voices have voice model selections. Set to null to
-   * remove voice model selection, and default ones will apply. Check out the
-   * dashboard for details on each voice model.
+   * Body param: Select the voice model used for the selected voice. Each provider
+   * has a set of available voice models. Set to null to remove voice model
+   * selection, and default ones will apply. Check out dashboard for more details of
+   * each voice model.
    */
   voice_model?:
     | 'eleven_turbo_v2'
@@ -1712,8 +2232,15 @@ export interface AgentUpdateParams {
     | 'eleven_turbo_v2_5'
     | 'eleven_flash_v2_5'
     | 'eleven_multilingual_v2'
+    | 'sonic-2'
+    | 'sonic-3'
+    | 'sonic-3-latest'
+    | 'sonic-turbo'
     | 'tts-1'
     | 'gpt-4o-mini-tts'
+    | 'speech-02-turbo'
+    | 'speech-2.8-turbo'
+    | 's1'
     | null;
 
   /**
@@ -1726,10 +2253,25 @@ export interface AgentUpdateParams {
   /**
    * Body param: Controls how stable the voice is. Value ranging from [0,2]. Lower
    * value means more stable, and higher value means more variant speech generation.
-   * Currently this setting only applies to `11labs` voices. If unset, default value
-   * 1 will apply.
+   * Check the dashboard to see what provider supports this feature. If unset,
+   * default value 1 will apply.
    */
   voice_temperature?: number;
+
+  /**
+   * Body param: Configures when to stop running voicemail detection, as it becomes
+   * unlikely to hit voicemail after a couple minutes, and keep running it will only
+   * have negative impact. The minimum value allowed is 5,000 ms (5 s), and maximum
+   * value allowed is 180,000 (3 minutes). By default, this is set to 30,000 (30 s).
+   */
+  voicemail_detection_timeout_ms?: number;
+
+  /**
+   * Body param: The message to be played when the call enters a voicemail. Note that
+   * this feature is only available for phone calls. If you want to hangup after
+   * hitting voicemail, set this to empty string.
+   */
+  voicemail_message?: string;
 
   /**
    * Body param: If this option is set, the call will try to detect voicemail in the
@@ -1747,6 +2289,21 @@ export interface AgentUpdateParams {
   volume?: number;
 
   /**
+   * Body param: Which webhook events this agent should receive. If not set, defaults
+   * to call_started, call_ended, call_analyzed.
+   */
+  webhook_events?: Array<
+    | 'call_started'
+    | 'call_ended'
+    | 'call_analyzed'
+    | 'transcript_updated'
+    | 'transfer_started'
+    | 'transfer_bridged'
+    | 'transfer_cancelled'
+    | 'transfer_ended'
+  > | null;
+
+  /**
    * Body param: The timeout for the webhook in milliseconds. If not set, default
    * value of 10000 will apply.
    */
@@ -1762,6 +2319,65 @@ export interface AgentUpdateParams {
 }
 
 export namespace AgentUpdateParams {
+  /**
+   * Custom STT configuration. Only used when stt_mode is set to custom.
+   */
+  export interface CustomSttConfig {
+    /**
+     * Endpointing timeout in milliseconds. Minimum is 100 for azure, 10 for deepgram.
+     */
+    endpointing_ms: number;
+
+    /**
+     * The STT provider to use.
+     */
+    provider: 'azure' | 'deepgram';
+  }
+
+  /**
+   * Configuration for guardrail checks to detect and prevent prohibited topics in
+   * agent output and user input.
+   */
+  export interface GuardrailConfig {
+    /**
+     * Selected prohibited user topic categories to check. When user messages contain
+     * these topics, the agent will respond with a placeholder message instead of
+     * processing the request.
+     */
+    input_topics?: Array<'platform_integrity_jailbreaking'> | null;
+
+    /**
+     * Selected prohibited agent topic categories to check. When agent messages contain
+     * these topics, they will be replaced with a placeholder message.
+     */
+    output_topics?: Array<
+      | 'harassment'
+      | 'self_harm'
+      | 'sexual_exploitation'
+      | 'violence'
+      | 'defense_and_national_security'
+      | 'illicit_and_harmful_activity'
+      | 'gambling'
+      | 'regulated_professional_advice'
+      | 'child_safety_and_exploitation'
+    > | null;
+  }
+
+  /**
+   * If this option is set, the call will try to detect IVR in the first 3 minutes of
+   * the call. Actions defined will be applied when the IVR is detected. Set this to
+   * null to disable IVR detection.
+   */
+  export interface IvrOption {
+    action: IvrOption.Action;
+  }
+
+  export namespace IvrOption {
+    export interface Action {
+      type: 'hangup';
+    }
+  }
+
   /**
    * Configuration for PII scrubbing from transcripts and recordings.
    */
@@ -1783,6 +2399,7 @@ export namespace AgentUpdateParams {
       | 'pin'
       | 'medical_id'
       | 'date_of_birth'
+      | 'customer_account_number'
     >;
 
     /**
@@ -1942,7 +2559,7 @@ export namespace AgentUpdateParams {
 
     /**
      * A single key that signals the end of DTMF input. Acceptable values include any
-     * digit (0–9), the pound/hash symbol (#), or the asterisk (\*).
+     * digit (0-9), the pound/hash symbol (#), or the asterisk (\*).
      */
     termination_key?: string | null;
 
@@ -1963,7 +2580,8 @@ export namespace AgentUpdateParams {
     action:
       | VoicemailOption.VoicemailActionPrompt
       | VoicemailOption.VoicemailActionStaticText
-      | VoicemailOption.VoicemailActionHangup;
+      | VoicemailOption.VoicemailActionHangup
+      | VoicemailOption.VoicemailActionBridgeTransfer;
   }
 
   export namespace VoicemailOption {
@@ -1988,6 +2606,10 @@ export namespace AgentUpdateParams {
 
     export interface VoicemailActionHangup {
       type: 'hangup';
+    }
+
+    export interface VoicemailActionBridgeTransfer {
+      type: 'bridge_transfer';
     }
   }
 }

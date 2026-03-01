@@ -1,7 +1,12 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
-import { APIResource } from '../resource';
-import * as Core from '../core';
+import { APIResource } from '../core/resource';
+import { APIPromise } from '../core/api-promise';
+import { type Uploadable } from '../core/uploads';
+import { buildHeaders } from '../internal/headers';
+import { RequestOptions } from '../internal/request-options';
+import { multipartFormRequestOptions } from '../internal/uploads';
+import { path } from '../internal/utils/path';
 
 export class KnowledgeBase extends APIResource {
   /**
@@ -15,13 +20,10 @@ export class KnowledgeBase extends APIResource {
    *   });
    * ```
    */
-  create(
-    body: KnowledgeBaseCreateParams,
-    options?: Core.RequestOptions,
-  ): Core.APIPromise<KnowledgeBaseResponse> {
+  create(body: KnowledgeBaseCreateParams, options?: RequestOptions): APIPromise<KnowledgeBaseResponse> {
     return this._client.post(
       '/create-knowledge-base',
-      Core.multipartFormRequestOptions({ body, ...options }),
+      multipartFormRequestOptions({ body, ...options }, this._client),
     );
   }
 
@@ -34,8 +36,8 @@ export class KnowledgeBase extends APIResource {
    *   await client.knowledgeBase.retrieve('kb_1234567890');
    * ```
    */
-  retrieve(knowledgeBaseId: string, options?: Core.RequestOptions): Core.APIPromise<KnowledgeBaseResponse> {
-    return this._client.get(`/get-knowledge-base/${knowledgeBaseId}`, options);
+  retrieve(knowledgeBaseID: string, options?: RequestOptions): APIPromise<KnowledgeBaseResponse> {
+    return this._client.get(path`/get-knowledge-base/${knowledgeBaseID}`, options);
   }
 
   /**
@@ -47,7 +49,7 @@ export class KnowledgeBase extends APIResource {
    *   await client.knowledgeBase.list();
    * ```
    */
-  list(options?: Core.RequestOptions): Core.APIPromise<KnowledgeBaseListResponse> {
+  list(options?: RequestOptions): APIPromise<KnowledgeBaseListResponse> {
     return this._client.get('/list-knowledge-bases', options);
   }
 
@@ -59,10 +61,10 @@ export class KnowledgeBase extends APIResource {
    * await client.knowledgeBase.delete('kb_1234567890');
    * ```
    */
-  delete(knowledgeBaseId: string, options?: Core.RequestOptions): Core.APIPromise<void> {
-    return this._client.delete(`/delete-knowledge-base/${knowledgeBaseId}`, {
+  delete(knowledgeBaseID: string, options?: RequestOptions): APIPromise<void> {
+    return this._client.delete(path`/delete-knowledge-base/${knowledgeBaseID}`, {
       ...options,
-      headers: { Accept: '*/*', ...options?.headers },
+      headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
     });
   }
 
@@ -76,13 +78,13 @@ export class KnowledgeBase extends APIResource {
    * ```
    */
   addSources(
-    knowledgeBaseId: string,
+    knowledgeBaseID: string,
     body: KnowledgeBaseAddSourcesParams,
-    options?: Core.RequestOptions,
-  ): Core.APIPromise<KnowledgeBaseResponse> {
+    options?: RequestOptions,
+  ): APIPromise<KnowledgeBaseResponse> {
     return this._client.post(
-      `/add-knowledge-base-sources/${knowledgeBaseId}`,
-      Core.multipartFormRequestOptions({ body, ...options }),
+      path`/add-knowledge-base-sources/${knowledgeBaseID}`,
+      multipartFormRequestOptions({ body, ...options }, this._client),
     );
   }
 
@@ -93,18 +95,19 @@ export class KnowledgeBase extends APIResource {
    * ```ts
    * const knowledgeBaseResponse =
    *   await client.knowledgeBase.deleteSource(
-   *     'kb_1234567890',
    *     'source_1234567890',
+   *     { knowledge_base_id: 'kb_1234567890' },
    *   );
    * ```
    */
   deleteSource(
-    knowledgeBaseId: string,
-    sourceId: string,
-    options?: Core.RequestOptions,
-  ): Core.APIPromise<KnowledgeBaseResponse> {
+    sourceID: string,
+    params: KnowledgeBaseDeleteSourceParams,
+    options?: RequestOptions,
+  ): APIPromise<KnowledgeBaseResponse> {
+    const { knowledge_base_id } = params;
     return this._client.delete(
-      `/delete-knowledge-base-source/${knowledgeBaseId}/source/${sourceId}`,
+      path`/delete-knowledge-base-source/${knowledge_base_id}/source/${sourceID}`,
       options,
     );
   }
@@ -124,9 +127,10 @@ export interface KnowledgeBaseResponse {
   /**
    * Status of the knowledge base. When it's created and being processed, it's
    * "in_progress". When the processing is done, it's "complete". When there's an
-   * error in processing, it's "error".
+   * error in processing, it's "error". When it is during kb updating, it's
+   * "refreshing_in_progress".
    */
-  status: 'in_progress' | 'complete' | 'error';
+  status: 'in_progress' | 'complete' | 'error' | 'refreshing_in_progress';
 
   /**
    * Whether to enable auto refresh for the knowledge base urls. If set to true, will
@@ -149,6 +153,17 @@ export interface KnowledgeBaseResponse {
    * enable_auto_refresh is true.
    */
   last_refreshed_timestamp?: number;
+
+  /**
+   * Maximum number of characters per chunk when splitting knowledge base content.
+   */
+  max_chunk_size?: number;
+
+  /**
+   * Minimum number of characters per chunk. Chunks smaller than this are merged with
+   * adjacent chunks.
+   */
+  min_chunk_size?: number;
 }
 
 export namespace KnowledgeBaseResponse {
@@ -232,7 +247,7 @@ export interface KnowledgeBaseCreateParams {
    * Files to add to the knowledge base. Limit to 25 files, where each file is
    * limited to 50MB.
    */
-  knowledge_base_files?: Array<Core.Uploadable>;
+  knowledge_base_files?: Array<Uploadable>;
 
   /**
    * Texts to add to the knowledge base.
@@ -243,6 +258,19 @@ export interface KnowledgeBaseCreateParams {
    * URLs to be scraped and added to the knowledge base. Must be valid urls.
    */
   knowledge_base_urls?: Array<string>;
+
+  /**
+   * Maximum number of characters per chunk when splitting knowledge base. Default
+   * is 2000. content. Immutable after creation.
+   */
+  max_chunk_size?: number;
+
+  /**
+   * Minimum number of characters per chunk. Chunks smaller than this will be merged
+   * with adjacent chunks. Must be less than max_chunk_size. Immutable after
+   * creation. Default is 400.
+   */
+  min_chunk_size?: number;
 }
 
 export namespace KnowledgeBaseCreateParams {
@@ -264,7 +292,7 @@ export interface KnowledgeBaseAddSourcesParams {
    * Files to add to the knowledge base. Limit to 25 files, where each file is
    * limited to 50MB.
    */
-  knowledge_base_files?: Array<Core.Uploadable>;
+  knowledge_base_files?: Array<Uploadable>;
 
   /**
    * Texts to add to the knowledge base.
@@ -291,11 +319,19 @@ export namespace KnowledgeBaseAddSourcesParams {
   }
 }
 
+export interface KnowledgeBaseDeleteSourceParams {
+  /**
+   * The knowledge base id to delete source from.
+   */
+  knowledge_base_id: string;
+}
+
 export declare namespace KnowledgeBase {
   export {
     type KnowledgeBaseResponse as KnowledgeBaseResponse,
     type KnowledgeBaseListResponse as KnowledgeBaseListResponse,
     type KnowledgeBaseCreateParams as KnowledgeBaseCreateParams,
     type KnowledgeBaseAddSourcesParams as KnowledgeBaseAddSourcesParams,
+    type KnowledgeBaseDeleteSourceParams as KnowledgeBaseDeleteSourceParams,
   };
 }

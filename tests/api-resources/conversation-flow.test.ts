@@ -1,7 +1,6 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 import Retell from 'retell-sdk';
-import { Response } from 'node-fetch';
 
 const client = new Retell({
   apiKey: 'YOUR_RETELL_API_KEY',
@@ -9,9 +8,10 @@ const client = new Retell({
 });
 
 describe('resource conversationFlow', () => {
-  test('create: only required params', async () => {
+  // Mock server tests are disabled
+  test.skip('create: only required params', async () => {
     const responsePromise = client.conversationFlow.create({
-      model_choice: { model: 'gpt-5', type: 'cascading' },
+      model_choice: { model: 'gpt-4.1', type: 'cascading' },
       nodes: [
         {
           id: 'start',
@@ -30,14 +30,24 @@ describe('resource conversationFlow', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  test('create: required and optional params', async () => {
+  // Mock server tests are disabled
+  test.skip('create: required and optional params', async () => {
     const response = await client.conversationFlow.create({
-      model_choice: { model: 'gpt-5', type: 'cascading', high_priority: true },
+      model_choice: {
+        model: 'gpt-4.1',
+        type: 'cascading',
+        high_priority: true,
+      },
       nodes: [
         {
           id: 'start',
           instruction: { text: 'Greet the customer and ask how you can help them.', type: 'prompt' },
           type: 'conversation',
+          always_edge: {
+            id: 'id',
+            transition_condition: { prompt: 'prompt', type: 'prompt' },
+            destination_node_id: 'destination_node_id',
+          },
           display_position: { x: 0, y: 0 },
           edges: [
             {
@@ -56,18 +66,43 @@ describe('resource conversationFlow', () => {
           ],
           global_node_setting: {
             condition: 'condition',
+            cool_down: 1,
+            go_back_conditions: [
+              {
+                id: 'id',
+                transition_condition: { prompt: 'prompt', type: 'prompt' },
+                destination_node_id: 'destination_node_id',
+              },
+            ],
             negative_finetune_examples: [{ transcript: [{ content: 'content', role: 'agent' }] }],
             positive_finetune_examples: [{ transcript: [{ content: 'content', role: 'agent' }] }],
           },
           interruption_sensitivity: 0,
           knowledge_base_ids: ['kb_001', 'kb_002'],
-          model_choice: { model: 'gpt-5', type: 'cascading', high_priority: true },
+          model_choice: {
+            model: 'gpt-4.1',
+            type: 'cascading',
+            high_priority: true,
+          },
           name: 'name',
+          responsiveness: 0,
           skip_response_edge: {
             id: 'id',
-            transition_condition: { prompt: 'Skip response', type: 'prompt' },
+            transition_condition: { prompt: 'prompt', type: 'prompt' },
             destination_node_id: 'destination_node_id',
           },
+          tool_ids: ['string'],
+          tools: [
+            {
+              name: 'name',
+              type: 'end_call',
+              description: 'description',
+              execution_message_description: 'execution_message_description',
+              execution_message_type: 'prompt',
+              speak_during_execution: true,
+            },
+          ],
+          voice_speed: 0.5,
         },
       ],
       start_speaker: 'agent',
@@ -84,6 +119,11 @@ describe('resource conversationFlow', () => {
                 type: 'prompt',
               },
               type: 'conversation',
+              always_edge: {
+                id: 'id',
+                transition_condition: { prompt: 'prompt', type: 'prompt' },
+                destination_node_id: 'destination_node_id',
+              },
               display_position: { x: 0, y: 0 },
               edges: [
                 {
@@ -104,34 +144,77 @@ describe('resource conversationFlow', () => {
               ],
               global_node_setting: {
                 condition: 'condition',
+                cool_down: 1,
+                go_back_conditions: [
+                  {
+                    id: 'id',
+                    transition_condition: { prompt: 'prompt', type: 'prompt' },
+                    destination_node_id: 'destination_node_id',
+                  },
+                ],
                 negative_finetune_examples: [{ transcript: [{ content: 'content', role: 'agent' }] }],
                 positive_finetune_examples: [{ transcript: [{ content: 'content', role: 'agent' }] }],
               },
               interruption_sensitivity: 0,
               knowledge_base_ids: ['kb_001', 'kb_002'],
-              model_choice: { model: 'gpt-5', type: 'cascading', high_priority: true },
+              model_choice: {
+                model: 'gpt-4.1',
+                type: 'cascading',
+                high_priority: true,
+              },
               name: 'name',
+              responsiveness: 0,
               skip_response_edge: {
                 id: 'id',
                 transition_condition: { prompt: 'prompt', type: 'prompt' },
                 destination_node_id: 'destination_node_id',
               },
+              tool_ids: ['string'],
+              tools: [
+                {
+                  name: 'name',
+                  type: 'end_call',
+                  description: 'description',
+                  execution_message_description: 'execution_message_description',
+                  execution_message_type: 'prompt',
+                  speak_during_execution: true,
+                },
+              ],
+              voice_speed: 0.5,
             },
           ],
           begin_tag_display_position: { x: 100, y: 200 },
+          mcps: [
+            {
+              name: 'name',
+              url: 'url',
+              headers: { Authorization: 'Bearer 1234567890' },
+              query_params: { index: '1', key: 'value' },
+              timeout_ms: 0,
+            },
+          ],
           start_node_id: 'collect_info',
           tools: [
             {
               name: 'get_customer_info',
               type: 'custom',
               url: 'https://api.example.com/customer',
+              args_at_root: true,
               description: 'Get customer information from database',
-              headers: { foo: 'string' },
+              execution_message_description: 'execution_message_description',
+              execution_message_type: 'prompt',
+              headers: { Authorization: 'Bearer 1234567890' },
               method: 'GET',
-              parameters: { properties: { foo: 'bar' }, type: 'object', required: ['string'] },
-              query_params: { foo: 'string' },
-              response_variables: { foo: 'string' },
-              timeout_ms: 1000,
+              parameters: {
+                properties: { foo: 'bar' },
+                type: 'object',
+                required: ['string'],
+              },
+              query_params: { page: '1', sort: 'asc' },
+              response_variables: { user_name: 'data.user.name' },
+              speak_after_execution: true,
+              speak_during_execution: true,
+              timeout_ms: 0,
               tool_id: 'tool_001',
             },
           ],
@@ -159,20 +242,30 @@ describe('resource conversationFlow', () => {
           name: 'get_customer_info',
           type: 'custom',
           url: 'https://api.example.com/customer',
+          args_at_root: true,
           description: 'Get customer information from database',
-          headers: { foo: 'string' },
+          execution_message_description: 'execution_message_description',
+          execution_message_type: 'prompt',
+          headers: { Authorization: 'Bearer 1234567890' },
           method: 'GET',
-          parameters: { properties: { foo: 'bar' }, type: 'object', required: ['string'] },
-          query_params: { foo: 'string' },
-          response_variables: { foo: 'string' },
-          timeout_ms: 1000,
+          parameters: {
+            properties: { foo: 'bar' },
+            type: 'object',
+            required: ['string'],
+          },
+          query_params: { page: '1', sort: 'asc' },
+          response_variables: { user_name: 'data.user.name' },
+          speak_after_execution: true,
+          speak_during_execution: true,
+          timeout_ms: 0,
           tool_id: 'tool_001',
         },
       ],
     });
   });
 
-  test('retrieve', async () => {
+  // Mock server tests are disabled
+  test.skip('retrieve', async () => {
     const responsePromise = client.conversationFlow.retrieve('conversation_flow_id');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -183,25 +276,20 @@ describe('resource conversationFlow', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  test('retrieve: request options instead of params are passed correctly', async () => {
-    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
-    await expect(
-      client.conversationFlow.retrieve('conversation_flow_id', { path: '/_stainless_unknown_path' }),
-    ).rejects.toThrow(Retell.NotFoundError);
-  });
-
-  test('retrieve: request options and params are passed correctly', async () => {
+  // Mock server tests are disabled
+  test.skip('retrieve: request options and params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
       client.conversationFlow.retrieve(
         'conversation_flow_id',
-        { version: 'version' },
+        { version: 1 },
         { path: '/_stainless_unknown_path' },
       ),
     ).rejects.toThrow(Retell.NotFoundError);
   });
 
-  test('update', async () => {
+  // Mock server tests are disabled
+  test.skip('update', async () => {
     const responsePromise = client.conversationFlow.update('conversation_flow_id', {});
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -212,7 +300,8 @@ describe('resource conversationFlow', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  test('list', async () => {
+  // Mock server tests are disabled
+  test.skip('list', async () => {
     const responsePromise = client.conversationFlow.list();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -223,24 +312,23 @@ describe('resource conversationFlow', () => {
     expect(dataAndResponse.response).toBe(rawResponse);
   });
 
-  test('list: request options instead of params are passed correctly', async () => {
-    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
-    await expect(client.conversationFlow.list({ path: '/_stainless_unknown_path' })).rejects.toThrow(
-      Retell.NotFoundError,
-    );
-  });
-
-  test('list: request options and params are passed correctly', async () => {
+  // Mock server tests are disabled
+  test.skip('list: request options and params are passed correctly', async () => {
     // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
     await expect(
       client.conversationFlow.list(
-        { limit: 1000, pagination_key: 'pagination_key', pagination_key_version: 0 },
+        {
+          limit: 1000,
+          pagination_key: 'pagination_key',
+          pagination_key_version: 0,
+        },
         { path: '/_stainless_unknown_path' },
       ),
     ).rejects.toThrow(Retell.NotFoundError);
   });
 
-  test('delete', async () => {
+  // Mock server tests are disabled
+  test.skip('delete', async () => {
     const responsePromise = client.conversationFlow.delete('conversation_flow_id');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -249,12 +337,5 @@ describe('resource conversationFlow', () => {
     const dataAndResponse = await responsePromise.withResponse();
     expect(dataAndResponse.data).toBe(response);
     expect(dataAndResponse.response).toBe(rawResponse);
-  });
-
-  test('delete: request options instead of params are passed correctly', async () => {
-    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
-    await expect(
-      client.conversationFlow.delete('conversation_flow_id', { path: '/_stainless_unknown_path' }),
-    ).rejects.toThrow(Retell.NotFoundError);
   });
 });

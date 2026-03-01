@@ -1,13 +1,14 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
-import { APIResource } from '../resource';
-import * as Core from '../core';
+import { APIResource } from '../core/resource';
+import { APIPromise } from '../core/api-promise';
+import { RequestOptions } from '../internal/request-options';
 
 export class Concurrency extends APIResource {
   /**
    * Get the current concurrency and concurrency limit of the org
    */
-  retrieve(options?: Core.RequestOptions): Core.APIPromise<ConcurrencyRetrieveResponse> {
+  retrieve(options?: RequestOptions): APIPromise<ConcurrencyRetrieveResponse> {
     return this._client.get('/get-concurrency', options);
   }
 }
@@ -17,6 +18,18 @@ export interface ConcurrencyRetrieveResponse {
    * The free concurrency limit of the org.
    */
   base_concurrency?: number;
+
+  /**
+   * Whether burst concurrency mode is enabled. When enabled, allows the org to
+   * exceed their normal concurrency limit with a surcharge.
+   */
+  concurrency_burst_enabled?: boolean;
+
+  /**
+   * The maximum concurrency limit when burst mode is enabled. This is calculated as
+   * min(3x normal limit, normal limit + 300). Returns 0 if burst mode is disabled.
+   */
+  concurrency_burst_limit?: number;
 
   /**
    * The total concurrency limit (at max how many ongoing calls one can make) of the

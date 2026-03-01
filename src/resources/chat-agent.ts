@@ -1,8 +1,10 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
-import { APIResource } from '../resource';
-import { isRequestOptions } from '../core';
-import * as Core from '../core';
+import { APIResource } from '../core/resource';
+import { APIPromise } from '../core/api-promise';
+import { buildHeaders } from '../internal/headers';
+import { RequestOptions } from '../internal/request-options';
+import { path } from '../internal/utils/path';
 
 export class ChatAgent extends APIResource {
   /**
@@ -18,7 +20,7 @@ export class ChatAgent extends APIResource {
    * });
    * ```
    */
-  create(body: ChatAgentCreateParams, options?: Core.RequestOptions): Core.APIPromise<ChatAgentResponse> {
+  create(body: ChatAgentCreateParams, options?: RequestOptions): APIPromise<ChatAgentResponse> {
     return this._client.post('/create-chat-agent', { body, ...options });
   }
 
@@ -33,20 +35,11 @@ export class ChatAgent extends APIResource {
    * ```
    */
   retrieve(
-    agentId: string,
-    query?: ChatAgentRetrieveParams,
-    options?: Core.RequestOptions,
-  ): Core.APIPromise<ChatAgentResponse>;
-  retrieve(agentId: string, options?: Core.RequestOptions): Core.APIPromise<ChatAgentResponse>;
-  retrieve(
-    agentId: string,
-    query: ChatAgentRetrieveParams | Core.RequestOptions = {},
-    options?: Core.RequestOptions,
-  ): Core.APIPromise<ChatAgentResponse> {
-    if (isRequestOptions(query)) {
-      return this.retrieve(agentId, {}, query);
-    }
-    return this._client.get(`/get-chat-agent/${agentId}`, { query, ...options });
+    agentID: string,
+    query: ChatAgentRetrieveParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<ChatAgentResponse> {
+    return this._client.get(path`/get-chat-agent/${agentID}`, { query, ...options });
   }
 
   /**
@@ -60,12 +53,12 @@ export class ChatAgent extends APIResource {
    * ```
    */
   update(
-    agentId: string,
+    agentID: string,
     params: ChatAgentUpdateParams,
-    options?: Core.RequestOptions,
-  ): Core.APIPromise<ChatAgentResponse> {
+    options?: RequestOptions,
+  ): APIPromise<ChatAgentResponse> {
     const { version, ...body } = params;
-    return this._client.patch(`/update-chat-agent/${agentId}`, { query: { version }, body, ...options });
+    return this._client.patch(path`/update-chat-agent/${agentID}`, { query: { version }, body, ...options });
   }
 
   /**
@@ -76,15 +69,10 @@ export class ChatAgent extends APIResource {
    * const chatAgentResponses = await client.chatAgent.list();
    * ```
    */
-  list(query?: ChatAgentListParams, options?: Core.RequestOptions): Core.APIPromise<ChatAgentListResponse>;
-  list(options?: Core.RequestOptions): Core.APIPromise<ChatAgentListResponse>;
   list(
-    query: ChatAgentListParams | Core.RequestOptions = {},
-    options?: Core.RequestOptions,
-  ): Core.APIPromise<ChatAgentListResponse> {
-    if (isRequestOptions(query)) {
-      return this.list({}, query);
-    }
+    query: ChatAgentListParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<ChatAgentListResponse> {
     return this._client.get('/list-chat-agents', { query, ...options });
   }
 
@@ -98,10 +86,10 @@ export class ChatAgent extends APIResource {
    * );
    * ```
    */
-  delete(agentId: string, options?: Core.RequestOptions): Core.APIPromise<void> {
-    return this._client.delete(`/delete-chat-agent/${agentId}`, {
+  delete(agentID: string, options?: RequestOptions): APIPromise<void> {
+    return this._client.delete(path`/delete-chat-agent/${agentID}`, {
       ...options,
-      headers: { Accept: '*/*', ...options?.headers },
+      headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
     });
   }
 
@@ -116,8 +104,8 @@ export class ChatAgent extends APIResource {
    *   );
    * ```
    */
-  getVersions(agentId: string, options?: Core.RequestOptions): Core.APIPromise<ChatAgentGetVersionsResponse> {
-    return this._client.get(`/get-chat-agent-versions/${agentId}`, options);
+  getVersions(agentID: string, options?: RequestOptions): APIPromise<ChatAgentGetVersionsResponse> {
+    return this._client.get(path`/get-chat-agent-versions/${agentID}`, options);
   }
 
   /**
@@ -131,10 +119,10 @@ export class ChatAgent extends APIResource {
    * );
    * ```
    */
-  publish(agentId: string, options?: Core.RequestOptions): Core.APIPromise<void> {
-    return this._client.post(`/publish-chat-agent/${agentId}`, {
+  publish(agentID: string, options?: RequestOptions): APIPromise<void> {
+    return this._client.post(path`/publish-chat-agent/${agentID}`, {
       ...options,
-      headers: { Accept: '*/*', ...options?.headers },
+      headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
     });
   }
 }
@@ -167,9 +155,34 @@ export interface ChatAgentResponse {
   agent_name?: string | null;
 
   /**
+   * The prompt to use for post call analysis to evaluate whether the call is
+   * successful. Set to null to use the default prompt.
+   */
+  analysis_successful_prompt?: string | null;
+
+  /**
+   * The prompt to use for post call analysis to summarize the call. Set to null to
+   * use the default prompt.
+   */
+  analysis_summary_prompt?: string | null;
+
+  /**
+   * Prompt to guide how the post chat analysis should evaluate user sentiment. When
+   * unset, the default system prompt is used. Set to null to use the default prompt.
+   */
+  analysis_user_sentiment_prompt?: string | null;
+
+  /**
    * Message to display when the chat is automatically closed.
    */
   auto_close_message?: string | null;
+
+  /**
+   * Number of days to retain call/chat data before automatic deletion. Must be
+   * between 1 and 730 days. If not set, data is retained forever (no automatic
+   * deletion).
+   */
+  data_storage_retention_days?: number | null;
 
   /**
    * Controls what data is stored for this agent. "everything" stores all data
@@ -181,10 +194,22 @@ export interface ChatAgentResponse {
 
   /**
    * If users stay silent for a period after agent speech, end the chat. The minimum
-   * value allowed is 360,000 ms (0.1 hours). The maximum value allowed is
+   * value allowed is 120,000 ms (2 minutes). The maximum value allowed is
    * 259,200,000 ms (72 hours). By default, this is set to 3,600,000 (1 hour).
    */
   end_chat_after_silence_ms?: number;
+
+  /**
+   * Configuration for guardrail checks to detect and prevent prohibited topics in
+   * agent output and user input.
+   */
+  guardrail_config?: ChatAgentResponse.GuardrailConfig;
+
+  /**
+   * Whether the agent is public. When set to true, the agent is available for public
+   * agent preview link.
+   */
+  is_public?: boolean | null;
 
   /**
    * Whether the chat agent is published.
@@ -233,6 +258,9 @@ export interface ChatAgentResponse {
     | 'no-NO'
     | 'sk-SK'
     | 'sv-SE'
+    | 'lt-LT'
+    | 'lv-LV'
+    | 'cs-CZ'
     | 'multi';
 
   /**
@@ -262,28 +290,38 @@ export interface ChatAgentResponse {
    * The model to use for post chat analysis. Default to gpt-4.1-mini.
    */
   post_chat_analysis_model?:
-    | 'gpt-4o'
-    | 'gpt-4o-mini'
     | 'gpt-4.1'
     | 'gpt-4.1-mini'
     | 'gpt-4.1-nano'
     | 'gpt-5'
     | 'gpt-5.1'
+    | 'gpt-5.2'
     | 'gpt-5-mini'
     | 'gpt-5-nano'
     | 'claude-4.5-sonnet'
-    | 'claude-4.0-sonnet'
-    | 'claude-3.7-sonnet'
-    | 'claude-3.5-haiku'
-    | 'gemini-2.0-flash'
-    | 'gemini-2.0-flash-lite'
+    | 'claude-4.5-haiku'
     | 'gemini-2.5-flash'
-    | 'gemini-2.5-flash-lite';
+    | 'gemini-2.5-flash-lite'
+    | 'gemini-3.0-flash'
+    | null;
+
+  /**
+   * The expiration time for the signed url in milliseconds. Only applicable when
+   * opt_in_signed_url is true. If not set, default value of 86400000 (24 hours) will
+   * apply.
+   */
+  signed_url_expiration_ms?: number | null;
 
   /**
    * The version of the chat agent.
    */
   version?: number;
+
+  /**
+   * Which webhook events this agent should receive. If not set, defaults to
+   * chat_started, chat_ended, chat_analyzed.
+   */
+  webhook_events?: Array<'chat_started' | 'chat_ended' | 'chat_analyzed'> | null;
 
   /**
    * The timeout for the webhook in milliseconds. If not set, default value of 10000
@@ -348,6 +386,35 @@ export namespace ChatAgentResponse {
   }
 
   /**
+   * Configuration for guardrail checks to detect and prevent prohibited topics in
+   * agent output and user input.
+   */
+  export interface GuardrailConfig {
+    /**
+     * Selected prohibited user topic categories to check. When user messages contain
+     * these topics, the agent will respond with a placeholder message instead of
+     * processing the request.
+     */
+    input_topics?: Array<'platform_integrity_jailbreaking'> | null;
+
+    /**
+     * Selected prohibited agent topic categories to check. When agent messages contain
+     * these topics, they will be replaced with a placeholder message.
+     */
+    output_topics?: Array<
+      | 'harassment'
+      | 'self_harm'
+      | 'sexual_exploitation'
+      | 'violence'
+      | 'defense_and_national_security'
+      | 'illicit_and_harmful_activity'
+      | 'gambling'
+      | 'regulated_professional_advice'
+      | 'child_safety_and_exploitation'
+    > | null;
+  }
+
+  /**
    * Configuration for PII scrubbing from transcripts and recordings.
    */
   export interface PiiConfig {
@@ -368,6 +435,7 @@ export namespace ChatAgentResponse {
       | 'pin'
       | 'medical_id'
       | 'date_of_birth'
+      | 'customer_account_number'
     >;
 
     /**
@@ -476,9 +544,34 @@ export interface ChatAgentCreateParams {
   agent_name?: string | null;
 
   /**
+   * The prompt to use for post call analysis to evaluate whether the call is
+   * successful. Set to null to use the default prompt.
+   */
+  analysis_successful_prompt?: string | null;
+
+  /**
+   * The prompt to use for post call analysis to summarize the call. Set to null to
+   * use the default prompt.
+   */
+  analysis_summary_prompt?: string | null;
+
+  /**
+   * Prompt to guide how the post chat analysis should evaluate user sentiment. When
+   * unset, the default system prompt is used. Set to null to use the default prompt.
+   */
+  analysis_user_sentiment_prompt?: string | null;
+
+  /**
    * Message to display when the chat is automatically closed.
    */
   auto_close_message?: string | null;
+
+  /**
+   * Number of days to retain call/chat data before automatic deletion. Must be
+   * between 1 and 730 days. If not set, data is retained forever (no automatic
+   * deletion).
+   */
+  data_storage_retention_days?: number | null;
 
   /**
    * Controls what data is stored for this agent. "everything" stores all data
@@ -490,10 +583,22 @@ export interface ChatAgentCreateParams {
 
   /**
    * If users stay silent for a period after agent speech, end the chat. The minimum
-   * value allowed is 360,000 ms (0.1 hours). The maximum value allowed is
+   * value allowed is 120,000 ms (2 minutes). The maximum value allowed is
    * 259,200,000 ms (72 hours). By default, this is set to 3,600,000 (1 hour).
    */
   end_chat_after_silence_ms?: number;
+
+  /**
+   * Configuration for guardrail checks to detect and prevent prohibited topics in
+   * agent output and user input.
+   */
+  guardrail_config?: ChatAgentCreateParams.GuardrailConfig;
+
+  /**
+   * Whether the agent is public. When set to true, the agent is available for public
+   * agent preview link.
+   */
+  is_public?: boolean | null;
 
   /**
    * Specifies what language (and dialect) the chat will operate in. For instance,
@@ -537,6 +642,9 @@ export interface ChatAgentCreateParams {
     | 'no-NO'
     | 'sk-SK'
     | 'sv-SE'
+    | 'lt-LT'
+    | 'lv-LV'
+    | 'cs-CZ'
     | 'multi';
 
   /**
@@ -566,23 +674,33 @@ export interface ChatAgentCreateParams {
    * The model to use for post chat analysis. Default to gpt-4.1-mini.
    */
   post_chat_analysis_model?:
-    | 'gpt-4o'
-    | 'gpt-4o-mini'
     | 'gpt-4.1'
     | 'gpt-4.1-mini'
     | 'gpt-4.1-nano'
     | 'gpt-5'
     | 'gpt-5.1'
+    | 'gpt-5.2'
     | 'gpt-5-mini'
     | 'gpt-5-nano'
     | 'claude-4.5-sonnet'
-    | 'claude-4.0-sonnet'
-    | 'claude-3.7-sonnet'
-    | 'claude-3.5-haiku'
-    | 'gemini-2.0-flash'
-    | 'gemini-2.0-flash-lite'
+    | 'claude-4.5-haiku'
     | 'gemini-2.5-flash'
-    | 'gemini-2.5-flash-lite';
+    | 'gemini-2.5-flash-lite'
+    | 'gemini-3.0-flash'
+    | null;
+
+  /**
+   * The expiration time for the signed url in milliseconds. Only applicable when
+   * opt_in_signed_url is true. If not set, default value of 86400000 (24 hours) will
+   * apply.
+   */
+  signed_url_expiration_ms?: number | null;
+
+  /**
+   * Which webhook events this agent should receive. If not set, defaults to
+   * chat_started, chat_ended, chat_analyzed.
+   */
+  webhook_events?: Array<'chat_started' | 'chat_ended' | 'chat_analyzed'> | null;
 
   /**
    * The timeout for the webhook in milliseconds. If not set, default value of 10000
@@ -647,6 +765,35 @@ export namespace ChatAgentCreateParams {
   }
 
   /**
+   * Configuration for guardrail checks to detect and prevent prohibited topics in
+   * agent output and user input.
+   */
+  export interface GuardrailConfig {
+    /**
+     * Selected prohibited user topic categories to check. When user messages contain
+     * these topics, the agent will respond with a placeholder message instead of
+     * processing the request.
+     */
+    input_topics?: Array<'platform_integrity_jailbreaking'> | null;
+
+    /**
+     * Selected prohibited agent topic categories to check. When agent messages contain
+     * these topics, they will be replaced with a placeholder message.
+     */
+    output_topics?: Array<
+      | 'harassment'
+      | 'self_harm'
+      | 'sexual_exploitation'
+      | 'violence'
+      | 'defense_and_national_security'
+      | 'illicit_and_harmful_activity'
+      | 'gambling'
+      | 'regulated_professional_advice'
+      | 'child_safety_and_exploitation'
+    > | null;
+  }
+
+  /**
    * Configuration for PII scrubbing from transcripts and recordings.
    */
   export interface PiiConfig {
@@ -667,6 +814,7 @@ export namespace ChatAgentCreateParams {
       | 'pin'
       | 'medical_id'
       | 'date_of_birth'
+      | 'customer_account_number'
     >;
 
     /**
@@ -775,9 +923,35 @@ export interface ChatAgentUpdateParams {
   agent_name?: string | null;
 
   /**
+   * Body param: The prompt to use for post call analysis to evaluate whether the
+   * call is successful. Set to null to use the default prompt.
+   */
+  analysis_successful_prompt?: string | null;
+
+  /**
+   * Body param: The prompt to use for post call analysis to summarize the call. Set
+   * to null to use the default prompt.
+   */
+  analysis_summary_prompt?: string | null;
+
+  /**
+   * Body param: Prompt to guide how the post chat analysis should evaluate user
+   * sentiment. When unset, the default system prompt is used. Set to null to use the
+   * default prompt.
+   */
+  analysis_user_sentiment_prompt?: string | null;
+
+  /**
    * Body param: Message to display when the chat is automatically closed.
    */
   auto_close_message?: string | null;
+
+  /**
+   * Body param: Number of days to retain call/chat data before automatic deletion.
+   * Must be between 1 and 730 days. If not set, data is retained forever (no
+   * automatic deletion).
+   */
+  data_storage_retention_days?: number | null;
 
   /**
    * Body param: Controls what data is stored for this agent. "everything" stores all
@@ -790,10 +964,22 @@ export interface ChatAgentUpdateParams {
 
   /**
    * Body param: If users stay silent for a period after agent speech, end the chat.
-   * The minimum value allowed is 360,000 ms (0.1 hours). The maximum value allowed
+   * The minimum value allowed is 120,000 ms (2 minutes). The maximum value allowed
    * is 259,200,000 ms (72 hours). By default, this is set to 3,600,000 (1 hour).
    */
   end_chat_after_silence_ms?: number;
+
+  /**
+   * Body param: Configuration for guardrail checks to detect and prevent prohibited
+   * topics in agent output and user input.
+   */
+  guardrail_config?: ChatAgentUpdateParams.GuardrailConfig;
+
+  /**
+   * Body param: Whether the agent is public. When set to true, the agent is
+   * available for public agent preview link.
+   */
+  is_public?: boolean | null;
 
   /**
    * Body param: Specifies what language (and dialect) the chat will operate in. For
@@ -837,6 +1023,9 @@ export interface ChatAgentUpdateParams {
     | 'no-NO'
     | 'sk-SK'
     | 'sv-SE'
+    | 'lt-LT'
+    | 'lv-LV'
+    | 'cs-CZ'
     | 'multi';
 
   /**
@@ -866,23 +1055,20 @@ export interface ChatAgentUpdateParams {
    * Body param: The model to use for post chat analysis. Default to gpt-4.1-mini.
    */
   post_chat_analysis_model?:
-    | 'gpt-4o'
-    | 'gpt-4o-mini'
     | 'gpt-4.1'
     | 'gpt-4.1-mini'
     | 'gpt-4.1-nano'
     | 'gpt-5'
     | 'gpt-5.1'
+    | 'gpt-5.2'
     | 'gpt-5-mini'
     | 'gpt-5-nano'
     | 'claude-4.5-sonnet'
-    | 'claude-4.0-sonnet'
-    | 'claude-3.7-sonnet'
-    | 'claude-3.5-haiku'
-    | 'gemini-2.0-flash'
-    | 'gemini-2.0-flash-lite'
+    | 'claude-4.5-haiku'
     | 'gemini-2.5-flash'
-    | 'gemini-2.5-flash-lite';
+    | 'gemini-2.5-flash-lite'
+    | 'gemini-3.0-flash'
+    | null;
 
   /**
    * Body param: The Response Engine to attach to the agent. It is used to generate
@@ -893,6 +1079,19 @@ export interface ChatAgentUpdateParams {
     | ChatAgentUpdateParams.ResponseEngineRetellLm
     | ChatAgentUpdateParams.ResponseEngineCustomLm
     | ChatAgentUpdateParams.ResponseEngineConversationFlow;
+
+  /**
+   * Body param: The expiration time for the signed url in milliseconds. Only
+   * applicable when opt_in_signed_url is true. If not set, default value of 86400000
+   * (24 hours) will apply.
+   */
+  signed_url_expiration_ms?: number | null;
+
+  /**
+   * Body param: Which webhook events this agent should receive. If not set, defaults
+   * to chat_started, chat_ended, chat_analyzed.
+   */
+  webhook_events?: Array<'chat_started' | 'chat_ended' | 'chat_analyzed'> | null;
 
   /**
    * Body param: The timeout for the webhook in milliseconds. If not set, default
@@ -910,6 +1109,35 @@ export interface ChatAgentUpdateParams {
 }
 
 export namespace ChatAgentUpdateParams {
+  /**
+   * Configuration for guardrail checks to detect and prevent prohibited topics in
+   * agent output and user input.
+   */
+  export interface GuardrailConfig {
+    /**
+     * Selected prohibited user topic categories to check. When user messages contain
+     * these topics, the agent will respond with a placeholder message instead of
+     * processing the request.
+     */
+    input_topics?: Array<'platform_integrity_jailbreaking'> | null;
+
+    /**
+     * Selected prohibited agent topic categories to check. When agent messages contain
+     * these topics, they will be replaced with a placeholder message.
+     */
+    output_topics?: Array<
+      | 'harassment'
+      | 'self_harm'
+      | 'sexual_exploitation'
+      | 'violence'
+      | 'defense_and_national_security'
+      | 'illicit_and_harmful_activity'
+      | 'gambling'
+      | 'regulated_professional_advice'
+      | 'child_safety_and_exploitation'
+    > | null;
+  }
+
   /**
    * Configuration for PII scrubbing from transcripts and recordings.
    */
@@ -931,6 +1159,7 @@ export namespace ChatAgentUpdateParams {
       | 'pin'
       | 'medical_id'
       | 'date_of_birth'
+      | 'customer_account_number'
     >;
 
     /**

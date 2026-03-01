@@ -1,7 +1,6 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 import Retell from 'retell-sdk';
-import { Response } from 'node-fetch';
 
 const client = new Retell({
   apiKey: 'YOUR_RETELL_API_KEY',
@@ -9,7 +8,8 @@ const client = new Retell({
 });
 
 describe('resource concurrency', () => {
-  test('retrieve', async () => {
+  // Mock server tests are disabled
+  test.skip('retrieve', async () => {
     const responsePromise = client.concurrency.retrieve();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
@@ -18,12 +18,5 @@ describe('resource concurrency', () => {
     const dataAndResponse = await responsePromise.withResponse();
     expect(dataAndResponse.data).toBe(response);
     expect(dataAndResponse.response).toBe(rawResponse);
-  });
-
-  test('retrieve: request options instead of params are passed correctly', async () => {
-    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
-    await expect(client.concurrency.retrieve({ path: '/_stainless_unknown_path' })).rejects.toThrow(
-      Retell.NotFoundError,
-    );
   });
 });

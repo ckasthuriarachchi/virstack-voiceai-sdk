@@ -30,6 +30,7 @@ export {
   type ChatCreateChatCompletionResponse,
   type ChatCreateParams,
   type ChatUpdateParams,
+  type ChatListParams,
   type ChatCreateChatCompletionParams,
   type ChatCreateSMSChatParams,
 } from './chat';
@@ -54,11 +55,19 @@ export {
   type ConversationFlowListParams,
 } from './conversation-flow';
 export {
+  ConversationFlowComponent,
+  type ConversationFlowComponentResponse,
+  type ConversationFlowComponentListResponse,
+  type ConversationFlowComponentCreateParams,
+  type ConversationFlowComponentUpdateParams,
+} from './conversation-flow-component';
+export {
   KnowledgeBase,
   type KnowledgeBaseResponse,
   type KnowledgeBaseListResponse,
   type KnowledgeBaseCreateParams,
   type KnowledgeBaseAddSourcesParams,
+  type KnowledgeBaseDeleteSourceParams,
 } from './knowledge-base';
 export {
   Llm,
@@ -83,5 +92,26 @@ export {
   type PhoneNumberUpdateParams,
   type PhoneNumberImportParams,
 } from './phone-number';
-export { Tests, type BatchTestResponse, type TestCreateBatchTestParams } from './tests';
-export { Voice, type VoiceResponse, type VoiceListResponse } from './voice';
+export {
+  Tests,
+  type BatchTestResponse,
+  type TestCaseDefinitionResponse,
+  type TestCaseJobResponse,
+  type TestListBatchTestsResponse,
+  type TestListTestCaseDefinitionsResponse,
+  type TestListTestRunsResponse,
+  type TestCreateBatchTestParams,
+  type TestCreateTestCaseDefinitionParams,
+  type TestListBatchTestsParams,
+  type TestListTestCaseDefinitionsParams,
+  type TestUpdateTestCaseDefinitionParams,
+} from './tests';
+export {
+  Voice,
+  type VoiceResponse,
+  type VoiceListResponse,
+  type VoiceSearchResponse,
+  type VoiceAddResourceParams,
+  type VoiceCloneParams,
+  type VoiceSearchParams,
+} from './voice';
