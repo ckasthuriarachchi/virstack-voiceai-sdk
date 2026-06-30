@@ -9,30 +9,6 @@ const client = new Retell({
 
 describe('resource voice', () => {
   // Mock server tests are disabled
-  test.skip('retrieve', async () => {
-    const responsePromise = client.voice.retrieve('retell-Cimo');
-    const rawResponse = await responsePromise.asResponse();
-    expect(rawResponse).toBeInstanceOf(Response);
-    const response = await responsePromise;
-    expect(response).not.toBeInstanceOf(Response);
-    const dataAndResponse = await responsePromise.withResponse();
-    expect(dataAndResponse.data).toBe(response);
-    expect(dataAndResponse.response).toBe(rawResponse);
-  });
-
-  // Mock server tests are disabled
-  test.skip('list', async () => {
-    const responsePromise = client.voice.list();
-    const rawResponse = await responsePromise.asResponse();
-    expect(rawResponse).toBeInstanceOf(Response);
-    const response = await responsePromise;
-    expect(response).not.toBeInstanceOf(Response);
-    const dataAndResponse = await responsePromise.withResponse();
-    expect(dataAndResponse.data).toBe(response);
-    expect(dataAndResponse.response).toBe(rawResponse);
-  });
-
-  // Mock server tests are disabled
   test.skip('addResource: only required params', async () => {
     const responsePromise = client.voice.addResource({
       provider_voice_id: 'provider_voice_id',
@@ -60,7 +36,7 @@ describe('resource voice', () => {
   // Mock server tests are disabled
   test.skip('clone: only required params', async () => {
     const responsePromise = client.voice.clone({
-      files: [await toFile(Buffer.from('# my file contents'), 'README.md')],
+      files: [await toFile(Buffer.from('Example data'), 'README.md')],
       voice_name: 'x',
       voice_provider: 'elevenlabs',
     });
@@ -76,10 +52,34 @@ describe('resource voice', () => {
   // Mock server tests are disabled
   test.skip('clone: required and optional params', async () => {
     const response = await client.voice.clone({
-      files: [await toFile(Buffer.from('# my file contents'), 'README.md')],
+      files: [await toFile(Buffer.from('Example data'), 'README.md')],
       voice_name: 'x',
       voice_provider: 'elevenlabs',
     });
+  });
+
+  // Mock server tests are disabled
+  test.skip('retrieve', async () => {
+    const responsePromise = client.voice.retrieve('retell-Cimo');
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Mock server tests are disabled
+  test.skip('list', async () => {
+    const responsePromise = client.voice.list();
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
   });
 
   // Mock server tests are disabled

@@ -26,81 +26,7 @@ describe('resource chat', () => {
       agent_id: 'oBeDLoLOeuAbiuaMFXRtDOLriTJ5tSxD',
       agent_version: 1,
       metadata: {},
-      retell_llm_dynamic_variables: { customer_name: 'bar' },
-    });
-  });
-
-  // Mock server tests are disabled
-  test.skip('retrieve', async () => {
-    const responsePromise = client.chat.retrieve('16b980523634a6dc504898cda492e939');
-    const rawResponse = await responsePromise.asResponse();
-    expect(rawResponse).toBeInstanceOf(Response);
-    const response = await responsePromise;
-    expect(response).not.toBeInstanceOf(Response);
-    const dataAndResponse = await responsePromise.withResponse();
-    expect(dataAndResponse.data).toBe(response);
-    expect(dataAndResponse.response).toBe(rawResponse);
-  });
-
-  // Mock server tests are disabled
-  test.skip('update', async () => {
-    const responsePromise = client.chat.update('chat_98c1a2157aa0559144d67bb0729', {});
-    const rawResponse = await responsePromise.asResponse();
-    expect(rawResponse).toBeInstanceOf(Response);
-    const response = await responsePromise;
-    expect(response).not.toBeInstanceOf(Response);
-    const dataAndResponse = await responsePromise.withResponse();
-    expect(dataAndResponse.data).toBe(response);
-    expect(dataAndResponse.response).toBe(rawResponse);
-  });
-
-  // Mock server tests are disabled
-  test.skip('list', async () => {
-    const responsePromise = client.chat.list();
-    const rawResponse = await responsePromise.asResponse();
-    expect(rawResponse).toBeInstanceOf(Response);
-    const response = await responsePromise;
-    expect(response).not.toBeInstanceOf(Response);
-    const dataAndResponse = await responsePromise.withResponse();
-    expect(dataAndResponse.data).toBe(response);
-    expect(dataAndResponse.response).toBe(rawResponse);
-  });
-
-  // Mock server tests are disabled
-  test.skip('list: request options and params are passed correctly', async () => {
-    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
-    await expect(
-      client.chat.list(
-        {
-          limit: 1000,
-          pagination_key: 'pagination_key',
-          sort_order: 'ascending',
-        },
-        { path: '/_stainless_unknown_path' },
-      ),
-    ).rejects.toThrow(Retell.NotFoundError);
-  });
-
-  // Mock server tests are disabled
-  test.skip('createChatCompletion: only required params', async () => {
-    const responsePromise = client.chat.createChatCompletion({
-      chat_id: 'oBeDLoLOeuAbiuaMFXRtDOLriTJ5tSxD',
-      content: 'hi how are you doing?',
-    });
-    const rawResponse = await responsePromise.asResponse();
-    expect(rawResponse).toBeInstanceOf(Response);
-    const response = await responsePromise;
-    expect(response).not.toBeInstanceOf(Response);
-    const dataAndResponse = await responsePromise.withResponse();
-    expect(dataAndResponse.data).toBe(response);
-    expect(dataAndResponse.response).toBe(rawResponse);
-  });
-
-  // Mock server tests are disabled
-  test.skip('createChatCompletion: required and optional params', async () => {
-    const response = await client.chat.createChatCompletion({
-      chat_id: 'oBeDLoLOeuAbiuaMFXRtDOLriTJ5tSxD',
-      content: 'hi how are you doing?',
+      retell_llm_dynamic_variables: { customer_name: 'John Doe' },
     });
   });
 
@@ -127,13 +53,165 @@ describe('resource chat', () => {
       metadata: {},
       override_agent_id: 'oBeDLoLOeuAbiuaMFXRtDOLriTJ5tSxD',
       override_agent_version: 1,
-      retell_llm_dynamic_variables: { customer_name: 'bar' },
+      retell_llm_dynamic_variables: { customer_name: 'John Doe' },
     });
   });
 
   // Mock server tests are disabled
   test.skip('end', async () => {
     const responsePromise = client.chat.end('16b980523634a6dc504898cda492e939');
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Mock server tests are disabled
+  test.skip('retrieve', async () => {
+    const responsePromise = client.chat.retrieve('16b980523634a6dc504898cda492e939');
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Mock server tests are disabled
+  test.skip('createChatCompletion: only required params', async () => {
+    const responsePromise = client.chat.createChatCompletion({
+      chat_id: 'oBeDLoLOeuAbiuaMFXRtDOLriTJ5tSxD',
+      content: 'hi how are you doing?',
+    });
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Mock server tests are disabled
+  test.skip('createChatCompletion: required and optional params', async () => {
+    const response = await client.chat.createChatCompletion({
+      chat_id: 'oBeDLoLOeuAbiuaMFXRtDOLriTJ5tSxD',
+      content: 'hi how are you doing?',
+    });
+  });
+
+  // Mock server tests are disabled
+  test.skip('list', async () => {
+    const responsePromise = client.chat.list();
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Mock server tests are disabled
+  test.skip('list: request options and params are passed correctly', async () => {
+    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
+    await expect(
+      client.chat.list(
+        {
+          filter_criteria: {
+            agent: [{ agent_id: 'x', version: [0] }],
+            chat_id: {
+              op: 'eq',
+              type: 'string',
+              value: 'value',
+            },
+            chat_status: {
+              op: 'in',
+              type: 'enum',
+              value: ['ongoing'],
+            },
+            chat_successful: {
+              op: 'eq',
+              type: 'boolean',
+              value: true,
+            },
+            combined_cost: {
+              op: 'eq',
+              type: 'number',
+              value: 0,
+            },
+            custom_analysis_data: [
+              {
+                op: 'eq',
+                type: 'string',
+                value: 'value',
+                key: 'key',
+              },
+            ],
+            custom_attributes: [
+              {
+                op: 'eq',
+                type: 'string',
+                value: 'value',
+                key: 'key',
+              },
+            ],
+            disconnection_reason: {
+              op: 'in',
+              type: 'enum',
+              value: ['user_hangup'],
+            },
+            duration_ms: {
+              op: 'eq',
+              type: 'number',
+              value: 0,
+            },
+            end_timestamp: {
+              op: 'eq',
+              type: 'number',
+              value: 0,
+            },
+            start_timestamp: {
+              op: 'eq',
+              type: 'number',
+              value: 0,
+            },
+            user_sentiment: {
+              op: 'in',
+              type: 'enum',
+              value: ['Negative'],
+            },
+          },
+          include_total: true,
+          limit: 1000,
+          pagination_key: 'pagination_key',
+          skip: 0,
+          sort_order: 'ascending',
+        },
+        { path: '/_stainless_unknown_path' },
+      ),
+    ).rejects.toThrow(Retell.NotFoundError);
+  });
+
+  // Mock server tests are disabled
+  test.skip('update', async () => {
+    const responsePromise = client.chat.update('chat_98c1a2157aa0559144d67bb0729', {});
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Mock server tests are disabled
+  test.skip('delete', async () => {
+    const responsePromise = client.chat.delete('16b980523634a6dc504898cda492e939');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
     const response = await responsePromise;

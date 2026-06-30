@@ -1,6 +1,7 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 import { APIResource } from '../core/resource';
+import * as AgentAPI from './agent';
 import { APIPromise } from '../core/api-promise';
 import { buildHeaders } from '../internal/headers';
 import { RequestOptions } from '../internal/request-options';
@@ -43,6 +44,18 @@ export class ChatAgent extends APIResource {
   }
 
   /**
+   * List all chat agents
+   *
+   * @deprecated
+   */
+  list(
+    query: ChatAgentListParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<ChatAgentListResponse> {
+    return this._client.get('/list-chat-agents', { query, ...options });
+  }
+
+  /**
    * Update an existing chat agent
    *
    * @example
@@ -59,21 +72,6 @@ export class ChatAgent extends APIResource {
   ): APIPromise<ChatAgentResponse> {
     const { version, ...body } = params;
     return this._client.patch(path`/update-chat-agent/${agentID}`, { query: { version }, body, ...options });
-  }
-
-  /**
-   * List all chat agents
-   *
-   * @example
-   * ```ts
-   * const chatAgentResponses = await client.chatAgent.list();
-   * ```
-   */
-  list(
-    query: ChatAgentListParams | null | undefined = {},
-    options?: RequestOptions,
-  ): APIPromise<ChatAgentListResponse> {
-    return this._client.get('/list-chat-agents', { query, ...options });
   }
 
   /**
@@ -94,6 +92,66 @@ export class ChatAgent extends APIResource {
   }
 
   /**
+   * Publish an existing draft version in place.
+   *
+   * @example
+   * ```ts
+   * await client.chatAgent.publish('agent_xxx', {
+   *   version: 15,
+   * });
+   * ```
+   */
+  publish(agentID: string, body: ChatAgentPublishParams, options?: RequestOptions): APIPromise<void> {
+    return this._client.post(path`/publish-agent-version/${agentID}`, {
+      body,
+      ...options,
+      headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
+    });
+  }
+
+  /**
+   * Create a new draft agent version from a base version.
+   *
+   * @example
+   * ```ts
+   * const response = await client.chatAgent.createVersion(
+   *   'agent_xxx',
+   *   { base_version: 12 },
+   * );
+   * ```
+   */
+  createVersion(
+    agentID: string,
+    body: ChatAgentCreateVersionParams,
+    options?: RequestOptions,
+  ): APIPromise<ChatAgentCreateVersionResponse> {
+    return this._client.post(path`/create-agent-version/${agentID}`, { body, ...options });
+  }
+
+  /**
+   * Delete a specific agent version.
+   *
+   * @example
+   * ```ts
+   * await client.chatAgent.deleteVersion('agent_xxx', {
+   *   version: 1,
+   * });
+   * ```
+   */
+  deleteVersion(
+    agentID: string,
+    params: ChatAgentDeleteVersionParams,
+    options?: RequestOptions,
+  ): APIPromise<void> {
+    const { version } = params;
+    return this._client.delete(path`/delete-agent-version/${agentID}`, {
+      query: { version },
+      ...options,
+      headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
+    });
+  }
+
+  /**
    * Get all versions of a chat agent
    *
    * @example
@@ -106,24 +164,6 @@ export class ChatAgent extends APIResource {
    */
   getVersions(agentID: string, options?: RequestOptions): APIPromise<ChatAgentGetVersionsResponse> {
     return this._client.get(path`/get-chat-agent-versions/${agentID}`, options);
-  }
-
-  /**
-   * Publish the latest version of the chat agent and create a new draft chat agent
-   * with newer version.
-   *
-   * @example
-   * ```ts
-   * await client.chatAgent.publish(
-   *   '16b980523634a6dc504898cda492e939',
-   * );
-   * ```
-   */
-  publish(agentID: string, options?: RequestOptions): APIPromise<void> {
-    return this._client.post(path`/publish-chat-agent/${agentID}`, {
-      ...options,
-      headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
-    });
   }
 }
 
@@ -155,27 +195,19 @@ export interface ChatAgentResponse {
   agent_name?: string | null;
 
   /**
-   * The prompt to use for post call analysis to evaluate whether the call is
-   * successful. Set to null to use the default prompt.
+   * Tags assigned to this chat agent version. Preferred tag is listed first.
    */
-  analysis_successful_prompt?: string | null;
-
-  /**
-   * The prompt to use for post call analysis to summarize the call. Set to null to
-   * use the default prompt.
-   */
-  analysis_summary_prompt?: string | null;
-
-  /**
-   * Prompt to guide how the post chat analysis should evaluate user sentiment. When
-   * unset, the default system prompt is used. Set to null to use the default prompt.
-   */
-  analysis_user_sentiment_prompt?: string | null;
+  assigned_tags?: Array<string>;
 
   /**
    * Message to display when the chat is automatically closed.
    */
   auto_close_message?: string | null;
+
+  /**
+   * Version that this draft was based on. Null for initial versions.
+   */
+  base_version?: number | null;
 
   /**
    * Number of days to retain call/chat data before automatic deletion. Must be
@@ -197,7 +229,7 @@ export interface ChatAgentResponse {
    * value allowed is 120,000 ms (2 minutes). The maximum value allowed is
    * 259,200,000 ms (72 hours). By default, this is set to 3,600,000 (1 hour).
    */
-  end_chat_after_silence_ms?: number;
+  end_chat_after_silence_ms?: number | null;
 
   /**
    * Configuration for guardrail checks to detect and prevent prohibited topics in
@@ -206,10 +238,10 @@ export interface ChatAgentResponse {
   guardrail_config?: ChatAgentResponse.GuardrailConfig;
 
   /**
-   * Whether the agent is public. When set to true, the agent is available for public
-   * agent preview link.
+   * Toggle behavior presets on/off to influence agent response style and behaviors.
+   * Voice-only presets are not available for chat agents.
    */
-  is_public?: boolean | null;
+  handbook_config?: ChatAgentResponse.HandbookConfig;
 
   /**
    * Whether the chat agent is published.
@@ -217,10 +249,13 @@ export interface ChatAgentResponse {
   is_published?: boolean;
 
   /**
-   * Specifies what language (and dialect) the chat will operate in. For instance,
-   * selecting `en-GB` optimizes for British English. If unset, will use default
-   * value `en-US`. Select `multi` for multilingual support, currently this supports
-   * Spanish and English.
+   * Specifies what language(s) the agent will operate in. Accepts either a single
+   * scalar locale (e.g. `en-US`), the legacy scalar value `multi` for multilingual
+   * support, or an array of concrete locale codes for explicit multi-locale
+   * selection (e.g. `["en-US","es-ES"]`). The array form must contain concrete
+   * locale codes only — the `multi` value is valid only as the scalar legacy form
+   * and must not appear inside an array. Single-element arrays are normalized to the
+   * equivalent scalar on output. If unset, defaults to `en-US`.
    */
   language?:
     | 'en-US'
@@ -245,11 +280,11 @@ export interface ChatAgentResponse {
     | 'nl-BE'
     | 'pl-PL'
     | 'tr-TR'
-    | 'th-TH'
     | 'vi-VN'
     | 'ro-RO'
     | 'bg-BG'
     | 'ca-ES'
+    | 'th-TH'
     | 'da-DK'
     | 'fi-FI'
     | 'el-GR'
@@ -261,7 +296,97 @@ export interface ChatAgentResponse {
     | 'lt-LT'
     | 'lv-LV'
     | 'cs-CZ'
-    | 'multi';
+    | 'ms-MY'
+    | 'af-ZA'
+    | 'ar-SA'
+    | 'az-AZ'
+    | 'bs-BA'
+    | 'cy-GB'
+    | 'fa-IR'
+    | 'fil-PH'
+    | 'gl-ES'
+    | 'he-IL'
+    | 'hr-HR'
+    | 'hy-AM'
+    | 'is-IS'
+    | 'kk-KZ'
+    | 'kn-IN'
+    | 'mk-MK'
+    | 'mr-IN'
+    | 'ne-NP'
+    | 'sl-SI'
+    | 'sr-RS'
+    | 'sw-KE'
+    | 'ta-IN'
+    | 'ur-IN'
+    | 'yue-CN'
+    | 'uk-UA'
+    | 'multi'
+    | Array<
+        | 'en-US'
+        | 'en-IN'
+        | 'en-GB'
+        | 'en-AU'
+        | 'en-NZ'
+        | 'de-DE'
+        | 'es-ES'
+        | 'es-419'
+        | 'hi-IN'
+        | 'fr-FR'
+        | 'fr-CA'
+        | 'ja-JP'
+        | 'pt-PT'
+        | 'pt-BR'
+        | 'zh-CN'
+        | 'ru-RU'
+        | 'it-IT'
+        | 'ko-KR'
+        | 'nl-NL'
+        | 'nl-BE'
+        | 'pl-PL'
+        | 'tr-TR'
+        | 'vi-VN'
+        | 'ro-RO'
+        | 'bg-BG'
+        | 'ca-ES'
+        | 'th-TH'
+        | 'da-DK'
+        | 'fi-FI'
+        | 'el-GR'
+        | 'hu-HU'
+        | 'id-ID'
+        | 'no-NO'
+        | 'sk-SK'
+        | 'sv-SE'
+        | 'lt-LT'
+        | 'lv-LV'
+        | 'cs-CZ'
+        | 'ms-MY'
+        | 'af-ZA'
+        | 'ar-SA'
+        | 'az-AZ'
+        | 'bs-BA'
+        | 'cy-GB'
+        | 'fa-IR'
+        | 'fil-PH'
+        | 'gl-ES'
+        | 'he-IL'
+        | 'hr-HR'
+        | 'hy-AM'
+        | 'is-IS'
+        | 'kk-KZ'
+        | 'kn-IN'
+        | 'mk-MK'
+        | 'mr-IN'
+        | 'ne-NP'
+        | 'sl-SI'
+        | 'sr-RS'
+        | 'sw-KE'
+        | 'ta-IN'
+        | 'ur-IN'
+        | 'yue-CN'
+        | 'uk-UA'
+      >;
 
   /**
    * Whether this agent opts in to signed url for public log. If not set, default
@@ -284,25 +409,30 @@ export interface ChatAgentResponse {
     | ChatAgentResponse.EnumAnalysisData
     | ChatAgentResponse.BooleanAnalysisData
     | ChatAgentResponse.NumberAnalysisData
+    | ChatAgentResponse.ChatPresetAnalysisData
   > | null;
 
   /**
-   * The model to use for post chat analysis. Default to gpt-4.1-mini.
+   * The model to use for post chat analysis. Default to gpt-4.1.
    */
   post_chat_analysis_model?:
     | 'gpt-4.1'
     | 'gpt-4.1-mini'
     | 'gpt-4.1-nano'
     | 'gpt-5'
-    | 'gpt-5.1'
-    | 'gpt-5.2'
     | 'gpt-5-mini'
     | 'gpt-5-nano'
+    | 'gpt-5.1'
+    | 'gpt-5.2'
+    | 'gpt-5.4'
+    | 'gpt-5.4-mini'
+    | 'gpt-5.4-nano'
+    | 'gpt-5.5'
     | 'claude-4.5-sonnet'
+    | 'claude-4.6-sonnet'
     | 'claude-4.5-haiku'
-    | 'gemini-2.5-flash'
-    | 'gemini-2.5-flash-lite'
     | 'gemini-3.0-flash'
+    | 'gemini-3.1-flash-lite'
     | null;
 
   /**
@@ -313,15 +443,26 @@ export interface ChatAgentResponse {
   signed_url_expiration_ms?: number | null;
 
   /**
+   * IANA timezone for the agent (e.g. America/New_York). Defaults to
+   * America/Los_Angeles if not set.
+   */
+  timezone?: string | null;
+
+  /**
    * The version of the chat agent.
    */
   version?: number;
 
   /**
+   * Optional title of the chat agent version. Used for your own reference.
+   */
+  version_title?: string | null;
+
+  /**
    * Which webhook events this agent should receive. If not set, defaults to
    * chat_started, chat_ended, chat_analyzed.
    */
-  webhook_events?: Array<'chat_started' | 'chat_ended' | 'chat_analyzed'> | null;
+  webhook_events?: Array<'chat_started' | 'chat_ended' | 'chat_analyzed' | 'transcript_updated'> | null;
 
   /**
    * The timeout for the webhook in milliseconds. If not set, default value of 10000
@@ -415,11 +556,39 @@ export namespace ChatAgentResponse {
   }
 
   /**
+   * Toggle behavior presets on/off to influence agent response style and behaviors.
+   * Voice-only presets are not available for chat agents.
+   */
+  export interface HandbookConfig {
+    /**
+     * When asked, acknowledge being a virtual assistant.
+     */
+    ai_disclosure?: boolean;
+
+    /**
+     * Professional call center rep baseline.
+     */
+    default_personality?: boolean;
+
+    /**
+     * Warm acknowledgment of caller concerns.
+     */
+    high_empathy?: boolean;
+
+    /**
+     * Stay within prompt/context scope, don't invent details.
+     */
+    scope_boundaries?: boolean;
+  }
+
+  /**
    * Configuration for PII scrubbing from transcripts and recordings.
    */
   export interface PiiConfig {
     /**
-     * List of PII categories to scrub from transcripts and recordings.
+     * List of PII categories to scrub from transcripts and recordings. PII redaction
+     * is only active when this list is non-empty; an empty array means no PII
+     * scrubbing is performed.
      */
     categories: Array<
       | 'person_name'
@@ -461,9 +630,22 @@ export namespace ChatAgentResponse {
     type: 'string';
 
     /**
+     * Optional instruction to help decide whether this field needs to be populated in
+     * the analysis. If not set, the field is always included. If required is true,
+     * this is ignored.
+     */
+    conditional_prompt?: string;
+
+    /**
      * Examples of the variable value to teach model the style and syntax.
      */
     examples?: Array<string>;
+
+    /**
+     * Whether this data is required. If true and the data is not extracted, the call
+     * will be marked as unsuccessful.
+     */
+    required?: boolean;
   }
 
   export interface EnumAnalysisData {
@@ -486,6 +668,19 @@ export namespace ChatAgentResponse {
      * Type of the variable to extract.
      */
     type: 'enum';
+
+    /**
+     * Optional instruction to help decide whether this field needs to be populated in
+     * the analysis. If not set, the field is always included. If required is true,
+     * this is ignored.
+     */
+    conditional_prompt?: string;
+
+    /**
+     * Whether this data is required. If true and the data is not extracted, the call
+     * will be marked as unsuccessful.
+     */
+    required?: boolean;
   }
 
   export interface BooleanAnalysisData {
@@ -503,6 +698,19 @@ export namespace ChatAgentResponse {
      * Type of the variable to extract.
      */
     type: 'boolean';
+
+    /**
+     * Optional instruction to help decide whether this field needs to be populated in
+     * the analysis. If not set, the field is always included. If required is true,
+     * this is ignored.
+     */
+    conditional_prompt?: string;
+
+    /**
+     * Whether this data is required. If true and the data is not extracted, the call
+     * will be marked as unsuccessful.
+     */
+    required?: boolean;
   }
 
   export interface NumberAnalysisData {
@@ -520,10 +728,58 @@ export namespace ChatAgentResponse {
      * Type of the variable to extract.
      */
     type: 'number';
+
+    /**
+     * Optional instruction to help decide whether this field needs to be populated in
+     * the analysis. If not set, the field is always included. If required is true,
+     * this is ignored.
+     */
+    conditional_prompt?: string;
+
+    /**
+     * Whether this data is required. If true and the data is not extracted, the call
+     * will be marked as unsuccessful.
+     */
+    required?: boolean;
+  }
+
+  /**
+   * System preset for post-chat analysis (chat agents). Use in
+   * post_chat_analysis_data to override prompts or mark fields optional.
+   */
+  export interface ChatPresetAnalysisData {
+    /**
+     * Preset identifier for chat agent analysis.
+     */
+    name: 'chat_summary' | 'chat_successful' | 'user_sentiment';
+
+    /**
+     * Identifies this item as a system preset.
+     */
+    type: 'system-presets';
+
+    /**
+     * Optional instruction to help decide whether this field needs to be populated. If
+     * not set, the field is always included.
+     */
+    conditional_prompt?: string;
+
+    /**
+     * Prompt or description for this preset.
+     */
+    description?: string;
+
+    /**
+     * If false, this field is optional in the analysis. If true or unset, the field is
+     * required.
+     */
+    required?: boolean;
   }
 }
 
 export type ChatAgentListResponse = Array<ChatAgentResponse>;
+
+export type ChatAgentCreateVersionResponse = AgentAPI.AgentResponse | ChatAgentResponse;
 
 export type ChatAgentGetVersionsResponse = Array<ChatAgentResponse>;
 
@@ -542,24 +798,6 @@ export interface ChatAgentCreateParams {
    * The name of the chat agent. Only used for your own reference.
    */
   agent_name?: string | null;
-
-  /**
-   * The prompt to use for post call analysis to evaluate whether the call is
-   * successful. Set to null to use the default prompt.
-   */
-  analysis_successful_prompt?: string | null;
-
-  /**
-   * The prompt to use for post call analysis to summarize the call. Set to null to
-   * use the default prompt.
-   */
-  analysis_summary_prompt?: string | null;
-
-  /**
-   * Prompt to guide how the post chat analysis should evaluate user sentiment. When
-   * unset, the default system prompt is used. Set to null to use the default prompt.
-   */
-  analysis_user_sentiment_prompt?: string | null;
 
   /**
    * Message to display when the chat is automatically closed.
@@ -586,7 +824,7 @@ export interface ChatAgentCreateParams {
    * value allowed is 120,000 ms (2 minutes). The maximum value allowed is
    * 259,200,000 ms (72 hours). By default, this is set to 3,600,000 (1 hour).
    */
-  end_chat_after_silence_ms?: number;
+  end_chat_after_silence_ms?: number | null;
 
   /**
    * Configuration for guardrail checks to detect and prevent prohibited topics in
@@ -595,16 +833,19 @@ export interface ChatAgentCreateParams {
   guardrail_config?: ChatAgentCreateParams.GuardrailConfig;
 
   /**
-   * Whether the agent is public. When set to true, the agent is available for public
-   * agent preview link.
+   * Toggle behavior presets on/off to influence agent response style and behaviors.
+   * Voice-only presets are not available for chat agents.
    */
-  is_public?: boolean | null;
+  handbook_config?: ChatAgentCreateParams.HandbookConfig;
 
   /**
-   * Specifies what language (and dialect) the chat will operate in. For instance,
-   * selecting `en-GB` optimizes for British English. If unset, will use default
-   * value `en-US`. Select `multi` for multilingual support, currently this supports
-   * Spanish and English.
+   * Specifies what language(s) the agent will operate in. Accepts either a single
+   * scalar locale (e.g. `en-US`), the legacy scalar value `multi` for multilingual
+   * support, or an array of concrete locale codes for explicit multi-locale
+   * selection (e.g. `["en-US","es-ES"]`). The array form must contain concrete
+   * locale codes only — the `multi` value is valid only as the scalar legacy form
+   * and must not appear inside an array. Single-element arrays are normalized to the
+   * equivalent scalar on output. If unset, defaults to `en-US`.
    */
   language?:
     | 'en-US'
@@ -629,11 +870,11 @@ export interface ChatAgentCreateParams {
     | 'nl-BE'
     | 'pl-PL'
     | 'tr-TR'
-    | 'th-TH'
     | 'vi-VN'
     | 'ro-RO'
     | 'bg-BG'
     | 'ca-ES'
+    | 'th-TH'
     | 'da-DK'
     | 'fi-FI'
     | 'el-GR'
@@ -645,7 +886,97 @@ export interface ChatAgentCreateParams {
     | 'lt-LT'
     | 'lv-LV'
     | 'cs-CZ'
-    | 'multi';
+    | 'ms-MY'
+    | 'af-ZA'
+    | 'ar-SA'
+    | 'az-AZ'
+    | 'bs-BA'
+    | 'cy-GB'
+    | 'fa-IR'
+    | 'fil-PH'
+    | 'gl-ES'
+    | 'he-IL'
+    | 'hr-HR'
+    | 'hy-AM'
+    | 'is-IS'
+    | 'kk-KZ'
+    | 'kn-IN'
+    | 'mk-MK'
+    | 'mr-IN'
+    | 'ne-NP'
+    | 'sl-SI'
+    | 'sr-RS'
+    | 'sw-KE'
+    | 'ta-IN'
+    | 'ur-IN'
+    | 'yue-CN'
+    | 'uk-UA'
+    | 'multi'
+    | Array<
+        | 'en-US'
+        | 'en-IN'
+        | 'en-GB'
+        | 'en-AU'
+        | 'en-NZ'
+        | 'de-DE'
+        | 'es-ES'
+        | 'es-419'
+        | 'hi-IN'
+        | 'fr-FR'
+        | 'fr-CA'
+        | 'ja-JP'
+        | 'pt-PT'
+        | 'pt-BR'
+        | 'zh-CN'
+        | 'ru-RU'
+        | 'it-IT'
+        | 'ko-KR'
+        | 'nl-NL'
+        | 'nl-BE'
+        | 'pl-PL'
+        | 'tr-TR'
+        | 'vi-VN'
+        | 'ro-RO'
+        | 'bg-BG'
+        | 'ca-ES'
+        | 'th-TH'
+        | 'da-DK'
+        | 'fi-FI'
+        | 'el-GR'
+        | 'hu-HU'
+        | 'id-ID'
+        | 'no-NO'
+        | 'sk-SK'
+        | 'sv-SE'
+        | 'lt-LT'
+        | 'lv-LV'
+        | 'cs-CZ'
+        | 'ms-MY'
+        | 'af-ZA'
+        | 'ar-SA'
+        | 'az-AZ'
+        | 'bs-BA'
+        | 'cy-GB'
+        | 'fa-IR'
+        | 'fil-PH'
+        | 'gl-ES'
+        | 'he-IL'
+        | 'hr-HR'
+        | 'hy-AM'
+        | 'is-IS'
+        | 'kk-KZ'
+        | 'kn-IN'
+        | 'mk-MK'
+        | 'mr-IN'
+        | 'ne-NP'
+        | 'sl-SI'
+        | 'sr-RS'
+        | 'sw-KE'
+        | 'ta-IN'
+        | 'ur-IN'
+        | 'yue-CN'
+        | 'uk-UA'
+      >;
 
   /**
    * Whether this agent opts in to signed url for public log. If not set, default
@@ -668,25 +999,30 @@ export interface ChatAgentCreateParams {
     | ChatAgentCreateParams.EnumAnalysisData
     | ChatAgentCreateParams.BooleanAnalysisData
     | ChatAgentCreateParams.NumberAnalysisData
+    | ChatAgentCreateParams.ChatPresetAnalysisData
   > | null;
 
   /**
-   * The model to use for post chat analysis. Default to gpt-4.1-mini.
+   * The model to use for post chat analysis. Default to gpt-4.1.
    */
   post_chat_analysis_model?:
     | 'gpt-4.1'
     | 'gpt-4.1-mini'
     | 'gpt-4.1-nano'
     | 'gpt-5'
-    | 'gpt-5.1'
-    | 'gpt-5.2'
     | 'gpt-5-mini'
     | 'gpt-5-nano'
+    | 'gpt-5.1'
+    | 'gpt-5.2'
+    | 'gpt-5.4'
+    | 'gpt-5.4-mini'
+    | 'gpt-5.4-nano'
+    | 'gpt-5.5'
     | 'claude-4.5-sonnet'
+    | 'claude-4.6-sonnet'
     | 'claude-4.5-haiku'
-    | 'gemini-2.5-flash'
-    | 'gemini-2.5-flash-lite'
     | 'gemini-3.0-flash'
+    | 'gemini-3.1-flash-lite'
     | null;
 
   /**
@@ -697,10 +1033,21 @@ export interface ChatAgentCreateParams {
   signed_url_expiration_ms?: number | null;
 
   /**
+   * IANA timezone for the agent (e.g. America/New_York). Defaults to
+   * America/Los_Angeles if not set.
+   */
+  timezone?: string | null;
+
+  /**
+   * Optional title of the chat agent version. Used for your own reference.
+   */
+  version_title?: string | null;
+
+  /**
    * Which webhook events this agent should receive. If not set, defaults to
    * chat_started, chat_ended, chat_analyzed.
    */
-  webhook_events?: Array<'chat_started' | 'chat_ended' | 'chat_analyzed'> | null;
+  webhook_events?: Array<'chat_started' | 'chat_ended' | 'chat_analyzed' | 'transcript_updated'> | null;
 
   /**
    * The timeout for the webhook in milliseconds. If not set, default value of 10000
@@ -794,11 +1141,39 @@ export namespace ChatAgentCreateParams {
   }
 
   /**
+   * Toggle behavior presets on/off to influence agent response style and behaviors.
+   * Voice-only presets are not available for chat agents.
+   */
+  export interface HandbookConfig {
+    /**
+     * When asked, acknowledge being a virtual assistant.
+     */
+    ai_disclosure?: boolean;
+
+    /**
+     * Professional call center rep baseline.
+     */
+    default_personality?: boolean;
+
+    /**
+     * Warm acknowledgment of caller concerns.
+     */
+    high_empathy?: boolean;
+
+    /**
+     * Stay within prompt/context scope, don't invent details.
+     */
+    scope_boundaries?: boolean;
+  }
+
+  /**
    * Configuration for PII scrubbing from transcripts and recordings.
    */
   export interface PiiConfig {
     /**
-     * List of PII categories to scrub from transcripts and recordings.
+     * List of PII categories to scrub from transcripts and recordings. PII redaction
+     * is only active when this list is non-empty; an empty array means no PII
+     * scrubbing is performed.
      */
     categories: Array<
       | 'person_name'
@@ -840,9 +1215,22 @@ export namespace ChatAgentCreateParams {
     type: 'string';
 
     /**
+     * Optional instruction to help decide whether this field needs to be populated in
+     * the analysis. If not set, the field is always included. If required is true,
+     * this is ignored.
+     */
+    conditional_prompt?: string;
+
+    /**
      * Examples of the variable value to teach model the style and syntax.
      */
     examples?: Array<string>;
+
+    /**
+     * Whether this data is required. If true and the data is not extracted, the call
+     * will be marked as unsuccessful.
+     */
+    required?: boolean;
   }
 
   export interface EnumAnalysisData {
@@ -865,6 +1253,19 @@ export namespace ChatAgentCreateParams {
      * Type of the variable to extract.
      */
     type: 'enum';
+
+    /**
+     * Optional instruction to help decide whether this field needs to be populated in
+     * the analysis. If not set, the field is always included. If required is true,
+     * this is ignored.
+     */
+    conditional_prompt?: string;
+
+    /**
+     * Whether this data is required. If true and the data is not extracted, the call
+     * will be marked as unsuccessful.
+     */
+    required?: boolean;
   }
 
   export interface BooleanAnalysisData {
@@ -882,6 +1283,19 @@ export namespace ChatAgentCreateParams {
      * Type of the variable to extract.
      */
     type: 'boolean';
+
+    /**
+     * Optional instruction to help decide whether this field needs to be populated in
+     * the analysis. If not set, the field is always included. If required is true,
+     * this is ignored.
+     */
+    conditional_prompt?: string;
+
+    /**
+     * Whether this data is required. If true and the data is not extracted, the call
+     * will be marked as unsuccessful.
+     */
+    required?: boolean;
   }
 
   export interface NumberAnalysisData {
@@ -899,6 +1313,52 @@ export namespace ChatAgentCreateParams {
      * Type of the variable to extract.
      */
     type: 'number';
+
+    /**
+     * Optional instruction to help decide whether this field needs to be populated in
+     * the analysis. If not set, the field is always included. If required is true,
+     * this is ignored.
+     */
+    conditional_prompt?: string;
+
+    /**
+     * Whether this data is required. If true and the data is not extracted, the call
+     * will be marked as unsuccessful.
+     */
+    required?: boolean;
+  }
+
+  /**
+   * System preset for post-chat analysis (chat agents). Use in
+   * post_chat_analysis_data to override prompts or mark fields optional.
+   */
+  export interface ChatPresetAnalysisData {
+    /**
+     * Preset identifier for chat agent analysis.
+     */
+    name: 'chat_summary' | 'chat_successful' | 'user_sentiment';
+
+    /**
+     * Identifies this item as a system preset.
+     */
+    type: 'system-presets';
+
+    /**
+     * Optional instruction to help decide whether this field needs to be populated. If
+     * not set, the field is always included.
+     */
+    conditional_prompt?: string;
+
+    /**
+     * Prompt or description for this preset.
+     */
+    description?: string;
+
+    /**
+     * If false, this field is optional in the analysis. If true or unset, the field is
+     * required.
+     */
+    required?: boolean;
   }
 }
 
@@ -907,7 +1367,34 @@ export interface ChatAgentRetrieveParams {
    * Optional version of the API to use for this request. If not provided, will
    * default to latest version.
    */
-  version?: number;
+  version?: number | string;
+}
+
+export interface ChatAgentListParams {
+  /**
+   * If true, only return the latest version of each chat agent.
+   */
+  is_latest?: boolean;
+
+  /**
+   * A limit on the number of objects to be returned. Limit can range between 1 and
+   * 1000, and the default is 1000.
+   */
+  limit?: number;
+
+  /**
+   * The pagination key to continue fetching the next page of agents. Pagination key
+   * is represented by a agent id, pagination key and version pair is exclusive (not
+   * included in the fetched page). If not set, will start from the beginning.
+   */
+  pagination_key?: string;
+
+  /**
+   * Specifies the version of the agent associated with the pagination_key. When
+   * paginating, both the pagination_key and its version must be provided to ensure
+   * consistent ordering and to fetch the next page correctly.
+   */
+  pagination_key_version?: number;
 }
 
 export interface ChatAgentUpdateParams {
@@ -915,31 +1402,12 @@ export interface ChatAgentUpdateParams {
    * Query param: Optional version of the API to use for this request. Default to
    * latest version.
    */
-  version?: number;
+  version?: number | string;
 
   /**
    * Body param: The name of the chat agent. Only used for your own reference.
    */
   agent_name?: string | null;
-
-  /**
-   * Body param: The prompt to use for post call analysis to evaluate whether the
-   * call is successful. Set to null to use the default prompt.
-   */
-  analysis_successful_prompt?: string | null;
-
-  /**
-   * Body param: The prompt to use for post call analysis to summarize the call. Set
-   * to null to use the default prompt.
-   */
-  analysis_summary_prompt?: string | null;
-
-  /**
-   * Body param: Prompt to guide how the post chat analysis should evaluate user
-   * sentiment. When unset, the default system prompt is used. Set to null to use the
-   * default prompt.
-   */
-  analysis_user_sentiment_prompt?: string | null;
 
   /**
    * Body param: Message to display when the chat is automatically closed.
@@ -967,7 +1435,7 @@ export interface ChatAgentUpdateParams {
    * The minimum value allowed is 120,000 ms (2 minutes). The maximum value allowed
    * is 259,200,000 ms (72 hours). By default, this is set to 3,600,000 (1 hour).
    */
-  end_chat_after_silence_ms?: number;
+  end_chat_after_silence_ms?: number | null;
 
   /**
    * Body param: Configuration for guardrail checks to detect and prevent prohibited
@@ -976,16 +1444,19 @@ export interface ChatAgentUpdateParams {
   guardrail_config?: ChatAgentUpdateParams.GuardrailConfig;
 
   /**
-   * Body param: Whether the agent is public. When set to true, the agent is
-   * available for public agent preview link.
+   * Body param: Toggle behavior presets on/off to influence agent response style and
+   * behaviors. Voice-only presets are not available for chat agents.
    */
-  is_public?: boolean | null;
+  handbook_config?: ChatAgentUpdateParams.HandbookConfig;
 
   /**
-   * Body param: Specifies what language (and dialect) the chat will operate in. For
-   * instance, selecting `en-GB` optimizes for British English. If unset, will use
-   * default value `en-US`. Select `multi` for multilingual support, currently this
-   * supports Spanish and English.
+   * Body param: Specifies what language(s) the agent will operate in. Accepts either
+   * a single scalar locale (e.g. `en-US`), the legacy scalar value `multi` for
+   * multilingual support, or an array of concrete locale codes for explicit
+   * multi-locale selection (e.g. `["en-US","es-ES"]`). The array form must contain
+   * concrete locale codes only — the `multi` value is valid only as the scalar
+   * legacy form and must not appear inside an array. Single-element arrays are
+   * normalized to the equivalent scalar on output. If unset, defaults to `en-US`.
    */
   language?:
     | 'en-US'
@@ -1010,11 +1481,11 @@ export interface ChatAgentUpdateParams {
     | 'nl-BE'
     | 'pl-PL'
     | 'tr-TR'
-    | 'th-TH'
     | 'vi-VN'
     | 'ro-RO'
     | 'bg-BG'
     | 'ca-ES'
+    | 'th-TH'
     | 'da-DK'
     | 'fi-FI'
     | 'el-GR'
@@ -1026,7 +1497,97 @@ export interface ChatAgentUpdateParams {
     | 'lt-LT'
     | 'lv-LV'
     | 'cs-CZ'
-    | 'multi';
+    | 'ms-MY'
+    | 'af-ZA'
+    | 'ar-SA'
+    | 'az-AZ'
+    | 'bs-BA'
+    | 'cy-GB'
+    | 'fa-IR'
+    | 'fil-PH'
+    | 'gl-ES'
+    | 'he-IL'
+    | 'hr-HR'
+    | 'hy-AM'
+    | 'is-IS'
+    | 'kk-KZ'
+    | 'kn-IN'
+    | 'mk-MK'
+    | 'mr-IN'
+    | 'ne-NP'
+    | 'sl-SI'
+    | 'sr-RS'
+    | 'sw-KE'
+    | 'ta-IN'
+    | 'ur-IN'
+    | 'yue-CN'
+    | 'uk-UA'
+    | 'multi'
+    | Array<
+        | 'en-US'
+        | 'en-IN'
+        | 'en-GB'
+        | 'en-AU'
+        | 'en-NZ'
+        | 'de-DE'
+        | 'es-ES'
+        | 'es-419'
+        | 'hi-IN'
+        | 'fr-FR'
+        | 'fr-CA'
+        | 'ja-JP'
+        | 'pt-PT'
+        | 'pt-BR'
+        | 'zh-CN'
+        | 'ru-RU'
+        | 'it-IT'
+        | 'ko-KR'
+        | 'nl-NL'
+        | 'nl-BE'
+        | 'pl-PL'
+        | 'tr-TR'
+        | 'vi-VN'
+        | 'ro-RO'
+        | 'bg-BG'
+        | 'ca-ES'
+        | 'th-TH'
+        | 'da-DK'
+        | 'fi-FI'
+        | 'el-GR'
+        | 'hu-HU'
+        | 'id-ID'
+        | 'no-NO'
+        | 'sk-SK'
+        | 'sv-SE'
+        | 'lt-LT'
+        | 'lv-LV'
+        | 'cs-CZ'
+        | 'ms-MY'
+        | 'af-ZA'
+        | 'ar-SA'
+        | 'az-AZ'
+        | 'bs-BA'
+        | 'cy-GB'
+        | 'fa-IR'
+        | 'fil-PH'
+        | 'gl-ES'
+        | 'he-IL'
+        | 'hr-HR'
+        | 'hy-AM'
+        | 'is-IS'
+        | 'kk-KZ'
+        | 'kn-IN'
+        | 'mk-MK'
+        | 'mr-IN'
+        | 'ne-NP'
+        | 'sl-SI'
+        | 'sr-RS'
+        | 'sw-KE'
+        | 'ta-IN'
+        | 'ur-IN'
+        | 'yue-CN'
+        | 'uk-UA'
+      >;
 
   /**
    * Body param: Whether this agent opts in to signed url for public log. If not set,
@@ -1049,25 +1610,30 @@ export interface ChatAgentUpdateParams {
     | ChatAgentUpdateParams.EnumAnalysisData
     | ChatAgentUpdateParams.BooleanAnalysisData
     | ChatAgentUpdateParams.NumberAnalysisData
+    | ChatAgentUpdateParams.ChatPresetAnalysisData
   > | null;
 
   /**
-   * Body param: The model to use for post chat analysis. Default to gpt-4.1-mini.
+   * Body param: The model to use for post chat analysis. Default to gpt-4.1.
    */
   post_chat_analysis_model?:
     | 'gpt-4.1'
     | 'gpt-4.1-mini'
     | 'gpt-4.1-nano'
     | 'gpt-5'
-    | 'gpt-5.1'
-    | 'gpt-5.2'
     | 'gpt-5-mini'
     | 'gpt-5-nano'
+    | 'gpt-5.1'
+    | 'gpt-5.2'
+    | 'gpt-5.4'
+    | 'gpt-5.4-mini'
+    | 'gpt-5.4-nano'
+    | 'gpt-5.5'
     | 'claude-4.5-sonnet'
+    | 'claude-4.6-sonnet'
     | 'claude-4.5-haiku'
-    | 'gemini-2.5-flash'
-    | 'gemini-2.5-flash-lite'
     | 'gemini-3.0-flash'
+    | 'gemini-3.1-flash-lite'
     | null;
 
   /**
@@ -1088,10 +1654,22 @@ export interface ChatAgentUpdateParams {
   signed_url_expiration_ms?: number | null;
 
   /**
+   * Body param: IANA timezone for the agent (e.g. America/New_York). Defaults to
+   * America/Los_Angeles if not set.
+   */
+  timezone?: string | null;
+
+  /**
+   * Body param: Optional title of the chat agent version. Used for your own
+   * reference.
+   */
+  version_title?: string | null;
+
+  /**
    * Body param: Which webhook events this agent should receive. If not set, defaults
    * to chat_started, chat_ended, chat_analyzed.
    */
-  webhook_events?: Array<'chat_started' | 'chat_ended' | 'chat_analyzed'> | null;
+  webhook_events?: Array<'chat_started' | 'chat_ended' | 'chat_analyzed' | 'transcript_updated'> | null;
 
   /**
    * Body param: The timeout for the webhook in milliseconds. If not set, default
@@ -1139,11 +1717,39 @@ export namespace ChatAgentUpdateParams {
   }
 
   /**
+   * Toggle behavior presets on/off to influence agent response style and behaviors.
+   * Voice-only presets are not available for chat agents.
+   */
+  export interface HandbookConfig {
+    /**
+     * When asked, acknowledge being a virtual assistant.
+     */
+    ai_disclosure?: boolean;
+
+    /**
+     * Professional call center rep baseline.
+     */
+    default_personality?: boolean;
+
+    /**
+     * Warm acknowledgment of caller concerns.
+     */
+    high_empathy?: boolean;
+
+    /**
+     * Stay within prompt/context scope, don't invent details.
+     */
+    scope_boundaries?: boolean;
+  }
+
+  /**
    * Configuration for PII scrubbing from transcripts and recordings.
    */
   export interface PiiConfig {
     /**
-     * List of PII categories to scrub from transcripts and recordings.
+     * List of PII categories to scrub from transcripts and recordings. PII redaction
+     * is only active when this list is non-empty; an empty array means no PII
+     * scrubbing is performed.
      */
     categories: Array<
       | 'person_name'
@@ -1185,9 +1791,22 @@ export namespace ChatAgentUpdateParams {
     type: 'string';
 
     /**
+     * Optional instruction to help decide whether this field needs to be populated in
+     * the analysis. If not set, the field is always included. If required is true,
+     * this is ignored.
+     */
+    conditional_prompt?: string;
+
+    /**
      * Examples of the variable value to teach model the style and syntax.
      */
     examples?: Array<string>;
+
+    /**
+     * Whether this data is required. If true and the data is not extracted, the call
+     * will be marked as unsuccessful.
+     */
+    required?: boolean;
   }
 
   export interface EnumAnalysisData {
@@ -1210,6 +1829,19 @@ export namespace ChatAgentUpdateParams {
      * Type of the variable to extract.
      */
     type: 'enum';
+
+    /**
+     * Optional instruction to help decide whether this field needs to be populated in
+     * the analysis. If not set, the field is always included. If required is true,
+     * this is ignored.
+     */
+    conditional_prompt?: string;
+
+    /**
+     * Whether this data is required. If true and the data is not extracted, the call
+     * will be marked as unsuccessful.
+     */
+    required?: boolean;
   }
 
   export interface BooleanAnalysisData {
@@ -1227,6 +1859,19 @@ export namespace ChatAgentUpdateParams {
      * Type of the variable to extract.
      */
     type: 'boolean';
+
+    /**
+     * Optional instruction to help decide whether this field needs to be populated in
+     * the analysis. If not set, the field is always included. If required is true,
+     * this is ignored.
+     */
+    conditional_prompt?: string;
+
+    /**
+     * Whether this data is required. If true and the data is not extracted, the call
+     * will be marked as unsuccessful.
+     */
+    required?: boolean;
   }
 
   export interface NumberAnalysisData {
@@ -1244,6 +1889,52 @@ export namespace ChatAgentUpdateParams {
      * Type of the variable to extract.
      */
     type: 'number';
+
+    /**
+     * Optional instruction to help decide whether this field needs to be populated in
+     * the analysis. If not set, the field is always included. If required is true,
+     * this is ignored.
+     */
+    conditional_prompt?: string;
+
+    /**
+     * Whether this data is required. If true and the data is not extracted, the call
+     * will be marked as unsuccessful.
+     */
+    required?: boolean;
+  }
+
+  /**
+   * System preset for post-chat analysis (chat agents). Use in
+   * post_chat_analysis_data to override prompts or mark fields optional.
+   */
+  export interface ChatPresetAnalysisData {
+    /**
+     * Preset identifier for chat agent analysis.
+     */
+    name: 'chat_summary' | 'chat_successful' | 'user_sentiment';
+
+    /**
+     * Identifies this item as a system preset.
+     */
+    type: 'system-presets';
+
+    /**
+     * Optional instruction to help decide whether this field needs to be populated. If
+     * not set, the field is always included.
+     */
+    conditional_prompt?: string;
+
+    /**
+     * Prompt or description for this preset.
+     */
+    description?: string;
+
+    /**
+     * If false, this field is optional in the analysis. If true or unset, the field is
+     * required.
+     */
+    required?: boolean;
   }
 
   export interface ResponseEngineRetellLm {
@@ -1293,36 +1984,43 @@ export namespace ChatAgentUpdateParams {
   }
 }
 
-export interface ChatAgentListParams {
-  /**
-   * A limit on the number of objects to be returned. Limit can range between 1 and
-   * 1000, and the default is 1000.
-   */
-  limit?: number;
+export interface ChatAgentPublishParams {
+  version: number;
+
+  version_description?: string;
 
   /**
-   * The pagination key to continue fetching the next page of agents. Pagination key
-   * is represented by a agent id, pagination key and version pair is exclusive (not
-   * included in the fetched page). If not set, will start from the beginning.
+   * Optional title of the agent version. Used for your own reference.
    */
-  pagination_key?: string;
+  version_title?: string;
+}
 
+export interface ChatAgentCreateVersionParams {
   /**
-   * Specifies the version of the agent associated with the pagination_key. When
-   * paginating, both the pagination_key and its version must be provided to ensure
-   * consistent ordering and to fetch the next page correctly.
+   * Existing version used as the base when creating a new draft.
    */
-  pagination_key_version?: number;
+  base_version: number;
+}
+
+export interface ChatAgentDeleteVersionParams {
+  /**
+   * Version to delete.
+   */
+  version: number;
 }
 
 export declare namespace ChatAgent {
   export {
     type ChatAgentResponse as ChatAgentResponse,
     type ChatAgentListResponse as ChatAgentListResponse,
+    type ChatAgentCreateVersionResponse as ChatAgentCreateVersionResponse,
     type ChatAgentGetVersionsResponse as ChatAgentGetVersionsResponse,
     type ChatAgentCreateParams as ChatAgentCreateParams,
     type ChatAgentRetrieveParams as ChatAgentRetrieveParams,
-    type ChatAgentUpdateParams as ChatAgentUpdateParams,
     type ChatAgentListParams as ChatAgentListParams,
+    type ChatAgentUpdateParams as ChatAgentUpdateParams,
+    type ChatAgentPublishParams as ChatAgentPublishParams,
+    type ChatAgentCreateVersionParams as ChatAgentCreateVersionParams,
+    type ChatAgentDeleteVersionParams as ChatAgentDeleteVersionParams,
   };
 }

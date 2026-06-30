@@ -43,6 +43,7 @@ describe('resource conversationFlow', () => {
           id: 'start',
           instruction: { text: 'Greet the customer and ask how you can help them.', type: 'prompt' },
           type: 'conversation',
+          allow_dtmf_interruption: true,
           always_edge: {
             id: 'id',
             transition_condition: { prompt: 'prompt', type: 'prompt' },
@@ -56,6 +57,11 @@ describe('resource conversationFlow', () => {
               destination_node_id: 'book_appointment',
             },
           ],
+          else_edge: {
+            id: 'id',
+            transition_condition: { prompt: 'prompt', type: 'prompt' },
+            destination_node_id: 'destination_node_id',
+          },
           finetune_conversation_examples: [{ id: 'id', transcript: [{ content: 'content', role: 'agent' }] }],
           finetune_transition_examples: [
             {
@@ -78,6 +84,7 @@ describe('resource conversationFlow', () => {
             positive_finetune_examples: [{ transcript: [{ content: 'content', role: 'agent' }] }],
           },
           interruption_sensitivity: 0,
+          kb_config: { filter_score: 0.6, top_k: 3 },
           knowledge_base_ids: ['kb_001', 'kb_002'],
           model_choice: {
             model: 'gpt-4.1',
@@ -91,17 +98,6 @@ describe('resource conversationFlow', () => {
             transition_condition: { prompt: 'prompt', type: 'prompt' },
             destination_node_id: 'destination_node_id',
           },
-          tool_ids: ['string'],
-          tools: [
-            {
-              name: 'name',
-              type: 'end_call',
-              description: 'description',
-              execution_message_description: 'execution_message_description',
-              execution_message_type: 'prompt',
-              speak_during_execution: true,
-            },
-          ],
           voice_speed: 0.5,
         },
       ],
@@ -119,6 +115,7 @@ describe('resource conversationFlow', () => {
                 type: 'prompt',
               },
               type: 'conversation',
+              allow_dtmf_interruption: true,
               always_edge: {
                 id: 'id',
                 transition_condition: { prompt: 'prompt', type: 'prompt' },
@@ -132,6 +129,11 @@ describe('resource conversationFlow', () => {
                   destination_node_id: 'destination_node_id',
                 },
               ],
+              else_edge: {
+                id: 'id',
+                transition_condition: { prompt: 'prompt', type: 'prompt' },
+                destination_node_id: 'destination_node_id',
+              },
               finetune_conversation_examples: [
                 { id: 'id', transcript: [{ content: 'content', role: 'agent' }] },
               ],
@@ -156,6 +158,7 @@ describe('resource conversationFlow', () => {
                 positive_finetune_examples: [{ transcript: [{ content: 'content', role: 'agent' }] }],
               },
               interruption_sensitivity: 0,
+              kb_config: { filter_score: 0.6, top_k: 3 },
               knowledge_base_ids: ['kb_001', 'kb_002'],
               model_choice: {
                 model: 'gpt-4.1',
@@ -169,21 +172,11 @@ describe('resource conversationFlow', () => {
                 transition_condition: { prompt: 'prompt', type: 'prompt' },
                 destination_node_id: 'destination_node_id',
               },
-              tool_ids: ['string'],
-              tools: [
-                {
-                  name: 'name',
-                  type: 'end_call',
-                  description: 'description',
-                  execution_message_description: 'execution_message_description',
-                  execution_message_type: 'prompt',
-                  speak_during_execution: true,
-                },
-              ],
               voice_speed: 0.5,
             },
           ],
           begin_tag_display_position: { x: 100, y: 200 },
+          flex_mode: false,
           mcps: [
             {
               name: 'name',
@@ -191,6 +184,14 @@ describe('resource conversationFlow', () => {
               headers: { Authorization: 'Bearer 1234567890' },
               query_params: { index: '1', key: 'value' },
               timeout_ms: 0,
+            },
+          ],
+          notes: [
+            {
+              id: 'note_abc123',
+              content: 'Remember to handle edge cases here.',
+              display_position: { x: 300, y: 150 },
+              size: { height: 100, width: 200 },
             },
           ],
           start_node_id: 'collect_info',
@@ -201,12 +202,14 @@ describe('resource conversationFlow', () => {
               url: 'https://api.example.com/customer',
               args_at_root: true,
               description: 'Get customer information from database',
+              enable_typing_sound: true,
               execution_message_description: 'execution_message_description',
               execution_message_type: 'prompt',
               headers: { Authorization: 'Bearer 1234567890' },
               method: 'GET',
+              parameter_type: 'json',
               parameters: {
-                properties: { foo: 'bar' },
+                properties: {},
                 type: 'object',
                 required: ['string'],
               },
@@ -221,6 +224,7 @@ describe('resource conversationFlow', () => {
         },
       ],
       default_dynamic_variables: { company_name: 'Retell Inc', support_hours: '9 AM - 5 PM' },
+      flex_mode: false,
       global_prompt: 'You are a helpful customer service agent.',
       is_transfer_llm: false,
       kb_config: { filter_score: 0.6, top_k: 3 },
@@ -235,6 +239,14 @@ describe('resource conversationFlow', () => {
         },
       ],
       model_temperature: 0.7,
+      notes: [
+        {
+          id: 'note_abc123',
+          content: 'Remember to handle edge cases here.',
+          display_position: { x: 300, y: 150 },
+          size: { height: 100, width: 200 },
+        },
+      ],
       start_node_id: 'start',
       tool_call_strict_mode: true,
       tools: [
@@ -244,12 +256,14 @@ describe('resource conversationFlow', () => {
           url: 'https://api.example.com/customer',
           args_at_root: true,
           description: 'Get customer information from database',
+          enable_typing_sound: true,
           execution_message_description: 'execution_message_description',
           execution_message_type: 'prompt',
           headers: { Authorization: 'Bearer 1234567890' },
           method: 'GET',
+          parameter_type: 'json',
           parameters: {
-            properties: { foo: 'bar' },
+            properties: {},
             type: 'object',
             required: ['string'],
           },
@@ -289,18 +303,6 @@ describe('resource conversationFlow', () => {
   });
 
   // Mock server tests are disabled
-  test.skip('update', async () => {
-    const responsePromise = client.conversationFlow.update('conversation_flow_id', {});
-    const rawResponse = await responsePromise.asResponse();
-    expect(rawResponse).toBeInstanceOf(Response);
-    const response = await responsePromise;
-    expect(response).not.toBeInstanceOf(Response);
-    const dataAndResponse = await responsePromise.withResponse();
-    expect(dataAndResponse.data).toBe(response);
-    expect(dataAndResponse.response).toBe(rawResponse);
-  });
-
-  // Mock server tests are disabled
   test.skip('list', async () => {
     const responsePromise = client.conversationFlow.list();
     const rawResponse = await responsePromise.asResponse();
@@ -320,11 +322,23 @@ describe('resource conversationFlow', () => {
         {
           limit: 1000,
           pagination_key: 'pagination_key',
-          pagination_key_version: 0,
+          sort_order: 'ascending',
         },
         { path: '/_stainless_unknown_path' },
       ),
     ).rejects.toThrow(Retell.NotFoundError);
+  });
+
+  // Mock server tests are disabled
+  test.skip('update', async () => {
+    const responsePromise = client.conversationFlow.update('conversation_flow_id', {});
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
   });
 
   // Mock server tests are disabled

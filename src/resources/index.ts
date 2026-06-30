@@ -4,11 +4,15 @@ export {
   Agent,
   type AgentResponse,
   type AgentListResponse,
+  type AgentCreateVersionResponse,
   type AgentGetVersionsResponse,
   type AgentCreateParams,
   type AgentRetrieveParams,
-  type AgentUpdateParams,
   type AgentListParams,
+  type AgentUpdateParams,
+  type AgentPublishParams,
+  type AgentCreateVersionParams,
+  type AgentDeleteVersionParams,
 } from './agent';
 export { BatchCall, type BatchCallResponse, type BatchCallCreateBatchCallParams } from './batch-call';
 export {
@@ -17,11 +21,11 @@ export {
   type PhoneCallResponse,
   type WebCallResponse,
   type CallListResponse,
-  type CallUpdateParams,
-  type CallListParams,
   type CallCreatePhoneCallParams,
-  type CallCreateWebCallParams,
   type CallRegisterPhoneCallParams,
+  type CallCreateWebCallParams,
+  type CallListParams,
+  type CallUpdateParams,
 } from './call';
 export {
   Chat,
@@ -29,20 +33,24 @@ export {
   type ChatListResponse,
   type ChatCreateChatCompletionResponse,
   type ChatCreateParams,
-  type ChatUpdateParams,
-  type ChatListParams,
-  type ChatCreateChatCompletionParams,
   type ChatCreateSMSChatParams,
+  type ChatCreateChatCompletionParams,
+  type ChatListParams,
+  type ChatUpdateParams,
 } from './chat';
 export {
   ChatAgent,
   type ChatAgentResponse,
   type ChatAgentListResponse,
+  type ChatAgentCreateVersionResponse,
   type ChatAgentGetVersionsResponse,
   type ChatAgentCreateParams,
   type ChatAgentRetrieveParams,
-  type ChatAgentUpdateParams,
   type ChatAgentListParams,
+  type ChatAgentUpdateParams,
+  type ChatAgentPublishParams,
+  type ChatAgentCreateVersionParams,
+  type ChatAgentDeleteVersionParams,
 } from './chat-agent';
 export { Concurrency, type ConcurrencyRetrieveResponse } from './concurrency';
 export {
@@ -51,16 +59,22 @@ export {
   type ConversationFlowListResponse,
   type ConversationFlowCreateParams,
   type ConversationFlowRetrieveParams,
-  type ConversationFlowUpdateParams,
   type ConversationFlowListParams,
+  type ConversationFlowUpdateParams,
 } from './conversation-flow';
 export {
   ConversationFlowComponent,
   type ConversationFlowComponentResponse,
   type ConversationFlowComponentListResponse,
   type ConversationFlowComponentCreateParams,
+  type ConversationFlowComponentListParams,
   type ConversationFlowComponentUpdateParams,
 } from './conversation-flow-component';
+export {
+  ExportRequest,
+  type ExportRequestListResponse,
+  type ExportRequestListParams,
+} from './export-request';
 export {
   KnowledgeBase,
   type KnowledgeBaseResponse,
@@ -75,8 +89,8 @@ export {
   type LlmListResponse,
   type LlmCreateParams,
   type LlmRetrieveParams,
-  type LlmUpdateParams,
   type LlmListParams,
+  type LlmUpdateParams,
 } from './llm';
 export {
   McpTool,
@@ -89,9 +103,11 @@ export {
   type PhoneNumberResponse,
   type PhoneNumberListResponse,
   type PhoneNumberCreateParams,
-  type PhoneNumberUpdateParams,
   type PhoneNumberImportParams,
+  type PhoneNumberListParams,
+  type PhoneNumberUpdateParams,
 } from './phone-number';
+export { Playground, type PlaygroundCompletionResponse, type PlaygroundCompletionParams } from './playground';
 export {
   Tests,
   type BatchTestResponse,
@@ -100,11 +116,12 @@ export {
   type TestListBatchTestsResponse,
   type TestListTestCaseDefinitionsResponse,
   type TestListTestRunsResponse,
-  type TestCreateBatchTestParams,
   type TestCreateTestCaseDefinitionParams,
-  type TestListBatchTestsParams,
   type TestListTestCaseDefinitionsParams,
   type TestUpdateTestCaseDefinitionParams,
+  type TestCreateBatchTestParams,
+  type TestListBatchTestsParams,
+  type TestListTestRunsParams,
 } from './tests';
 export {
   Voice,

@@ -39,6 +39,18 @@ export class Llm extends APIResource {
   }
 
   /**
+   * List Retell LLM Response Engines with pagination
+   *
+   * @example
+   * ```ts
+   * const llms = await client.llm.list();
+   * ```
+   */
+  list(query: LlmListParams | null | undefined = {}, options?: RequestOptions): APIPromise<LlmListResponse> {
+    return this._client.get('/v2/list-retell-llms', { query, ...options });
+  }
+
+  /**
    * Update an existing Retell LLM Response Engine
    *
    * @example
@@ -53,24 +65,8 @@ export class Llm extends APIResource {
    * ```
    */
   update(llmID: string, params: LlmUpdateParams, options?: RequestOptions): APIPromise<LlmResponse> {
-    const { query_version, ...body } = params;
-    return this._client.patch(path`/update-retell-llm/${llmID}`, {
-      query: { version: query_version },
-      body,
-      ...options,
-    });
-  }
-
-  /**
-   * List all Retell LLM Response Engines that can be attached to an agent.
-   *
-   * @example
-   * ```ts
-   * const llmResponses = await client.llm.list();
-   * ```
-   */
-  list(query: LlmListParams | null | undefined = {}, options?: RequestOptions): APIPromise<LlmListResponse> {
-    return this._client.get('/list-retell-llms', { query, ...options });
+    const { version, ...body } = params;
+    return this._client.patch(path`/update-retell-llm/${llmID}`, { query: { version }, body, ...options });
   }
 
   /**
@@ -147,6 +143,7 @@ export interface LlmResponse {
     | LlmResponse.PressDigitTool
     | LlmResponse.SendSMSTool
     | LlmResponse.CustomTool
+    | LlmResponse.CodeTool
     | LlmResponse.ExtractDynamicVariableTool
     | LlmResponse.BridgeTransferTool
     | LlmResponse.CancelTransferTool
@@ -181,15 +178,19 @@ export interface LlmResponse {
     | 'gpt-4.1-mini'
     | 'gpt-4.1-nano'
     | 'gpt-5'
-    | 'gpt-5.1'
-    | 'gpt-5.2'
     | 'gpt-5-mini'
     | 'gpt-5-nano'
+    | 'gpt-5.1'
+    | 'gpt-5.2'
+    | 'gpt-5.4'
+    | 'gpt-5.4-mini'
+    | 'gpt-5.4-nano'
+    | 'gpt-5.5'
     | 'claude-4.5-sonnet'
+    | 'claude-4.6-sonnet'
     | 'claude-4.5-haiku'
-    | 'gemini-2.5-flash'
-    | 'gemini-2.5-flash-lite'
     | 'gemini-3.0-flash'
+    | 'gemini-3.1-flash-lite'
     | null;
 
   /**
@@ -211,7 +212,7 @@ export interface LlmResponse {
    * Select the underlying speech to speech model. Can only set this or model, not
    * both.
    */
-  s2s_model?: 'gpt-4o-realtime' | 'gpt-4o-mini-realtime' | 'gpt-realtime' | 'gpt-realtime-mini' | null;
+  s2s_model?: 'gpt-realtime-2' | 'gpt-realtime-1.5' | 'gpt-realtime' | 'gpt-realtime-mini' | null;
 
   /**
    * The speaker who starts the conversation. Required. Must be either 'user' or
@@ -240,9 +241,9 @@ export interface LlmResponse {
   tool_call_strict_mode?: boolean | null;
 
   /**
-   * The version of the LLM.
+   * Version of the Retell LLM Response Engine.
    */
-  version?: number | null;
+  version?: number;
 }
 
 export namespace LlmResponse {
@@ -396,6 +397,12 @@ export namespace LlmResponse {
        * id when using `sip refer` cold transfer mode.
        */
       show_transferee_as_caller?: boolean;
+
+      /**
+       * Override the ring duration for this specific transfer, in milliseconds. If not
+       * set, falls back to the agent-level `ring_duration_ms`.
+       */
+      transfer_ring_duration_ms?: number;
     }
 
     export interface TransferOptionWarmTransfer {
@@ -410,6 +417,13 @@ export namespace LlmResponse {
       agent_detection_timeout_ms?: number;
 
       /**
+       * Asset ID of the uploaded hold music to play. Required when `on_hold_music` is
+       * `custom`. Must reference an audio asset owned by the organization (see
+       * create-asset).
+       */
+      custom_on_hold_music_asset_id?: string;
+
+      /**
        * Whether to play an audio cue when bridging the call. Defaults to true.
        */
       enable_bridge_audio_cue?: boolean;
@@ -421,21 +435,16 @@ export namespace LlmResponse {
       ivr_option?: TransferOptionWarmTransfer.IvrOption;
 
       /**
-       * The music to play while the caller is being transferred.
+       * The music to play while the caller is being transferred. Use `custom` together
+       * with `custom_on_hold_music_asset_id` to play an uploaded audio asset.
        */
-      on_hold_music?: 'none' | 'relaxing_sound' | 'uplifting_beats' | 'ringtone';
+      on_hold_music?: 'none' | 'relaxing_sound' | 'uplifting_beats' | 'ringtone' | 'custom';
 
       /**
        * If set to true, will not perform human detection for the transfer. Default to
        * false.
        */
       opt_out_human_detection?: boolean;
-
-      /**
-       * If set to true, AI will not say "Hello" after connecting the call. Default to
-       * false.
-       */
-      opt_out_initial_message?: boolean;
 
       /**
        * If set, when transfer is connected, will say the handoff message only to the
@@ -461,6 +470,12 @@ export namespace LlmResponse {
        * Twilio numbers support this option.
        */
       show_transferee_as_caller?: boolean;
+
+      /**
+       * Override the ring duration for this specific transfer, in milliseconds. If not
+       * set, falls back to the agent-level `ring_duration_ms`.
+       */
+      transfer_ring_duration_ms?: number;
     }
 
     export namespace TransferOptionWarmTransfer {
@@ -526,14 +541,22 @@ export namespace LlmResponse {
       type: 'agentic_warm_transfer';
 
       /**
+       * Asset ID of the uploaded hold music to play. Required when `on_hold_music` is
+       * `custom`. Must reference an audio asset owned by the organization (see
+       * create-asset).
+       */
+      custom_on_hold_music_asset_id?: string;
+
+      /**
        * Whether to play an audio cue when bridging the call. Defaults to true.
        */
       enable_bridge_audio_cue?: boolean;
 
       /**
-       * The music to play while the caller is being transferred.
+       * The music to play while the caller is being transferred. Use `custom` together
+       * with `custom_on_hold_music_asset_id` to play an uploaded audio asset.
        */
-      on_hold_music?: 'none' | 'relaxing_sound' | 'uplifting_beats' | 'ringtone';
+      on_hold_music?: 'none' | 'relaxing_sound' | 'uplifting_beats' | 'ringtone' | 'custom';
 
       /**
        * If set, when transfer is successful, will say the handoff message to both the
@@ -550,6 +573,12 @@ export namespace LlmResponse {
        * Twilio numbers support this option.
        */
       show_transferee_as_caller?: boolean;
+
+      /**
+       * Override the ring duration for this specific transfer, in milliseconds. If not
+       * set, falls back to the agent-level `ring_duration_ms`.
+       */
+      transfer_ring_duration_ms?: number;
     }
 
     export namespace TransferOptionAgenticWarmTransfer {
@@ -590,7 +619,7 @@ export namespace LlmResponse {
           /**
            * The version of the transfer agent to use.
            */
-          agent_version: number;
+          agent_version: number | string;
         }
       }
 
@@ -717,7 +746,7 @@ export namespace LlmResponse {
      * The version of the agent to swap to. If not specified, will use the latest
      * version.
      */
-    agent_version?: number;
+    agent_version?: number | string;
 
     /**
      * Describes what the tool does, sometimes can also include information about when
@@ -737,6 +766,11 @@ export namespace LlmResponse {
      * to "prompt".
      */
     execution_message_type?: 'prompt' | 'static_text';
+
+    /**
+     * If true, keep the current language when swapping agents. Defaults to false.
+     */
+    keep_current_language?: boolean;
 
     /**
      * If true, keep the current voice when swapping agents. Defaults to false.
@@ -783,7 +817,10 @@ export namespace LlmResponse {
      */
     name: string;
 
-    sms_content: SendSMSTool.SMSContentPredefined | SendSMSTool.SMSContentInferred;
+    sms_content:
+      | SendSMSTool.SMSContentPredefined
+      | SendSMSTool.SMSContentInferred
+      | SendSMSTool.SMSContentTemplate;
 
     type: 'send_sms';
 
@@ -792,6 +829,26 @@ export namespace LlmResponse {
      * to call the tool.
      */
     description?: string;
+
+    /**
+     * Describes what to say before sending the SMS. Only applicable when
+     * speak_during_execution is true.
+     */
+    execution_message_description?: string;
+
+    /**
+     * Type of execution message. "prompt" means the agent will use
+     * execution_message_description as a prompt to generate the message. "static_text"
+     * means the agent will speak the execution_message_description directly. Defaults
+     * to "prompt".
+     */
+    execution_message_type?: 'prompt' | 'static_text';
+
+    /**
+     * If true, the agent will speak a short line before sending the SMS. If omitted,
+     * defaults to true (same as end_call / transfer_call tools).
+     */
+    speak_during_execution?: boolean;
   }
 
   export namespace SendSMSTool {
@@ -813,6 +870,16 @@ export namespace LlmResponse {
       prompt?: string;
 
       type?: 'inferred';
+    }
+
+    export interface SMSContentTemplate {
+      /**
+       * The template to use for the SMS content. "info_collection" sends a predefined
+       * message requesting information from the user.
+       */
+      template: 'info_collection';
+
+      type: 'template';
     }
   }
 
@@ -845,6 +912,13 @@ export namespace LlmResponse {
     description?: string;
 
     /**
+     * If true, play a typing sound on the agent audio track while this tool is
+     * executing. Useful when the tool takes a noticeable amount of time to prevent
+     * silence on the call.
+     */
+    enable_typing_sound?: boolean;
+
+    /**
      * The description for the sentence agent say during execution. Only applicable
      * when speak_during_execution is true. Can write what to say or even provide
      * examples. The default is "The message you will say to callee when calling this
@@ -869,6 +943,14 @@ export namespace LlmResponse {
      * Method to use for the request, default to POST.
      */
     method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+    /**
+     * How the tool's `parameters` are authored and shown in the dashboard editor —
+     * "form" for the visual parameter builder, "json" for a raw JSON Schema. Both
+     * produce the same `parameters` schema; this does not change how the request body
+     * is encoded (see `args_at_root`).
+     */
+    parameter_type?: 'json' | 'form';
 
     /**
      * The parameters the functions accepts, described as a JSON Schema object. See
@@ -926,7 +1008,7 @@ export namespace LlmResponse {
        * The value of properties is an object, where each key is the name of a property
        * and each value is a schema used to validate that property.
        */
-      properties: { [key: string]: unknown };
+      properties: unknown;
 
       /**
        * Type must be "object" for a JSON Schema object.
@@ -940,6 +1022,72 @@ export namespace LlmResponse {
        */
       required?: Array<string>;
     }
+  }
+
+  export interface CodeTool {
+    /**
+     * JavaScript code to execute in the sandbox.
+     */
+    code: string;
+
+    /**
+     * Name of the tool. Must be unique within all tools available to LLM at any given
+     * time (general tools + state tools + state edges). Must be consisted of a-z, A-Z,
+     * 0-9, or contain underscores and dashes, with a maximum length of 64 (no space
+     * allowed).
+     */
+    name: string;
+
+    type: 'code';
+
+    /**
+     * Describes what this tool does and when to call this tool.
+     */
+    description?: string;
+
+    /**
+     * If true, play a typing sound on the agent audio track while this tool is
+     * executing.
+     */
+    enable_typing_sound?: boolean;
+
+    /**
+     * The description for the sentence agent say during execution. Only applicable
+     * when speak_during_execution is true.
+     */
+    execution_message_description?: string;
+
+    /**
+     * Type of execution message. "prompt" means the agent will use
+     * execution_message_description as a prompt to generate the message. "static_text"
+     * means the agent will speak the execution_message_description directly. Defaults
+     * to "prompt".
+     */
+    execution_message_type?: 'prompt' | 'static_text';
+
+    /**
+     * A mapping of variable names to JSON paths in the code execution result. These
+     * mapped values will be extracted and added as dynamic variables.
+     */
+    response_variables?: { [key: string]: string };
+
+    /**
+     * Determines whether the agent would call LLM another time and speak when the
+     * result of function is obtained.
+     */
+    speak_after_execution?: boolean;
+
+    /**
+     * Determines whether the agent would say sentence like "One moment, let me check
+     * that." when executing the tool.
+     */
+    speak_during_execution?: boolean;
+
+    /**
+     * The maximum time in milliseconds the code can run before it's considered
+     * timeout. Defaults to 30,000 ms (30 s).
+     */
+    timeout_ms?: number;
   }
 
   export interface ExtractDynamicVariableTool {
@@ -968,6 +1116,12 @@ export namespace LlmResponse {
       | ExtractDynamicVariableTool.BooleanAnalysisData
       | ExtractDynamicVariableTool.NumberAnalysisData
     >;
+
+    /**
+     * If true, play a typing sound on the agent audio track while this tool is
+     * executing.
+     */
+    enable_typing_sound?: boolean;
   }
 
   export namespace ExtractDynamicVariableTool {
@@ -988,9 +1142,22 @@ export namespace LlmResponse {
       type: 'string';
 
       /**
+       * Optional instruction to help decide whether this field needs to be populated in
+       * the analysis. If not set, the field is always included. If required is true,
+       * this is ignored.
+       */
+      conditional_prompt?: string;
+
+      /**
        * Examples of the variable value to teach model the style and syntax.
        */
       examples?: Array<string>;
+
+      /**
+       * Whether this data is required. If true and the data is not extracted, the call
+       * will be marked as unsuccessful.
+       */
+      required?: boolean;
     }
 
     export interface EnumAnalysisData {
@@ -1013,6 +1180,19 @@ export namespace LlmResponse {
        * Type of the variable to extract.
        */
       type: 'enum';
+
+      /**
+       * Optional instruction to help decide whether this field needs to be populated in
+       * the analysis. If not set, the field is always included. If required is true,
+       * this is ignored.
+       */
+      conditional_prompt?: string;
+
+      /**
+       * Whether this data is required. If true and the data is not extracted, the call
+       * will be marked as unsuccessful.
+       */
+      required?: boolean;
     }
 
     export interface BooleanAnalysisData {
@@ -1030,6 +1210,19 @@ export namespace LlmResponse {
        * Type of the variable to extract.
        */
       type: 'boolean';
+
+      /**
+       * Optional instruction to help decide whether this field needs to be populated in
+       * the analysis. If not set, the field is always included. If required is true,
+       * this is ignored.
+       */
+      conditional_prompt?: string;
+
+      /**
+       * Whether this data is required. If true and the data is not extracted, the call
+       * will be marked as unsuccessful.
+       */
+      required?: boolean;
     }
 
     export interface NumberAnalysisData {
@@ -1047,6 +1240,19 @@ export namespace LlmResponse {
        * Type of the variable to extract.
        */
       type: 'number';
+
+      /**
+       * Optional instruction to help decide whether this field needs to be populated in
+       * the analysis. If not set, the field is always included. If required is true,
+       * this is ignored.
+       */
+      conditional_prompt?: string;
+
+      /**
+       * Whether this data is required. If true and the data is not extracted, the call
+       * will be marked as unsuccessful.
+       */
+      required?: boolean;
     }
   }
 
@@ -1068,6 +1274,25 @@ export namespace LlmResponse {
      * transfer agent call.
      */
     description?: string;
+
+    /**
+     * Describes what to say to user when bridging the transfer. Only applicable when
+     * speak_during_execution is true.
+     */
+    execution_message_description?: string;
+
+    /**
+     * Type of execution message. "prompt" means the agent will use
+     * execution_message_description as a prompt to generate the message. "static_text"
+     * means the agent will speak the execution_message_description directly. Defaults
+     * to "prompt".
+     */
+    execution_message_type?: 'prompt' | 'static_text';
+
+    /**
+     * If true, will speak during execution.
+     */
+    speak_during_execution?: boolean;
   }
 
   export interface CancelTransferTool {
@@ -1088,6 +1313,25 @@ export namespace LlmResponse {
      * and ends the transfer agent call.
      */
     description?: string;
+
+    /**
+     * Describes what to say to user when cancelling the transfer. Only applicable when
+     * speak_during_execution is true.
+     */
+    execution_message_description?: string;
+
+    /**
+     * Type of execution message. "prompt" means the agent will use
+     * execution_message_description as a prompt to generate the message. "static_text"
+     * means the agent will speak the execution_message_description directly. Defaults
+     * to "prompt".
+     */
+    execution_message_type?: 'prompt' | 'static_text';
+
+    /**
+     * If true, will speak during execution.
+     */
+    speak_during_execution?: boolean;
   }
 
   export interface McpTool {
@@ -1102,6 +1346,12 @@ export namespace LlmResponse {
     name: string;
 
     type: 'mcp';
+
+    /**
+     * If true, play a typing sound on the agent audio track while this MCP tool is
+     * executing.
+     */
+    enable_typing_sound?: boolean;
 
     /**
      * The description for the sentence agent say during execution. Only applicable
@@ -1228,6 +1478,7 @@ export namespace LlmResponse {
       | State.PressDigitTool
       | State.SendSMSTool
       | State.CustomTool
+      | State.CodeTool
       | State.ExtractDynamicVariableTool
       | State.BridgeTransferTool
       | State.CancelTransferTool
@@ -1276,7 +1527,7 @@ export namespace LlmResponse {
          * The value of properties is an object, where each key is the name of a property
          * and each value is a schema used to validate that property.
          */
-        properties: { [key: string]: unknown };
+        properties: unknown;
 
         /**
          * Type must be "object" for a JSON Schema object.
@@ -1442,6 +1693,12 @@ export namespace LlmResponse {
          * id when using `sip refer` cold transfer mode.
          */
         show_transferee_as_caller?: boolean;
+
+        /**
+         * Override the ring duration for this specific transfer, in milliseconds. If not
+         * set, falls back to the agent-level `ring_duration_ms`.
+         */
+        transfer_ring_duration_ms?: number;
       }
 
       export interface TransferOptionWarmTransfer {
@@ -1456,6 +1713,13 @@ export namespace LlmResponse {
         agent_detection_timeout_ms?: number;
 
         /**
+         * Asset ID of the uploaded hold music to play. Required when `on_hold_music` is
+         * `custom`. Must reference an audio asset owned by the organization (see
+         * create-asset).
+         */
+        custom_on_hold_music_asset_id?: string;
+
+        /**
          * Whether to play an audio cue when bridging the call. Defaults to true.
          */
         enable_bridge_audio_cue?: boolean;
@@ -1467,21 +1731,16 @@ export namespace LlmResponse {
         ivr_option?: TransferOptionWarmTransfer.IvrOption;
 
         /**
-         * The music to play while the caller is being transferred.
+         * The music to play while the caller is being transferred. Use `custom` together
+         * with `custom_on_hold_music_asset_id` to play an uploaded audio asset.
          */
-        on_hold_music?: 'none' | 'relaxing_sound' | 'uplifting_beats' | 'ringtone';
+        on_hold_music?: 'none' | 'relaxing_sound' | 'uplifting_beats' | 'ringtone' | 'custom';
 
         /**
          * If set to true, will not perform human detection for the transfer. Default to
          * false.
          */
         opt_out_human_detection?: boolean;
-
-        /**
-         * If set to true, AI will not say "Hello" after connecting the call. Default to
-         * false.
-         */
-        opt_out_initial_message?: boolean;
 
         /**
          * If set, when transfer is connected, will say the handoff message only to the
@@ -1507,6 +1766,12 @@ export namespace LlmResponse {
          * Twilio numbers support this option.
          */
         show_transferee_as_caller?: boolean;
+
+        /**
+         * Override the ring duration for this specific transfer, in milliseconds. If not
+         * set, falls back to the agent-level `ring_duration_ms`.
+         */
+        transfer_ring_duration_ms?: number;
       }
 
       export namespace TransferOptionWarmTransfer {
@@ -1572,14 +1837,22 @@ export namespace LlmResponse {
         type: 'agentic_warm_transfer';
 
         /**
+         * Asset ID of the uploaded hold music to play. Required when `on_hold_music` is
+         * `custom`. Must reference an audio asset owned by the organization (see
+         * create-asset).
+         */
+        custom_on_hold_music_asset_id?: string;
+
+        /**
          * Whether to play an audio cue when bridging the call. Defaults to true.
          */
         enable_bridge_audio_cue?: boolean;
 
         /**
-         * The music to play while the caller is being transferred.
+         * The music to play while the caller is being transferred. Use `custom` together
+         * with `custom_on_hold_music_asset_id` to play an uploaded audio asset.
          */
-        on_hold_music?: 'none' | 'relaxing_sound' | 'uplifting_beats' | 'ringtone';
+        on_hold_music?: 'none' | 'relaxing_sound' | 'uplifting_beats' | 'ringtone' | 'custom';
 
         /**
          * If set, when transfer is successful, will say the handoff message to both the
@@ -1596,6 +1869,12 @@ export namespace LlmResponse {
          * Twilio numbers support this option.
          */
         show_transferee_as_caller?: boolean;
+
+        /**
+         * Override the ring duration for this specific transfer, in milliseconds. If not
+         * set, falls back to the agent-level `ring_duration_ms`.
+         */
+        transfer_ring_duration_ms?: number;
       }
 
       export namespace TransferOptionAgenticWarmTransfer {
@@ -1636,7 +1915,7 @@ export namespace LlmResponse {
             /**
              * The version of the transfer agent to use.
              */
-            agent_version: number;
+            agent_version: number | string;
           }
         }
 
@@ -1763,7 +2042,7 @@ export namespace LlmResponse {
        * The version of the agent to swap to. If not specified, will use the latest
        * version.
        */
-      agent_version?: number;
+      agent_version?: number | string;
 
       /**
        * Describes what the tool does, sometimes can also include information about when
@@ -1783,6 +2062,11 @@ export namespace LlmResponse {
        * to "prompt".
        */
       execution_message_type?: 'prompt' | 'static_text';
+
+      /**
+       * If true, keep the current language when swapping agents. Defaults to false.
+       */
+      keep_current_language?: boolean;
 
       /**
        * If true, keep the current voice when swapping agents. Defaults to false.
@@ -1829,7 +2113,10 @@ export namespace LlmResponse {
        */
       name: string;
 
-      sms_content: SendSMSTool.SMSContentPredefined | SendSMSTool.SMSContentInferred;
+      sms_content:
+        | SendSMSTool.SMSContentPredefined
+        | SendSMSTool.SMSContentInferred
+        | SendSMSTool.SMSContentTemplate;
 
       type: 'send_sms';
 
@@ -1838,6 +2125,26 @@ export namespace LlmResponse {
        * to call the tool.
        */
       description?: string;
+
+      /**
+       * Describes what to say before sending the SMS. Only applicable when
+       * speak_during_execution is true.
+       */
+      execution_message_description?: string;
+
+      /**
+       * Type of execution message. "prompt" means the agent will use
+       * execution_message_description as a prompt to generate the message. "static_text"
+       * means the agent will speak the execution_message_description directly. Defaults
+       * to "prompt".
+       */
+      execution_message_type?: 'prompt' | 'static_text';
+
+      /**
+       * If true, the agent will speak a short line before sending the SMS. If omitted,
+       * defaults to true (same as end_call / transfer_call tools).
+       */
+      speak_during_execution?: boolean;
     }
 
     export namespace SendSMSTool {
@@ -1859,6 +2166,16 @@ export namespace LlmResponse {
         prompt?: string;
 
         type?: 'inferred';
+      }
+
+      export interface SMSContentTemplate {
+        /**
+         * The template to use for the SMS content. "info_collection" sends a predefined
+         * message requesting information from the user.
+         */
+        template: 'info_collection';
+
+        type: 'template';
       }
     }
 
@@ -1891,6 +2208,13 @@ export namespace LlmResponse {
       description?: string;
 
       /**
+       * If true, play a typing sound on the agent audio track while this tool is
+       * executing. Useful when the tool takes a noticeable amount of time to prevent
+       * silence on the call.
+       */
+      enable_typing_sound?: boolean;
+
+      /**
        * The description for the sentence agent say during execution. Only applicable
        * when speak_during_execution is true. Can write what to say or even provide
        * examples. The default is "The message you will say to callee when calling this
@@ -1915,6 +2239,14 @@ export namespace LlmResponse {
        * Method to use for the request, default to POST.
        */
       method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+      /**
+       * How the tool's `parameters` are authored and shown in the dashboard editor —
+       * "form" for the visual parameter builder, "json" for a raw JSON Schema. Both
+       * produce the same `parameters` schema; this does not change how the request body
+       * is encoded (see `args_at_root`).
+       */
+      parameter_type?: 'json' | 'form';
 
       /**
        * The parameters the functions accepts, described as a JSON Schema object. See
@@ -1972,7 +2304,7 @@ export namespace LlmResponse {
          * The value of properties is an object, where each key is the name of a property
          * and each value is a schema used to validate that property.
          */
-        properties: { [key: string]: unknown };
+        properties: unknown;
 
         /**
          * Type must be "object" for a JSON Schema object.
@@ -1986,6 +2318,72 @@ export namespace LlmResponse {
          */
         required?: Array<string>;
       }
+    }
+
+    export interface CodeTool {
+      /**
+       * JavaScript code to execute in the sandbox.
+       */
+      code: string;
+
+      /**
+       * Name of the tool. Must be unique within all tools available to LLM at any given
+       * time (general tools + state tools + state edges). Must be consisted of a-z, A-Z,
+       * 0-9, or contain underscores and dashes, with a maximum length of 64 (no space
+       * allowed).
+       */
+      name: string;
+
+      type: 'code';
+
+      /**
+       * Describes what this tool does and when to call this tool.
+       */
+      description?: string;
+
+      /**
+       * If true, play a typing sound on the agent audio track while this tool is
+       * executing.
+       */
+      enable_typing_sound?: boolean;
+
+      /**
+       * The description for the sentence agent say during execution. Only applicable
+       * when speak_during_execution is true.
+       */
+      execution_message_description?: string;
+
+      /**
+       * Type of execution message. "prompt" means the agent will use
+       * execution_message_description as a prompt to generate the message. "static_text"
+       * means the agent will speak the execution_message_description directly. Defaults
+       * to "prompt".
+       */
+      execution_message_type?: 'prompt' | 'static_text';
+
+      /**
+       * A mapping of variable names to JSON paths in the code execution result. These
+       * mapped values will be extracted and added as dynamic variables.
+       */
+      response_variables?: { [key: string]: string };
+
+      /**
+       * Determines whether the agent would call LLM another time and speak when the
+       * result of function is obtained.
+       */
+      speak_after_execution?: boolean;
+
+      /**
+       * Determines whether the agent would say sentence like "One moment, let me check
+       * that." when executing the tool.
+       */
+      speak_during_execution?: boolean;
+
+      /**
+       * The maximum time in milliseconds the code can run before it's considered
+       * timeout. Defaults to 30,000 ms (30 s).
+       */
+      timeout_ms?: number;
     }
 
     export interface ExtractDynamicVariableTool {
@@ -2014,6 +2412,12 @@ export namespace LlmResponse {
         | ExtractDynamicVariableTool.BooleanAnalysisData
         | ExtractDynamicVariableTool.NumberAnalysisData
       >;
+
+      /**
+       * If true, play a typing sound on the agent audio track while this tool is
+       * executing.
+       */
+      enable_typing_sound?: boolean;
     }
 
     export namespace ExtractDynamicVariableTool {
@@ -2034,9 +2438,22 @@ export namespace LlmResponse {
         type: 'string';
 
         /**
+         * Optional instruction to help decide whether this field needs to be populated in
+         * the analysis. If not set, the field is always included. If required is true,
+         * this is ignored.
+         */
+        conditional_prompt?: string;
+
+        /**
          * Examples of the variable value to teach model the style and syntax.
          */
         examples?: Array<string>;
+
+        /**
+         * Whether this data is required. If true and the data is not extracted, the call
+         * will be marked as unsuccessful.
+         */
+        required?: boolean;
       }
 
       export interface EnumAnalysisData {
@@ -2059,6 +2476,19 @@ export namespace LlmResponse {
          * Type of the variable to extract.
          */
         type: 'enum';
+
+        /**
+         * Optional instruction to help decide whether this field needs to be populated in
+         * the analysis. If not set, the field is always included. If required is true,
+         * this is ignored.
+         */
+        conditional_prompt?: string;
+
+        /**
+         * Whether this data is required. If true and the data is not extracted, the call
+         * will be marked as unsuccessful.
+         */
+        required?: boolean;
       }
 
       export interface BooleanAnalysisData {
@@ -2076,6 +2506,19 @@ export namespace LlmResponse {
          * Type of the variable to extract.
          */
         type: 'boolean';
+
+        /**
+         * Optional instruction to help decide whether this field needs to be populated in
+         * the analysis. If not set, the field is always included. If required is true,
+         * this is ignored.
+         */
+        conditional_prompt?: string;
+
+        /**
+         * Whether this data is required. If true and the data is not extracted, the call
+         * will be marked as unsuccessful.
+         */
+        required?: boolean;
       }
 
       export interface NumberAnalysisData {
@@ -2093,6 +2536,19 @@ export namespace LlmResponse {
          * Type of the variable to extract.
          */
         type: 'number';
+
+        /**
+         * Optional instruction to help decide whether this field needs to be populated in
+         * the analysis. If not set, the field is always included. If required is true,
+         * this is ignored.
+         */
+        conditional_prompt?: string;
+
+        /**
+         * Whether this data is required. If true and the data is not extracted, the call
+         * will be marked as unsuccessful.
+         */
+        required?: boolean;
       }
     }
 
@@ -2114,6 +2570,25 @@ export namespace LlmResponse {
        * transfer agent call.
        */
       description?: string;
+
+      /**
+       * Describes what to say to user when bridging the transfer. Only applicable when
+       * speak_during_execution is true.
+       */
+      execution_message_description?: string;
+
+      /**
+       * Type of execution message. "prompt" means the agent will use
+       * execution_message_description as a prompt to generate the message. "static_text"
+       * means the agent will speak the execution_message_description directly. Defaults
+       * to "prompt".
+       */
+      execution_message_type?: 'prompt' | 'static_text';
+
+      /**
+       * If true, will speak during execution.
+       */
+      speak_during_execution?: boolean;
     }
 
     export interface CancelTransferTool {
@@ -2134,6 +2609,25 @@ export namespace LlmResponse {
        * and ends the transfer agent call.
        */
       description?: string;
+
+      /**
+       * Describes what to say to user when cancelling the transfer. Only applicable when
+       * speak_during_execution is true.
+       */
+      execution_message_description?: string;
+
+      /**
+       * Type of execution message. "prompt" means the agent will use
+       * execution_message_description as a prompt to generate the message. "static_text"
+       * means the agent will speak the execution_message_description directly. Defaults
+       * to "prompt".
+       */
+      execution_message_type?: 'prompt' | 'static_text';
+
+      /**
+       * If true, will speak during execution.
+       */
+      speak_during_execution?: boolean;
     }
 
     export interface McpTool {
@@ -2148,6 +2642,12 @@ export namespace LlmResponse {
       name: string;
 
       type: 'mcp';
+
+      /**
+       * If true, play a typing sound on the agent audio track while this MCP tool is
+       * executing.
+       */
+      enable_typing_sound?: boolean;
 
       /**
        * The description for the sentence agent say during execution. Only applicable
@@ -2199,7 +2699,19 @@ export namespace LlmResponse {
   }
 }
 
-export type LlmListResponse = Array<LlmResponse>;
+export interface LlmListResponse {
+  /**
+   * Whether more results are available.
+   */
+  has_more?: boolean;
+
+  items?: Array<LlmResponse>;
+
+  /**
+   * Pagination key for the next page.
+   */
+  pagination_key?: string;
+}
 
 export interface LlmCreateParams {
   /**
@@ -2248,6 +2760,7 @@ export interface LlmCreateParams {
     | LlmCreateParams.PressDigitTool
     | LlmCreateParams.SendSMSTool
     | LlmCreateParams.CustomTool
+    | LlmCreateParams.CodeTool
     | LlmCreateParams.ExtractDynamicVariableTool
     | LlmCreateParams.BridgeTransferTool
     | LlmCreateParams.CancelTransferTool
@@ -2277,15 +2790,19 @@ export interface LlmCreateParams {
     | 'gpt-4.1-mini'
     | 'gpt-4.1-nano'
     | 'gpt-5'
-    | 'gpt-5.1'
-    | 'gpt-5.2'
     | 'gpt-5-mini'
     | 'gpt-5-nano'
+    | 'gpt-5.1'
+    | 'gpt-5.2'
+    | 'gpt-5.4'
+    | 'gpt-5.4-mini'
+    | 'gpt-5.4-nano'
+    | 'gpt-5.5'
     | 'claude-4.5-sonnet'
+    | 'claude-4.6-sonnet'
     | 'claude-4.5-haiku'
-    | 'gemini-2.5-flash'
-    | 'gemini-2.5-flash-lite'
     | 'gemini-3.0-flash'
+    | 'gemini-3.1-flash-lite'
     | null;
 
   /**
@@ -2307,7 +2824,7 @@ export interface LlmCreateParams {
    * Select the underlying speech to speech model. Can only set this or model, not
    * both.
    */
-  s2s_model?: 'gpt-4o-realtime' | 'gpt-4o-mini-realtime' | 'gpt-realtime' | 'gpt-realtime-mini' | null;
+  s2s_model?: 'gpt-realtime-2' | 'gpt-realtime-1.5' | 'gpt-realtime' | 'gpt-realtime-mini' | null;
 
   /**
    * The speaker who starts the conversation. Required. Must be either 'user' or
@@ -2334,11 +2851,6 @@ export interface LlmCreateParams {
    * supported models.
    */
   tool_call_strict_mode?: boolean | null;
-
-  /**
-   * The version of the LLM.
-   */
-  version?: number | null;
 }
 
 export namespace LlmCreateParams {
@@ -2492,6 +3004,12 @@ export namespace LlmCreateParams {
        * id when using `sip refer` cold transfer mode.
        */
       show_transferee_as_caller?: boolean;
+
+      /**
+       * Override the ring duration for this specific transfer, in milliseconds. If not
+       * set, falls back to the agent-level `ring_duration_ms`.
+       */
+      transfer_ring_duration_ms?: number;
     }
 
     export interface TransferOptionWarmTransfer {
@@ -2506,6 +3024,13 @@ export namespace LlmCreateParams {
       agent_detection_timeout_ms?: number;
 
       /**
+       * Asset ID of the uploaded hold music to play. Required when `on_hold_music` is
+       * `custom`. Must reference an audio asset owned by the organization (see
+       * create-asset).
+       */
+      custom_on_hold_music_asset_id?: string;
+
+      /**
        * Whether to play an audio cue when bridging the call. Defaults to true.
        */
       enable_bridge_audio_cue?: boolean;
@@ -2517,21 +3042,16 @@ export namespace LlmCreateParams {
       ivr_option?: TransferOptionWarmTransfer.IvrOption;
 
       /**
-       * The music to play while the caller is being transferred.
+       * The music to play while the caller is being transferred. Use `custom` together
+       * with `custom_on_hold_music_asset_id` to play an uploaded audio asset.
        */
-      on_hold_music?: 'none' | 'relaxing_sound' | 'uplifting_beats' | 'ringtone';
+      on_hold_music?: 'none' | 'relaxing_sound' | 'uplifting_beats' | 'ringtone' | 'custom';
 
       /**
        * If set to true, will not perform human detection for the transfer. Default to
        * false.
        */
       opt_out_human_detection?: boolean;
-
-      /**
-       * If set to true, AI will not say "Hello" after connecting the call. Default to
-       * false.
-       */
-      opt_out_initial_message?: boolean;
 
       /**
        * If set, when transfer is connected, will say the handoff message only to the
@@ -2557,6 +3077,12 @@ export namespace LlmCreateParams {
        * Twilio numbers support this option.
        */
       show_transferee_as_caller?: boolean;
+
+      /**
+       * Override the ring duration for this specific transfer, in milliseconds. If not
+       * set, falls back to the agent-level `ring_duration_ms`.
+       */
+      transfer_ring_duration_ms?: number;
     }
 
     export namespace TransferOptionWarmTransfer {
@@ -2622,14 +3148,22 @@ export namespace LlmCreateParams {
       type: 'agentic_warm_transfer';
 
       /**
+       * Asset ID of the uploaded hold music to play. Required when `on_hold_music` is
+       * `custom`. Must reference an audio asset owned by the organization (see
+       * create-asset).
+       */
+      custom_on_hold_music_asset_id?: string;
+
+      /**
        * Whether to play an audio cue when bridging the call. Defaults to true.
        */
       enable_bridge_audio_cue?: boolean;
 
       /**
-       * The music to play while the caller is being transferred.
+       * The music to play while the caller is being transferred. Use `custom` together
+       * with `custom_on_hold_music_asset_id` to play an uploaded audio asset.
        */
-      on_hold_music?: 'none' | 'relaxing_sound' | 'uplifting_beats' | 'ringtone';
+      on_hold_music?: 'none' | 'relaxing_sound' | 'uplifting_beats' | 'ringtone' | 'custom';
 
       /**
        * If set, when transfer is successful, will say the handoff message to both the
@@ -2646,6 +3180,12 @@ export namespace LlmCreateParams {
        * Twilio numbers support this option.
        */
       show_transferee_as_caller?: boolean;
+
+      /**
+       * Override the ring duration for this specific transfer, in milliseconds. If not
+       * set, falls back to the agent-level `ring_duration_ms`.
+       */
+      transfer_ring_duration_ms?: number;
     }
 
     export namespace TransferOptionAgenticWarmTransfer {
@@ -2686,7 +3226,7 @@ export namespace LlmCreateParams {
           /**
            * The version of the transfer agent to use.
            */
-          agent_version: number;
+          agent_version: number | string;
         }
       }
 
@@ -2813,7 +3353,7 @@ export namespace LlmCreateParams {
      * The version of the agent to swap to. If not specified, will use the latest
      * version.
      */
-    agent_version?: number;
+    agent_version?: number | string;
 
     /**
      * Describes what the tool does, sometimes can also include information about when
@@ -2833,6 +3373,11 @@ export namespace LlmCreateParams {
      * to "prompt".
      */
     execution_message_type?: 'prompt' | 'static_text';
+
+    /**
+     * If true, keep the current language when swapping agents. Defaults to false.
+     */
+    keep_current_language?: boolean;
 
     /**
      * If true, keep the current voice when swapping agents. Defaults to false.
@@ -2879,7 +3424,10 @@ export namespace LlmCreateParams {
      */
     name: string;
 
-    sms_content: SendSMSTool.SMSContentPredefined | SendSMSTool.SMSContentInferred;
+    sms_content:
+      | SendSMSTool.SMSContentPredefined
+      | SendSMSTool.SMSContentInferred
+      | SendSMSTool.SMSContentTemplate;
 
     type: 'send_sms';
 
@@ -2888,6 +3436,26 @@ export namespace LlmCreateParams {
      * to call the tool.
      */
     description?: string;
+
+    /**
+     * Describes what to say before sending the SMS. Only applicable when
+     * speak_during_execution is true.
+     */
+    execution_message_description?: string;
+
+    /**
+     * Type of execution message. "prompt" means the agent will use
+     * execution_message_description as a prompt to generate the message. "static_text"
+     * means the agent will speak the execution_message_description directly. Defaults
+     * to "prompt".
+     */
+    execution_message_type?: 'prompt' | 'static_text';
+
+    /**
+     * If true, the agent will speak a short line before sending the SMS. If omitted,
+     * defaults to true (same as end_call / transfer_call tools).
+     */
+    speak_during_execution?: boolean;
   }
 
   export namespace SendSMSTool {
@@ -2909,6 +3477,16 @@ export namespace LlmCreateParams {
       prompt?: string;
 
       type?: 'inferred';
+    }
+
+    export interface SMSContentTemplate {
+      /**
+       * The template to use for the SMS content. "info_collection" sends a predefined
+       * message requesting information from the user.
+       */
+      template: 'info_collection';
+
+      type: 'template';
     }
   }
 
@@ -2941,6 +3519,13 @@ export namespace LlmCreateParams {
     description?: string;
 
     /**
+     * If true, play a typing sound on the agent audio track while this tool is
+     * executing. Useful when the tool takes a noticeable amount of time to prevent
+     * silence on the call.
+     */
+    enable_typing_sound?: boolean;
+
+    /**
      * The description for the sentence agent say during execution. Only applicable
      * when speak_during_execution is true. Can write what to say or even provide
      * examples. The default is "The message you will say to callee when calling this
@@ -2965,6 +3550,14 @@ export namespace LlmCreateParams {
      * Method to use for the request, default to POST.
      */
     method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+    /**
+     * How the tool's `parameters` are authored and shown in the dashboard editor —
+     * "form" for the visual parameter builder, "json" for a raw JSON Schema. Both
+     * produce the same `parameters` schema; this does not change how the request body
+     * is encoded (see `args_at_root`).
+     */
+    parameter_type?: 'json' | 'form';
 
     /**
      * The parameters the functions accepts, described as a JSON Schema object. See
@@ -3022,7 +3615,7 @@ export namespace LlmCreateParams {
        * The value of properties is an object, where each key is the name of a property
        * and each value is a schema used to validate that property.
        */
-      properties: { [key: string]: unknown };
+      properties: unknown;
 
       /**
        * Type must be "object" for a JSON Schema object.
@@ -3036,6 +3629,72 @@ export namespace LlmCreateParams {
        */
       required?: Array<string>;
     }
+  }
+
+  export interface CodeTool {
+    /**
+     * JavaScript code to execute in the sandbox.
+     */
+    code: string;
+
+    /**
+     * Name of the tool. Must be unique within all tools available to LLM at any given
+     * time (general tools + state tools + state edges). Must be consisted of a-z, A-Z,
+     * 0-9, or contain underscores and dashes, with a maximum length of 64 (no space
+     * allowed).
+     */
+    name: string;
+
+    type: 'code';
+
+    /**
+     * Describes what this tool does and when to call this tool.
+     */
+    description?: string;
+
+    /**
+     * If true, play a typing sound on the agent audio track while this tool is
+     * executing.
+     */
+    enable_typing_sound?: boolean;
+
+    /**
+     * The description for the sentence agent say during execution. Only applicable
+     * when speak_during_execution is true.
+     */
+    execution_message_description?: string;
+
+    /**
+     * Type of execution message. "prompt" means the agent will use
+     * execution_message_description as a prompt to generate the message. "static_text"
+     * means the agent will speak the execution_message_description directly. Defaults
+     * to "prompt".
+     */
+    execution_message_type?: 'prompt' | 'static_text';
+
+    /**
+     * A mapping of variable names to JSON paths in the code execution result. These
+     * mapped values will be extracted and added as dynamic variables.
+     */
+    response_variables?: { [key: string]: string };
+
+    /**
+     * Determines whether the agent would call LLM another time and speak when the
+     * result of function is obtained.
+     */
+    speak_after_execution?: boolean;
+
+    /**
+     * Determines whether the agent would say sentence like "One moment, let me check
+     * that." when executing the tool.
+     */
+    speak_during_execution?: boolean;
+
+    /**
+     * The maximum time in milliseconds the code can run before it's considered
+     * timeout. Defaults to 30,000 ms (30 s).
+     */
+    timeout_ms?: number;
   }
 
   export interface ExtractDynamicVariableTool {
@@ -3064,6 +3723,12 @@ export namespace LlmCreateParams {
       | ExtractDynamicVariableTool.BooleanAnalysisData
       | ExtractDynamicVariableTool.NumberAnalysisData
     >;
+
+    /**
+     * If true, play a typing sound on the agent audio track while this tool is
+     * executing.
+     */
+    enable_typing_sound?: boolean;
   }
 
   export namespace ExtractDynamicVariableTool {
@@ -3084,9 +3749,22 @@ export namespace LlmCreateParams {
       type: 'string';
 
       /**
+       * Optional instruction to help decide whether this field needs to be populated in
+       * the analysis. If not set, the field is always included. If required is true,
+       * this is ignored.
+       */
+      conditional_prompt?: string;
+
+      /**
        * Examples of the variable value to teach model the style and syntax.
        */
       examples?: Array<string>;
+
+      /**
+       * Whether this data is required. If true and the data is not extracted, the call
+       * will be marked as unsuccessful.
+       */
+      required?: boolean;
     }
 
     export interface EnumAnalysisData {
@@ -3109,6 +3787,19 @@ export namespace LlmCreateParams {
        * Type of the variable to extract.
        */
       type: 'enum';
+
+      /**
+       * Optional instruction to help decide whether this field needs to be populated in
+       * the analysis. If not set, the field is always included. If required is true,
+       * this is ignored.
+       */
+      conditional_prompt?: string;
+
+      /**
+       * Whether this data is required. If true and the data is not extracted, the call
+       * will be marked as unsuccessful.
+       */
+      required?: boolean;
     }
 
     export interface BooleanAnalysisData {
@@ -3126,6 +3817,19 @@ export namespace LlmCreateParams {
        * Type of the variable to extract.
        */
       type: 'boolean';
+
+      /**
+       * Optional instruction to help decide whether this field needs to be populated in
+       * the analysis. If not set, the field is always included. If required is true,
+       * this is ignored.
+       */
+      conditional_prompt?: string;
+
+      /**
+       * Whether this data is required. If true and the data is not extracted, the call
+       * will be marked as unsuccessful.
+       */
+      required?: boolean;
     }
 
     export interface NumberAnalysisData {
@@ -3143,6 +3847,19 @@ export namespace LlmCreateParams {
        * Type of the variable to extract.
        */
       type: 'number';
+
+      /**
+       * Optional instruction to help decide whether this field needs to be populated in
+       * the analysis. If not set, the field is always included. If required is true,
+       * this is ignored.
+       */
+      conditional_prompt?: string;
+
+      /**
+       * Whether this data is required. If true and the data is not extracted, the call
+       * will be marked as unsuccessful.
+       */
+      required?: boolean;
     }
   }
 
@@ -3164,6 +3881,25 @@ export namespace LlmCreateParams {
      * transfer agent call.
      */
     description?: string;
+
+    /**
+     * Describes what to say to user when bridging the transfer. Only applicable when
+     * speak_during_execution is true.
+     */
+    execution_message_description?: string;
+
+    /**
+     * Type of execution message. "prompt" means the agent will use
+     * execution_message_description as a prompt to generate the message. "static_text"
+     * means the agent will speak the execution_message_description directly. Defaults
+     * to "prompt".
+     */
+    execution_message_type?: 'prompt' | 'static_text';
+
+    /**
+     * If true, will speak during execution.
+     */
+    speak_during_execution?: boolean;
   }
 
   export interface CancelTransferTool {
@@ -3184,6 +3920,25 @@ export namespace LlmCreateParams {
      * and ends the transfer agent call.
      */
     description?: string;
+
+    /**
+     * Describes what to say to user when cancelling the transfer. Only applicable when
+     * speak_during_execution is true.
+     */
+    execution_message_description?: string;
+
+    /**
+     * Type of execution message. "prompt" means the agent will use
+     * execution_message_description as a prompt to generate the message. "static_text"
+     * means the agent will speak the execution_message_description directly. Defaults
+     * to "prompt".
+     */
+    execution_message_type?: 'prompt' | 'static_text';
+
+    /**
+     * If true, will speak during execution.
+     */
+    speak_during_execution?: boolean;
   }
 
   export interface McpTool {
@@ -3198,6 +3953,12 @@ export namespace LlmCreateParams {
     name: string;
 
     type: 'mcp';
+
+    /**
+     * If true, play a typing sound on the agent audio track while this MCP tool is
+     * executing.
+     */
+    enable_typing_sound?: boolean;
 
     /**
      * The description for the sentence agent say during execution. Only applicable
@@ -3324,6 +4085,7 @@ export namespace LlmCreateParams {
       | State.PressDigitTool
       | State.SendSMSTool
       | State.CustomTool
+      | State.CodeTool
       | State.ExtractDynamicVariableTool
       | State.BridgeTransferTool
       | State.CancelTransferTool
@@ -3372,7 +4134,7 @@ export namespace LlmCreateParams {
          * The value of properties is an object, where each key is the name of a property
          * and each value is a schema used to validate that property.
          */
-        properties: { [key: string]: unknown };
+        properties: unknown;
 
         /**
          * Type must be "object" for a JSON Schema object.
@@ -3538,6 +4300,12 @@ export namespace LlmCreateParams {
          * id when using `sip refer` cold transfer mode.
          */
         show_transferee_as_caller?: boolean;
+
+        /**
+         * Override the ring duration for this specific transfer, in milliseconds. If not
+         * set, falls back to the agent-level `ring_duration_ms`.
+         */
+        transfer_ring_duration_ms?: number;
       }
 
       export interface TransferOptionWarmTransfer {
@@ -3552,6 +4320,13 @@ export namespace LlmCreateParams {
         agent_detection_timeout_ms?: number;
 
         /**
+         * Asset ID of the uploaded hold music to play. Required when `on_hold_music` is
+         * `custom`. Must reference an audio asset owned by the organization (see
+         * create-asset).
+         */
+        custom_on_hold_music_asset_id?: string;
+
+        /**
          * Whether to play an audio cue when bridging the call. Defaults to true.
          */
         enable_bridge_audio_cue?: boolean;
@@ -3563,21 +4338,16 @@ export namespace LlmCreateParams {
         ivr_option?: TransferOptionWarmTransfer.IvrOption;
 
         /**
-         * The music to play while the caller is being transferred.
+         * The music to play while the caller is being transferred. Use `custom` together
+         * with `custom_on_hold_music_asset_id` to play an uploaded audio asset.
          */
-        on_hold_music?: 'none' | 'relaxing_sound' | 'uplifting_beats' | 'ringtone';
+        on_hold_music?: 'none' | 'relaxing_sound' | 'uplifting_beats' | 'ringtone' | 'custom';
 
         /**
          * If set to true, will not perform human detection for the transfer. Default to
          * false.
          */
         opt_out_human_detection?: boolean;
-
-        /**
-         * If set to true, AI will not say "Hello" after connecting the call. Default to
-         * false.
-         */
-        opt_out_initial_message?: boolean;
 
         /**
          * If set, when transfer is connected, will say the handoff message only to the
@@ -3603,6 +4373,12 @@ export namespace LlmCreateParams {
          * Twilio numbers support this option.
          */
         show_transferee_as_caller?: boolean;
+
+        /**
+         * Override the ring duration for this specific transfer, in milliseconds. If not
+         * set, falls back to the agent-level `ring_duration_ms`.
+         */
+        transfer_ring_duration_ms?: number;
       }
 
       export namespace TransferOptionWarmTransfer {
@@ -3668,14 +4444,22 @@ export namespace LlmCreateParams {
         type: 'agentic_warm_transfer';
 
         /**
+         * Asset ID of the uploaded hold music to play. Required when `on_hold_music` is
+         * `custom`. Must reference an audio asset owned by the organization (see
+         * create-asset).
+         */
+        custom_on_hold_music_asset_id?: string;
+
+        /**
          * Whether to play an audio cue when bridging the call. Defaults to true.
          */
         enable_bridge_audio_cue?: boolean;
 
         /**
-         * The music to play while the caller is being transferred.
+         * The music to play while the caller is being transferred. Use `custom` together
+         * with `custom_on_hold_music_asset_id` to play an uploaded audio asset.
          */
-        on_hold_music?: 'none' | 'relaxing_sound' | 'uplifting_beats' | 'ringtone';
+        on_hold_music?: 'none' | 'relaxing_sound' | 'uplifting_beats' | 'ringtone' | 'custom';
 
         /**
          * If set, when transfer is successful, will say the handoff message to both the
@@ -3692,6 +4476,12 @@ export namespace LlmCreateParams {
          * Twilio numbers support this option.
          */
         show_transferee_as_caller?: boolean;
+
+        /**
+         * Override the ring duration for this specific transfer, in milliseconds. If not
+         * set, falls back to the agent-level `ring_duration_ms`.
+         */
+        transfer_ring_duration_ms?: number;
       }
 
       export namespace TransferOptionAgenticWarmTransfer {
@@ -3732,7 +4522,7 @@ export namespace LlmCreateParams {
             /**
              * The version of the transfer agent to use.
              */
-            agent_version: number;
+            agent_version: number | string;
           }
         }
 
@@ -3859,7 +4649,7 @@ export namespace LlmCreateParams {
        * The version of the agent to swap to. If not specified, will use the latest
        * version.
        */
-      agent_version?: number;
+      agent_version?: number | string;
 
       /**
        * Describes what the tool does, sometimes can also include information about when
@@ -3879,6 +4669,11 @@ export namespace LlmCreateParams {
        * to "prompt".
        */
       execution_message_type?: 'prompt' | 'static_text';
+
+      /**
+       * If true, keep the current language when swapping agents. Defaults to false.
+       */
+      keep_current_language?: boolean;
 
       /**
        * If true, keep the current voice when swapping agents. Defaults to false.
@@ -3925,7 +4720,10 @@ export namespace LlmCreateParams {
        */
       name: string;
 
-      sms_content: SendSMSTool.SMSContentPredefined | SendSMSTool.SMSContentInferred;
+      sms_content:
+        | SendSMSTool.SMSContentPredefined
+        | SendSMSTool.SMSContentInferred
+        | SendSMSTool.SMSContentTemplate;
 
       type: 'send_sms';
 
@@ -3934,6 +4732,26 @@ export namespace LlmCreateParams {
        * to call the tool.
        */
       description?: string;
+
+      /**
+       * Describes what to say before sending the SMS. Only applicable when
+       * speak_during_execution is true.
+       */
+      execution_message_description?: string;
+
+      /**
+       * Type of execution message. "prompt" means the agent will use
+       * execution_message_description as a prompt to generate the message. "static_text"
+       * means the agent will speak the execution_message_description directly. Defaults
+       * to "prompt".
+       */
+      execution_message_type?: 'prompt' | 'static_text';
+
+      /**
+       * If true, the agent will speak a short line before sending the SMS. If omitted,
+       * defaults to true (same as end_call / transfer_call tools).
+       */
+      speak_during_execution?: boolean;
     }
 
     export namespace SendSMSTool {
@@ -3955,6 +4773,16 @@ export namespace LlmCreateParams {
         prompt?: string;
 
         type?: 'inferred';
+      }
+
+      export interface SMSContentTemplate {
+        /**
+         * The template to use for the SMS content. "info_collection" sends a predefined
+         * message requesting information from the user.
+         */
+        template: 'info_collection';
+
+        type: 'template';
       }
     }
 
@@ -3987,6 +4815,13 @@ export namespace LlmCreateParams {
       description?: string;
 
       /**
+       * If true, play a typing sound on the agent audio track while this tool is
+       * executing. Useful when the tool takes a noticeable amount of time to prevent
+       * silence on the call.
+       */
+      enable_typing_sound?: boolean;
+
+      /**
        * The description for the sentence agent say during execution. Only applicable
        * when speak_during_execution is true. Can write what to say or even provide
        * examples. The default is "The message you will say to callee when calling this
@@ -4011,6 +4846,14 @@ export namespace LlmCreateParams {
        * Method to use for the request, default to POST.
        */
       method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+      /**
+       * How the tool's `parameters` are authored and shown in the dashboard editor —
+       * "form" for the visual parameter builder, "json" for a raw JSON Schema. Both
+       * produce the same `parameters` schema; this does not change how the request body
+       * is encoded (see `args_at_root`).
+       */
+      parameter_type?: 'json' | 'form';
 
       /**
        * The parameters the functions accepts, described as a JSON Schema object. See
@@ -4068,7 +4911,7 @@ export namespace LlmCreateParams {
          * The value of properties is an object, where each key is the name of a property
          * and each value is a schema used to validate that property.
          */
-        properties: { [key: string]: unknown };
+        properties: unknown;
 
         /**
          * Type must be "object" for a JSON Schema object.
@@ -4082,6 +4925,72 @@ export namespace LlmCreateParams {
          */
         required?: Array<string>;
       }
+    }
+
+    export interface CodeTool {
+      /**
+       * JavaScript code to execute in the sandbox.
+       */
+      code: string;
+
+      /**
+       * Name of the tool. Must be unique within all tools available to LLM at any given
+       * time (general tools + state tools + state edges). Must be consisted of a-z, A-Z,
+       * 0-9, or contain underscores and dashes, with a maximum length of 64 (no space
+       * allowed).
+       */
+      name: string;
+
+      type: 'code';
+
+      /**
+       * Describes what this tool does and when to call this tool.
+       */
+      description?: string;
+
+      /**
+       * If true, play a typing sound on the agent audio track while this tool is
+       * executing.
+       */
+      enable_typing_sound?: boolean;
+
+      /**
+       * The description for the sentence agent say during execution. Only applicable
+       * when speak_during_execution is true.
+       */
+      execution_message_description?: string;
+
+      /**
+       * Type of execution message. "prompt" means the agent will use
+       * execution_message_description as a prompt to generate the message. "static_text"
+       * means the agent will speak the execution_message_description directly. Defaults
+       * to "prompt".
+       */
+      execution_message_type?: 'prompt' | 'static_text';
+
+      /**
+       * A mapping of variable names to JSON paths in the code execution result. These
+       * mapped values will be extracted and added as dynamic variables.
+       */
+      response_variables?: { [key: string]: string };
+
+      /**
+       * Determines whether the agent would call LLM another time and speak when the
+       * result of function is obtained.
+       */
+      speak_after_execution?: boolean;
+
+      /**
+       * Determines whether the agent would say sentence like "One moment, let me check
+       * that." when executing the tool.
+       */
+      speak_during_execution?: boolean;
+
+      /**
+       * The maximum time in milliseconds the code can run before it's considered
+       * timeout. Defaults to 30,000 ms (30 s).
+       */
+      timeout_ms?: number;
     }
 
     export interface ExtractDynamicVariableTool {
@@ -4110,6 +5019,12 @@ export namespace LlmCreateParams {
         | ExtractDynamicVariableTool.BooleanAnalysisData
         | ExtractDynamicVariableTool.NumberAnalysisData
       >;
+
+      /**
+       * If true, play a typing sound on the agent audio track while this tool is
+       * executing.
+       */
+      enable_typing_sound?: boolean;
     }
 
     export namespace ExtractDynamicVariableTool {
@@ -4130,9 +5045,22 @@ export namespace LlmCreateParams {
         type: 'string';
 
         /**
+         * Optional instruction to help decide whether this field needs to be populated in
+         * the analysis. If not set, the field is always included. If required is true,
+         * this is ignored.
+         */
+        conditional_prompt?: string;
+
+        /**
          * Examples of the variable value to teach model the style and syntax.
          */
         examples?: Array<string>;
+
+        /**
+         * Whether this data is required. If true and the data is not extracted, the call
+         * will be marked as unsuccessful.
+         */
+        required?: boolean;
       }
 
       export interface EnumAnalysisData {
@@ -4155,6 +5083,19 @@ export namespace LlmCreateParams {
          * Type of the variable to extract.
          */
         type: 'enum';
+
+        /**
+         * Optional instruction to help decide whether this field needs to be populated in
+         * the analysis. If not set, the field is always included. If required is true,
+         * this is ignored.
+         */
+        conditional_prompt?: string;
+
+        /**
+         * Whether this data is required. If true and the data is not extracted, the call
+         * will be marked as unsuccessful.
+         */
+        required?: boolean;
       }
 
       export interface BooleanAnalysisData {
@@ -4172,6 +5113,19 @@ export namespace LlmCreateParams {
          * Type of the variable to extract.
          */
         type: 'boolean';
+
+        /**
+         * Optional instruction to help decide whether this field needs to be populated in
+         * the analysis. If not set, the field is always included. If required is true,
+         * this is ignored.
+         */
+        conditional_prompt?: string;
+
+        /**
+         * Whether this data is required. If true and the data is not extracted, the call
+         * will be marked as unsuccessful.
+         */
+        required?: boolean;
       }
 
       export interface NumberAnalysisData {
@@ -4189,6 +5143,19 @@ export namespace LlmCreateParams {
          * Type of the variable to extract.
          */
         type: 'number';
+
+        /**
+         * Optional instruction to help decide whether this field needs to be populated in
+         * the analysis. If not set, the field is always included. If required is true,
+         * this is ignored.
+         */
+        conditional_prompt?: string;
+
+        /**
+         * Whether this data is required. If true and the data is not extracted, the call
+         * will be marked as unsuccessful.
+         */
+        required?: boolean;
       }
     }
 
@@ -4210,6 +5177,25 @@ export namespace LlmCreateParams {
        * transfer agent call.
        */
       description?: string;
+
+      /**
+       * Describes what to say to user when bridging the transfer. Only applicable when
+       * speak_during_execution is true.
+       */
+      execution_message_description?: string;
+
+      /**
+       * Type of execution message. "prompt" means the agent will use
+       * execution_message_description as a prompt to generate the message. "static_text"
+       * means the agent will speak the execution_message_description directly. Defaults
+       * to "prompt".
+       */
+      execution_message_type?: 'prompt' | 'static_text';
+
+      /**
+       * If true, will speak during execution.
+       */
+      speak_during_execution?: boolean;
     }
 
     export interface CancelTransferTool {
@@ -4230,6 +5216,25 @@ export namespace LlmCreateParams {
        * and ends the transfer agent call.
        */
       description?: string;
+
+      /**
+       * Describes what to say to user when cancelling the transfer. Only applicable when
+       * speak_during_execution is true.
+       */
+      execution_message_description?: string;
+
+      /**
+       * Type of execution message. "prompt" means the agent will use
+       * execution_message_description as a prompt to generate the message. "static_text"
+       * means the agent will speak the execution_message_description directly. Defaults
+       * to "prompt".
+       */
+      execution_message_type?: 'prompt' | 'static_text';
+
+      /**
+       * If true, will speak during execution.
+       */
+      speak_during_execution?: boolean;
     }
 
     export interface McpTool {
@@ -4244,6 +5249,12 @@ export namespace LlmCreateParams {
       name: string;
 
       type: 'mcp';
+
+      /**
+       * If true, play a typing sound on the agent audio track while this MCP tool is
+       * executing.
+       */
+      enable_typing_sound?: boolean;
 
       /**
        * The description for the sentence agent say during execution. Only applicable
@@ -4302,12 +5313,29 @@ export interface LlmRetrieveParams {
   version?: number;
 }
 
+export interface LlmListParams {
+  /**
+   * Maximum number of items to return.
+   */
+  limit?: number;
+
+  /**
+   * Pagination key for fetching the next page.
+   */
+  pagination_key?: string;
+
+  /**
+   * Sort order for results.
+   */
+  sort_order?: 'ascending' | 'descending';
+}
+
 export interface LlmUpdateParams {
   /**
    * Query param: Optional version of the API to use for this request. Default to
    * latest version.
    */
-  query_version?: number;
+  version?: number;
 
   /**
    * Body param: If set, the AI will begin the conversation after waiting for the
@@ -4357,6 +5385,7 @@ export interface LlmUpdateParams {
     | LlmUpdateParams.PressDigitTool
     | LlmUpdateParams.SendSMSTool
     | LlmUpdateParams.CustomTool
+    | LlmUpdateParams.CodeTool
     | LlmUpdateParams.ExtractDynamicVariableTool
     | LlmUpdateParams.BridgeTransferTool
     | LlmUpdateParams.CancelTransferTool
@@ -4387,15 +5416,19 @@ export interface LlmUpdateParams {
     | 'gpt-4.1-mini'
     | 'gpt-4.1-nano'
     | 'gpt-5'
-    | 'gpt-5.1'
-    | 'gpt-5.2'
     | 'gpt-5-mini'
     | 'gpt-5-nano'
+    | 'gpt-5.1'
+    | 'gpt-5.2'
+    | 'gpt-5.4'
+    | 'gpt-5.4-mini'
+    | 'gpt-5.4-nano'
+    | 'gpt-5.5'
     | 'claude-4.5-sonnet'
+    | 'claude-4.6-sonnet'
     | 'claude-4.5-haiku'
-    | 'gemini-2.5-flash'
-    | 'gemini-2.5-flash-lite'
     | 'gemini-3.0-flash'
+    | 'gemini-3.1-flash-lite'
     | null;
 
   /**
@@ -4417,7 +5450,7 @@ export interface LlmUpdateParams {
    * Body param: Select the underlying speech to speech model. Can only set this or
    * model, not both.
    */
-  s2s_model?: 'gpt-4o-realtime' | 'gpt-4o-mini-realtime' | 'gpt-realtime' | 'gpt-realtime-mini' | null;
+  s2s_model?: 'gpt-realtime-2' | 'gpt-realtime-1.5' | 'gpt-realtime' | 'gpt-realtime-mini' | null;
 
   /**
    * Body param: The speaker who starts the conversation. Required. Must be either
@@ -4444,11 +5477,6 @@ export interface LlmUpdateParams {
    * using certain supported models.
    */
   tool_call_strict_mode?: boolean | null;
-
-  /**
-   * Body param: The version of the LLM.
-   */
-  body_version?: number | null;
 }
 
 export namespace LlmUpdateParams {
@@ -4602,6 +5630,12 @@ export namespace LlmUpdateParams {
        * id when using `sip refer` cold transfer mode.
        */
       show_transferee_as_caller?: boolean;
+
+      /**
+       * Override the ring duration for this specific transfer, in milliseconds. If not
+       * set, falls back to the agent-level `ring_duration_ms`.
+       */
+      transfer_ring_duration_ms?: number;
     }
 
     export interface TransferOptionWarmTransfer {
@@ -4616,6 +5650,13 @@ export namespace LlmUpdateParams {
       agent_detection_timeout_ms?: number;
 
       /**
+       * Asset ID of the uploaded hold music to play. Required when `on_hold_music` is
+       * `custom`. Must reference an audio asset owned by the organization (see
+       * create-asset).
+       */
+      custom_on_hold_music_asset_id?: string;
+
+      /**
        * Whether to play an audio cue when bridging the call. Defaults to true.
        */
       enable_bridge_audio_cue?: boolean;
@@ -4627,21 +5668,16 @@ export namespace LlmUpdateParams {
       ivr_option?: TransferOptionWarmTransfer.IvrOption;
 
       /**
-       * The music to play while the caller is being transferred.
+       * The music to play while the caller is being transferred. Use `custom` together
+       * with `custom_on_hold_music_asset_id` to play an uploaded audio asset.
        */
-      on_hold_music?: 'none' | 'relaxing_sound' | 'uplifting_beats' | 'ringtone';
+      on_hold_music?: 'none' | 'relaxing_sound' | 'uplifting_beats' | 'ringtone' | 'custom';
 
       /**
        * If set to true, will not perform human detection for the transfer. Default to
        * false.
        */
       opt_out_human_detection?: boolean;
-
-      /**
-       * If set to true, AI will not say "Hello" after connecting the call. Default to
-       * false.
-       */
-      opt_out_initial_message?: boolean;
 
       /**
        * If set, when transfer is connected, will say the handoff message only to the
@@ -4667,6 +5703,12 @@ export namespace LlmUpdateParams {
        * Twilio numbers support this option.
        */
       show_transferee_as_caller?: boolean;
+
+      /**
+       * Override the ring duration for this specific transfer, in milliseconds. If not
+       * set, falls back to the agent-level `ring_duration_ms`.
+       */
+      transfer_ring_duration_ms?: number;
     }
 
     export namespace TransferOptionWarmTransfer {
@@ -4732,14 +5774,22 @@ export namespace LlmUpdateParams {
       type: 'agentic_warm_transfer';
 
       /**
+       * Asset ID of the uploaded hold music to play. Required when `on_hold_music` is
+       * `custom`. Must reference an audio asset owned by the organization (see
+       * create-asset).
+       */
+      custom_on_hold_music_asset_id?: string;
+
+      /**
        * Whether to play an audio cue when bridging the call. Defaults to true.
        */
       enable_bridge_audio_cue?: boolean;
 
       /**
-       * The music to play while the caller is being transferred.
+       * The music to play while the caller is being transferred. Use `custom` together
+       * with `custom_on_hold_music_asset_id` to play an uploaded audio asset.
        */
-      on_hold_music?: 'none' | 'relaxing_sound' | 'uplifting_beats' | 'ringtone';
+      on_hold_music?: 'none' | 'relaxing_sound' | 'uplifting_beats' | 'ringtone' | 'custom';
 
       /**
        * If set, when transfer is successful, will say the handoff message to both the
@@ -4756,6 +5806,12 @@ export namespace LlmUpdateParams {
        * Twilio numbers support this option.
        */
       show_transferee_as_caller?: boolean;
+
+      /**
+       * Override the ring duration for this specific transfer, in milliseconds. If not
+       * set, falls back to the agent-level `ring_duration_ms`.
+       */
+      transfer_ring_duration_ms?: number;
     }
 
     export namespace TransferOptionAgenticWarmTransfer {
@@ -4796,7 +5852,7 @@ export namespace LlmUpdateParams {
           /**
            * The version of the transfer agent to use.
            */
-          agent_version: number;
+          agent_version: number | string;
         }
       }
 
@@ -4923,7 +5979,7 @@ export namespace LlmUpdateParams {
      * The version of the agent to swap to. If not specified, will use the latest
      * version.
      */
-    agent_version?: number;
+    agent_version?: number | string;
 
     /**
      * Describes what the tool does, sometimes can also include information about when
@@ -4943,6 +5999,11 @@ export namespace LlmUpdateParams {
      * to "prompt".
      */
     execution_message_type?: 'prompt' | 'static_text';
+
+    /**
+     * If true, keep the current language when swapping agents. Defaults to false.
+     */
+    keep_current_language?: boolean;
 
     /**
      * If true, keep the current voice when swapping agents. Defaults to false.
@@ -4989,7 +6050,10 @@ export namespace LlmUpdateParams {
      */
     name: string;
 
-    sms_content: SendSMSTool.SMSContentPredefined | SendSMSTool.SMSContentInferred;
+    sms_content:
+      | SendSMSTool.SMSContentPredefined
+      | SendSMSTool.SMSContentInferred
+      | SendSMSTool.SMSContentTemplate;
 
     type: 'send_sms';
 
@@ -4998,6 +6062,26 @@ export namespace LlmUpdateParams {
      * to call the tool.
      */
     description?: string;
+
+    /**
+     * Describes what to say before sending the SMS. Only applicable when
+     * speak_during_execution is true.
+     */
+    execution_message_description?: string;
+
+    /**
+     * Type of execution message. "prompt" means the agent will use
+     * execution_message_description as a prompt to generate the message. "static_text"
+     * means the agent will speak the execution_message_description directly. Defaults
+     * to "prompt".
+     */
+    execution_message_type?: 'prompt' | 'static_text';
+
+    /**
+     * If true, the agent will speak a short line before sending the SMS. If omitted,
+     * defaults to true (same as end_call / transfer_call tools).
+     */
+    speak_during_execution?: boolean;
   }
 
   export namespace SendSMSTool {
@@ -5019,6 +6103,16 @@ export namespace LlmUpdateParams {
       prompt?: string;
 
       type?: 'inferred';
+    }
+
+    export interface SMSContentTemplate {
+      /**
+       * The template to use for the SMS content. "info_collection" sends a predefined
+       * message requesting information from the user.
+       */
+      template: 'info_collection';
+
+      type: 'template';
     }
   }
 
@@ -5051,6 +6145,13 @@ export namespace LlmUpdateParams {
     description?: string;
 
     /**
+     * If true, play a typing sound on the agent audio track while this tool is
+     * executing. Useful when the tool takes a noticeable amount of time to prevent
+     * silence on the call.
+     */
+    enable_typing_sound?: boolean;
+
+    /**
      * The description for the sentence agent say during execution. Only applicable
      * when speak_during_execution is true. Can write what to say or even provide
      * examples. The default is "The message you will say to callee when calling this
@@ -5075,6 +6176,14 @@ export namespace LlmUpdateParams {
      * Method to use for the request, default to POST.
      */
     method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+    /**
+     * How the tool's `parameters` are authored and shown in the dashboard editor —
+     * "form" for the visual parameter builder, "json" for a raw JSON Schema. Both
+     * produce the same `parameters` schema; this does not change how the request body
+     * is encoded (see `args_at_root`).
+     */
+    parameter_type?: 'json' | 'form';
 
     /**
      * The parameters the functions accepts, described as a JSON Schema object. See
@@ -5132,7 +6241,7 @@ export namespace LlmUpdateParams {
        * The value of properties is an object, where each key is the name of a property
        * and each value is a schema used to validate that property.
        */
-      properties: { [key: string]: unknown };
+      properties: unknown;
 
       /**
        * Type must be "object" for a JSON Schema object.
@@ -5146,6 +6255,72 @@ export namespace LlmUpdateParams {
        */
       required?: Array<string>;
     }
+  }
+
+  export interface CodeTool {
+    /**
+     * JavaScript code to execute in the sandbox.
+     */
+    code: string;
+
+    /**
+     * Name of the tool. Must be unique within all tools available to LLM at any given
+     * time (general tools + state tools + state edges). Must be consisted of a-z, A-Z,
+     * 0-9, or contain underscores and dashes, with a maximum length of 64 (no space
+     * allowed).
+     */
+    name: string;
+
+    type: 'code';
+
+    /**
+     * Describes what this tool does and when to call this tool.
+     */
+    description?: string;
+
+    /**
+     * If true, play a typing sound on the agent audio track while this tool is
+     * executing.
+     */
+    enable_typing_sound?: boolean;
+
+    /**
+     * The description for the sentence agent say during execution. Only applicable
+     * when speak_during_execution is true.
+     */
+    execution_message_description?: string;
+
+    /**
+     * Type of execution message. "prompt" means the agent will use
+     * execution_message_description as a prompt to generate the message. "static_text"
+     * means the agent will speak the execution_message_description directly. Defaults
+     * to "prompt".
+     */
+    execution_message_type?: 'prompt' | 'static_text';
+
+    /**
+     * A mapping of variable names to JSON paths in the code execution result. These
+     * mapped values will be extracted and added as dynamic variables.
+     */
+    response_variables?: { [key: string]: string };
+
+    /**
+     * Determines whether the agent would call LLM another time and speak when the
+     * result of function is obtained.
+     */
+    speak_after_execution?: boolean;
+
+    /**
+     * Determines whether the agent would say sentence like "One moment, let me check
+     * that." when executing the tool.
+     */
+    speak_during_execution?: boolean;
+
+    /**
+     * The maximum time in milliseconds the code can run before it's considered
+     * timeout. Defaults to 30,000 ms (30 s).
+     */
+    timeout_ms?: number;
   }
 
   export interface ExtractDynamicVariableTool {
@@ -5174,6 +6349,12 @@ export namespace LlmUpdateParams {
       | ExtractDynamicVariableTool.BooleanAnalysisData
       | ExtractDynamicVariableTool.NumberAnalysisData
     >;
+
+    /**
+     * If true, play a typing sound on the agent audio track while this tool is
+     * executing.
+     */
+    enable_typing_sound?: boolean;
   }
 
   export namespace ExtractDynamicVariableTool {
@@ -5194,9 +6375,22 @@ export namespace LlmUpdateParams {
       type: 'string';
 
       /**
+       * Optional instruction to help decide whether this field needs to be populated in
+       * the analysis. If not set, the field is always included. If required is true,
+       * this is ignored.
+       */
+      conditional_prompt?: string;
+
+      /**
        * Examples of the variable value to teach model the style and syntax.
        */
       examples?: Array<string>;
+
+      /**
+       * Whether this data is required. If true and the data is not extracted, the call
+       * will be marked as unsuccessful.
+       */
+      required?: boolean;
     }
 
     export interface EnumAnalysisData {
@@ -5219,6 +6413,19 @@ export namespace LlmUpdateParams {
        * Type of the variable to extract.
        */
       type: 'enum';
+
+      /**
+       * Optional instruction to help decide whether this field needs to be populated in
+       * the analysis. If not set, the field is always included. If required is true,
+       * this is ignored.
+       */
+      conditional_prompt?: string;
+
+      /**
+       * Whether this data is required. If true and the data is not extracted, the call
+       * will be marked as unsuccessful.
+       */
+      required?: boolean;
     }
 
     export interface BooleanAnalysisData {
@@ -5236,6 +6443,19 @@ export namespace LlmUpdateParams {
        * Type of the variable to extract.
        */
       type: 'boolean';
+
+      /**
+       * Optional instruction to help decide whether this field needs to be populated in
+       * the analysis. If not set, the field is always included. If required is true,
+       * this is ignored.
+       */
+      conditional_prompt?: string;
+
+      /**
+       * Whether this data is required. If true and the data is not extracted, the call
+       * will be marked as unsuccessful.
+       */
+      required?: boolean;
     }
 
     export interface NumberAnalysisData {
@@ -5253,6 +6473,19 @@ export namespace LlmUpdateParams {
        * Type of the variable to extract.
        */
       type: 'number';
+
+      /**
+       * Optional instruction to help decide whether this field needs to be populated in
+       * the analysis. If not set, the field is always included. If required is true,
+       * this is ignored.
+       */
+      conditional_prompt?: string;
+
+      /**
+       * Whether this data is required. If true and the data is not extracted, the call
+       * will be marked as unsuccessful.
+       */
+      required?: boolean;
     }
   }
 
@@ -5274,6 +6507,25 @@ export namespace LlmUpdateParams {
      * transfer agent call.
      */
     description?: string;
+
+    /**
+     * Describes what to say to user when bridging the transfer. Only applicable when
+     * speak_during_execution is true.
+     */
+    execution_message_description?: string;
+
+    /**
+     * Type of execution message. "prompt" means the agent will use
+     * execution_message_description as a prompt to generate the message. "static_text"
+     * means the agent will speak the execution_message_description directly. Defaults
+     * to "prompt".
+     */
+    execution_message_type?: 'prompt' | 'static_text';
+
+    /**
+     * If true, will speak during execution.
+     */
+    speak_during_execution?: boolean;
   }
 
   export interface CancelTransferTool {
@@ -5294,6 +6546,25 @@ export namespace LlmUpdateParams {
      * and ends the transfer agent call.
      */
     description?: string;
+
+    /**
+     * Describes what to say to user when cancelling the transfer. Only applicable when
+     * speak_during_execution is true.
+     */
+    execution_message_description?: string;
+
+    /**
+     * Type of execution message. "prompt" means the agent will use
+     * execution_message_description as a prompt to generate the message. "static_text"
+     * means the agent will speak the execution_message_description directly. Defaults
+     * to "prompt".
+     */
+    execution_message_type?: 'prompt' | 'static_text';
+
+    /**
+     * If true, will speak during execution.
+     */
+    speak_during_execution?: boolean;
   }
 
   export interface McpTool {
@@ -5308,6 +6579,12 @@ export namespace LlmUpdateParams {
     name: string;
 
     type: 'mcp';
+
+    /**
+     * If true, play a typing sound on the agent audio track while this MCP tool is
+     * executing.
+     */
+    enable_typing_sound?: boolean;
 
     /**
      * The description for the sentence agent say during execution. Only applicable
@@ -5434,6 +6711,7 @@ export namespace LlmUpdateParams {
       | State.PressDigitTool
       | State.SendSMSTool
       | State.CustomTool
+      | State.CodeTool
       | State.ExtractDynamicVariableTool
       | State.BridgeTransferTool
       | State.CancelTransferTool
@@ -5482,7 +6760,7 @@ export namespace LlmUpdateParams {
          * The value of properties is an object, where each key is the name of a property
          * and each value is a schema used to validate that property.
          */
-        properties: { [key: string]: unknown };
+        properties: unknown;
 
         /**
          * Type must be "object" for a JSON Schema object.
@@ -5648,6 +6926,12 @@ export namespace LlmUpdateParams {
          * id when using `sip refer` cold transfer mode.
          */
         show_transferee_as_caller?: boolean;
+
+        /**
+         * Override the ring duration for this specific transfer, in milliseconds. If not
+         * set, falls back to the agent-level `ring_duration_ms`.
+         */
+        transfer_ring_duration_ms?: number;
       }
 
       export interface TransferOptionWarmTransfer {
@@ -5662,6 +6946,13 @@ export namespace LlmUpdateParams {
         agent_detection_timeout_ms?: number;
 
         /**
+         * Asset ID of the uploaded hold music to play. Required when `on_hold_music` is
+         * `custom`. Must reference an audio asset owned by the organization (see
+         * create-asset).
+         */
+        custom_on_hold_music_asset_id?: string;
+
+        /**
          * Whether to play an audio cue when bridging the call. Defaults to true.
          */
         enable_bridge_audio_cue?: boolean;
@@ -5673,21 +6964,16 @@ export namespace LlmUpdateParams {
         ivr_option?: TransferOptionWarmTransfer.IvrOption;
 
         /**
-         * The music to play while the caller is being transferred.
+         * The music to play while the caller is being transferred. Use `custom` together
+         * with `custom_on_hold_music_asset_id` to play an uploaded audio asset.
          */
-        on_hold_music?: 'none' | 'relaxing_sound' | 'uplifting_beats' | 'ringtone';
+        on_hold_music?: 'none' | 'relaxing_sound' | 'uplifting_beats' | 'ringtone' | 'custom';
 
         /**
          * If set to true, will not perform human detection for the transfer. Default to
          * false.
          */
         opt_out_human_detection?: boolean;
-
-        /**
-         * If set to true, AI will not say "Hello" after connecting the call. Default to
-         * false.
-         */
-        opt_out_initial_message?: boolean;
 
         /**
          * If set, when transfer is connected, will say the handoff message only to the
@@ -5713,6 +6999,12 @@ export namespace LlmUpdateParams {
          * Twilio numbers support this option.
          */
         show_transferee_as_caller?: boolean;
+
+        /**
+         * Override the ring duration for this specific transfer, in milliseconds. If not
+         * set, falls back to the agent-level `ring_duration_ms`.
+         */
+        transfer_ring_duration_ms?: number;
       }
 
       export namespace TransferOptionWarmTransfer {
@@ -5778,14 +7070,22 @@ export namespace LlmUpdateParams {
         type: 'agentic_warm_transfer';
 
         /**
+         * Asset ID of the uploaded hold music to play. Required when `on_hold_music` is
+         * `custom`. Must reference an audio asset owned by the organization (see
+         * create-asset).
+         */
+        custom_on_hold_music_asset_id?: string;
+
+        /**
          * Whether to play an audio cue when bridging the call. Defaults to true.
          */
         enable_bridge_audio_cue?: boolean;
 
         /**
-         * The music to play while the caller is being transferred.
+         * The music to play while the caller is being transferred. Use `custom` together
+         * with `custom_on_hold_music_asset_id` to play an uploaded audio asset.
          */
-        on_hold_music?: 'none' | 'relaxing_sound' | 'uplifting_beats' | 'ringtone';
+        on_hold_music?: 'none' | 'relaxing_sound' | 'uplifting_beats' | 'ringtone' | 'custom';
 
         /**
          * If set, when transfer is successful, will say the handoff message to both the
@@ -5802,6 +7102,12 @@ export namespace LlmUpdateParams {
          * Twilio numbers support this option.
          */
         show_transferee_as_caller?: boolean;
+
+        /**
+         * Override the ring duration for this specific transfer, in milliseconds. If not
+         * set, falls back to the agent-level `ring_duration_ms`.
+         */
+        transfer_ring_duration_ms?: number;
       }
 
       export namespace TransferOptionAgenticWarmTransfer {
@@ -5842,7 +7148,7 @@ export namespace LlmUpdateParams {
             /**
              * The version of the transfer agent to use.
              */
-            agent_version: number;
+            agent_version: number | string;
           }
         }
 
@@ -5969,7 +7275,7 @@ export namespace LlmUpdateParams {
        * The version of the agent to swap to. If not specified, will use the latest
        * version.
        */
-      agent_version?: number;
+      agent_version?: number | string;
 
       /**
        * Describes what the tool does, sometimes can also include information about when
@@ -5989,6 +7295,11 @@ export namespace LlmUpdateParams {
        * to "prompt".
        */
       execution_message_type?: 'prompt' | 'static_text';
+
+      /**
+       * If true, keep the current language when swapping agents. Defaults to false.
+       */
+      keep_current_language?: boolean;
 
       /**
        * If true, keep the current voice when swapping agents. Defaults to false.
@@ -6035,7 +7346,10 @@ export namespace LlmUpdateParams {
        */
       name: string;
 
-      sms_content: SendSMSTool.SMSContentPredefined | SendSMSTool.SMSContentInferred;
+      sms_content:
+        | SendSMSTool.SMSContentPredefined
+        | SendSMSTool.SMSContentInferred
+        | SendSMSTool.SMSContentTemplate;
 
       type: 'send_sms';
 
@@ -6044,6 +7358,26 @@ export namespace LlmUpdateParams {
        * to call the tool.
        */
       description?: string;
+
+      /**
+       * Describes what to say before sending the SMS. Only applicable when
+       * speak_during_execution is true.
+       */
+      execution_message_description?: string;
+
+      /**
+       * Type of execution message. "prompt" means the agent will use
+       * execution_message_description as a prompt to generate the message. "static_text"
+       * means the agent will speak the execution_message_description directly. Defaults
+       * to "prompt".
+       */
+      execution_message_type?: 'prompt' | 'static_text';
+
+      /**
+       * If true, the agent will speak a short line before sending the SMS. If omitted,
+       * defaults to true (same as end_call / transfer_call tools).
+       */
+      speak_during_execution?: boolean;
     }
 
     export namespace SendSMSTool {
@@ -6065,6 +7399,16 @@ export namespace LlmUpdateParams {
         prompt?: string;
 
         type?: 'inferred';
+      }
+
+      export interface SMSContentTemplate {
+        /**
+         * The template to use for the SMS content. "info_collection" sends a predefined
+         * message requesting information from the user.
+         */
+        template: 'info_collection';
+
+        type: 'template';
       }
     }
 
@@ -6097,6 +7441,13 @@ export namespace LlmUpdateParams {
       description?: string;
 
       /**
+       * If true, play a typing sound on the agent audio track while this tool is
+       * executing. Useful when the tool takes a noticeable amount of time to prevent
+       * silence on the call.
+       */
+      enable_typing_sound?: boolean;
+
+      /**
        * The description for the sentence agent say during execution. Only applicable
        * when speak_during_execution is true. Can write what to say or even provide
        * examples. The default is "The message you will say to callee when calling this
@@ -6121,6 +7472,14 @@ export namespace LlmUpdateParams {
        * Method to use for the request, default to POST.
        */
       method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+      /**
+       * How the tool's `parameters` are authored and shown in the dashboard editor —
+       * "form" for the visual parameter builder, "json" for a raw JSON Schema. Both
+       * produce the same `parameters` schema; this does not change how the request body
+       * is encoded (see `args_at_root`).
+       */
+      parameter_type?: 'json' | 'form';
 
       /**
        * The parameters the functions accepts, described as a JSON Schema object. See
@@ -6178,7 +7537,7 @@ export namespace LlmUpdateParams {
          * The value of properties is an object, where each key is the name of a property
          * and each value is a schema used to validate that property.
          */
-        properties: { [key: string]: unknown };
+        properties: unknown;
 
         /**
          * Type must be "object" for a JSON Schema object.
@@ -6192,6 +7551,72 @@ export namespace LlmUpdateParams {
          */
         required?: Array<string>;
       }
+    }
+
+    export interface CodeTool {
+      /**
+       * JavaScript code to execute in the sandbox.
+       */
+      code: string;
+
+      /**
+       * Name of the tool. Must be unique within all tools available to LLM at any given
+       * time (general tools + state tools + state edges). Must be consisted of a-z, A-Z,
+       * 0-9, or contain underscores and dashes, with a maximum length of 64 (no space
+       * allowed).
+       */
+      name: string;
+
+      type: 'code';
+
+      /**
+       * Describes what this tool does and when to call this tool.
+       */
+      description?: string;
+
+      /**
+       * If true, play a typing sound on the agent audio track while this tool is
+       * executing.
+       */
+      enable_typing_sound?: boolean;
+
+      /**
+       * The description for the sentence agent say during execution. Only applicable
+       * when speak_during_execution is true.
+       */
+      execution_message_description?: string;
+
+      /**
+       * Type of execution message. "prompt" means the agent will use
+       * execution_message_description as a prompt to generate the message. "static_text"
+       * means the agent will speak the execution_message_description directly. Defaults
+       * to "prompt".
+       */
+      execution_message_type?: 'prompt' | 'static_text';
+
+      /**
+       * A mapping of variable names to JSON paths in the code execution result. These
+       * mapped values will be extracted and added as dynamic variables.
+       */
+      response_variables?: { [key: string]: string };
+
+      /**
+       * Determines whether the agent would call LLM another time and speak when the
+       * result of function is obtained.
+       */
+      speak_after_execution?: boolean;
+
+      /**
+       * Determines whether the agent would say sentence like "One moment, let me check
+       * that." when executing the tool.
+       */
+      speak_during_execution?: boolean;
+
+      /**
+       * The maximum time in milliseconds the code can run before it's considered
+       * timeout. Defaults to 30,000 ms (30 s).
+       */
+      timeout_ms?: number;
     }
 
     export interface ExtractDynamicVariableTool {
@@ -6220,6 +7645,12 @@ export namespace LlmUpdateParams {
         | ExtractDynamicVariableTool.BooleanAnalysisData
         | ExtractDynamicVariableTool.NumberAnalysisData
       >;
+
+      /**
+       * If true, play a typing sound on the agent audio track while this tool is
+       * executing.
+       */
+      enable_typing_sound?: boolean;
     }
 
     export namespace ExtractDynamicVariableTool {
@@ -6240,9 +7671,22 @@ export namespace LlmUpdateParams {
         type: 'string';
 
         /**
+         * Optional instruction to help decide whether this field needs to be populated in
+         * the analysis. If not set, the field is always included. If required is true,
+         * this is ignored.
+         */
+        conditional_prompt?: string;
+
+        /**
          * Examples of the variable value to teach model the style and syntax.
          */
         examples?: Array<string>;
+
+        /**
+         * Whether this data is required. If true and the data is not extracted, the call
+         * will be marked as unsuccessful.
+         */
+        required?: boolean;
       }
 
       export interface EnumAnalysisData {
@@ -6265,6 +7709,19 @@ export namespace LlmUpdateParams {
          * Type of the variable to extract.
          */
         type: 'enum';
+
+        /**
+         * Optional instruction to help decide whether this field needs to be populated in
+         * the analysis. If not set, the field is always included. If required is true,
+         * this is ignored.
+         */
+        conditional_prompt?: string;
+
+        /**
+         * Whether this data is required. If true and the data is not extracted, the call
+         * will be marked as unsuccessful.
+         */
+        required?: boolean;
       }
 
       export interface BooleanAnalysisData {
@@ -6282,6 +7739,19 @@ export namespace LlmUpdateParams {
          * Type of the variable to extract.
          */
         type: 'boolean';
+
+        /**
+         * Optional instruction to help decide whether this field needs to be populated in
+         * the analysis. If not set, the field is always included. If required is true,
+         * this is ignored.
+         */
+        conditional_prompt?: string;
+
+        /**
+         * Whether this data is required. If true and the data is not extracted, the call
+         * will be marked as unsuccessful.
+         */
+        required?: boolean;
       }
 
       export interface NumberAnalysisData {
@@ -6299,6 +7769,19 @@ export namespace LlmUpdateParams {
          * Type of the variable to extract.
          */
         type: 'number';
+
+        /**
+         * Optional instruction to help decide whether this field needs to be populated in
+         * the analysis. If not set, the field is always included. If required is true,
+         * this is ignored.
+         */
+        conditional_prompt?: string;
+
+        /**
+         * Whether this data is required. If true and the data is not extracted, the call
+         * will be marked as unsuccessful.
+         */
+        required?: boolean;
       }
     }
 
@@ -6320,6 +7803,25 @@ export namespace LlmUpdateParams {
        * transfer agent call.
        */
       description?: string;
+
+      /**
+       * Describes what to say to user when bridging the transfer. Only applicable when
+       * speak_during_execution is true.
+       */
+      execution_message_description?: string;
+
+      /**
+       * Type of execution message. "prompt" means the agent will use
+       * execution_message_description as a prompt to generate the message. "static_text"
+       * means the agent will speak the execution_message_description directly. Defaults
+       * to "prompt".
+       */
+      execution_message_type?: 'prompt' | 'static_text';
+
+      /**
+       * If true, will speak during execution.
+       */
+      speak_during_execution?: boolean;
     }
 
     export interface CancelTransferTool {
@@ -6340,6 +7842,25 @@ export namespace LlmUpdateParams {
        * and ends the transfer agent call.
        */
       description?: string;
+
+      /**
+       * Describes what to say to user when cancelling the transfer. Only applicable when
+       * speak_during_execution is true.
+       */
+      execution_message_description?: string;
+
+      /**
+       * Type of execution message. "prompt" means the agent will use
+       * execution_message_description as a prompt to generate the message. "static_text"
+       * means the agent will speak the execution_message_description directly. Defaults
+       * to "prompt".
+       */
+      execution_message_type?: 'prompt' | 'static_text';
+
+      /**
+       * If true, will speak during execution.
+       */
+      speak_during_execution?: boolean;
     }
 
     export interface McpTool {
@@ -6354,6 +7875,12 @@ export namespace LlmUpdateParams {
       name: string;
 
       type: 'mcp';
+
+      /**
+       * If true, play a typing sound on the agent audio track while this MCP tool is
+       * executing.
+       */
+      enable_typing_sound?: boolean;
 
       /**
        * The description for the sentence agent say during execution. Only applicable
@@ -6405,35 +7932,13 @@ export namespace LlmUpdateParams {
   }
 }
 
-export interface LlmListParams {
-  /**
-   * A limit on the number of objects to be returned. Limit can range between 1 and
-   * 1000, and the default is 1000.
-   */
-  limit?: number;
-
-  /**
-   * The pagination key to continue fetching the next page of LLMs. Pagination key is
-   * represented by a llm id, pagination key and version pair is exclusive (not
-   * included in the fetched page). If not set, will start from the beginning.
-   */
-  pagination_key?: string;
-
-  /**
-   * Specifies the version of the llm associated with the pagination_key. When
-   * paginating, both the pagination_key and its version must be provided to ensure
-   * consistent ordering and to fetch the next page correctly.
-   */
-  pagination_key_version?: number;
-}
-
 export declare namespace Llm {
   export {
     type LlmResponse as LlmResponse,
     type LlmListResponse as LlmListResponse,
     type LlmCreateParams as LlmCreateParams,
     type LlmRetrieveParams as LlmRetrieveParams,
-    type LlmUpdateParams as LlmUpdateParams,
     type LlmListParams as LlmListParams,
+    type LlmUpdateParams as LlmUpdateParams,
   };
 }

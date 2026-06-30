@@ -38,6 +38,7 @@ describe('resource conversationFlowComponent', () => {
           id: 'collect_info',
           instruction: { text: 'Ask the customer for their name and contact information.', type: 'prompt' },
           type: 'conversation',
+          allow_dtmf_interruption: true,
           always_edge: {
             id: 'id',
             transition_condition: { prompt: 'prompt', type: 'prompt' },
@@ -51,6 +52,11 @@ describe('resource conversationFlowComponent', () => {
               destination_node_id: 'destination_node_id',
             },
           ],
+          else_edge: {
+            id: 'id',
+            transition_condition: { prompt: 'prompt', type: 'prompt' },
+            destination_node_id: 'destination_node_id',
+          },
           finetune_conversation_examples: [{ id: 'id', transcript: [{ content: 'content', role: 'agent' }] }],
           finetune_transition_examples: [
             {
@@ -73,6 +79,7 @@ describe('resource conversationFlowComponent', () => {
             positive_finetune_examples: [{ transcript: [{ content: 'content', role: 'agent' }] }],
           },
           interruption_sensitivity: 0,
+          kb_config: { filter_score: 0.6, top_k: 3 },
           knowledge_base_ids: ['kb_001', 'kb_002'],
           model_choice: {
             model: 'gpt-4.1',
@@ -86,21 +93,11 @@ describe('resource conversationFlowComponent', () => {
             transition_condition: { prompt: 'prompt', type: 'prompt' },
             destination_node_id: 'destination_node_id',
           },
-          tool_ids: ['string'],
-          tools: [
-            {
-              name: 'name',
-              type: 'end_call',
-              description: 'description',
-              execution_message_description: 'execution_message_description',
-              execution_message_type: 'prompt',
-              speak_during_execution: true,
-            },
-          ],
           voice_speed: 0.5,
         },
       ],
       begin_tag_display_position: { x: 100, y: 200 },
+      flex_mode: false,
       mcps: [
         {
           name: 'name',
@@ -108,6 +105,14 @@ describe('resource conversationFlowComponent', () => {
           headers: { Authorization: 'Bearer 1234567890' },
           query_params: { index: '1', key: 'value' },
           timeout_ms: 0,
+        },
+      ],
+      notes: [
+        {
+          id: 'note_abc123',
+          content: 'Remember to handle edge cases here.',
+          display_position: { x: 300, y: 150 },
+          size: { height: 100, width: 200 },
         },
       ],
       start_node_id: 'collect_info',
@@ -118,12 +123,14 @@ describe('resource conversationFlowComponent', () => {
           url: 'https://api.example.com/customer',
           args_at_root: true,
           description: 'Get customer information from database',
+          enable_typing_sound: true,
           execution_message_description: 'execution_message_description',
           execution_message_type: 'prompt',
           headers: { Authorization: 'Bearer 1234567890' },
           method: 'GET',
+          parameter_type: 'json',
           parameters: {
-            properties: { foo: 'bar' },
+            properties: {},
             type: 'object',
             required: ['string'],
           },
@@ -151,8 +158,8 @@ describe('resource conversationFlowComponent', () => {
   });
 
   // Mock server tests are disabled
-  test.skip('update', async () => {
-    const responsePromise = client.conversationFlowComponent.update('conversation_flow_component_id', {});
+  test.skip('list', async () => {
+    const responsePromise = client.conversationFlowComponent.list();
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
     const response = await responsePromise;
@@ -163,8 +170,23 @@ describe('resource conversationFlowComponent', () => {
   });
 
   // Mock server tests are disabled
-  test.skip('list', async () => {
-    const responsePromise = client.conversationFlowComponent.list();
+  test.skip('list: request options and params are passed correctly', async () => {
+    // ensure the request options are being passed correctly by passing an invalid HTTP method in order to cause an error
+    await expect(
+      client.conversationFlowComponent.list(
+        {
+          limit: 1000,
+          pagination_key: 'pagination_key',
+          sort_order: 'ascending',
+        },
+        { path: '/_stainless_unknown_path' },
+      ),
+    ).rejects.toThrow(Retell.NotFoundError);
+  });
+
+  // Mock server tests are disabled
+  test.skip('update', async () => {
+    const responsePromise = client.conversationFlowComponent.update('conversation_flow_component_id', {});
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
     const response = await responsePromise;

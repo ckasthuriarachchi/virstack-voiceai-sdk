@@ -138,8 +138,8 @@ export interface BatchCallCreateBatchCallParams {
 export namespace BatchCallCreateBatchCallParams {
   export interface Task {
     /**
-     * The The number you want to call, in E.164 format. If using a number purchased
-     * from Retell, only US numbers are supported as destination.
+     * The number you want to call, in E.164 format. If using a number purchased from
+     * Retell, only US numbers are supported as destination.
      */
     to_number: string;
 
@@ -180,14 +180,14 @@ export namespace BatchCallCreateBatchCallParams {
      * For this particular call, override the agent version used with this version.
      * This does not bind the agent to this number, this is for one time override.
      */
-    override_agent_version?: number;
+    override_agent_version?: number | string;
 
     /**
      * Add optional dynamic variables in key value pairs of string that injects into
      * your Response Engine prompt and tool description. Only applicable for Response
      * Engine.
      */
-    retell_llm_dynamic_variables?: { [key: string]: unknown };
+    retell_llm_dynamic_variables?: { [key: string]: string };
   }
 
   export namespace Task {
@@ -233,6 +233,13 @@ export namespace BatchCallCreateBatchCallParams {
         agent_name?: string | null;
 
         /**
+         * If set to true, DTMF input will interrupt the agent even when
+         * interruption_sensitivity is 0. Can be overridden per conversation or subagent
+         * node. Default to false.
+         */
+        allow_dtmf_interruption?: boolean;
+
+        /**
          * If set to true, DTMF input will be accepted and processed. If false, any DTMF
          * input will be ignored. Default to true.
          */
@@ -274,26 +281,6 @@ export namespace BatchCallCreateBatchCallParams {
         ambient_sound_volume?: number;
 
         /**
-         * Prompt to determine whether the post call or chat analysis should mark the
-         * interaction as successful. Set to null to use the default prompt.
-         */
-        analysis_successful_prompt?: string | null;
-
-        /**
-         * Prompt to guide how the post call or chat analysis summary should be generated.
-         * When unset, the default system prompt is used. Set to null to use the default
-         * prompt.
-         */
-        analysis_summary_prompt?: string | null;
-
-        /**
-         * Prompt to guide how the post call or chat analysis should evaluate user
-         * sentiment. When unset, the default system prompt is used. Set to null to use the
-         * default prompt.
-         */
-        analysis_user_sentiment_prompt?: string | null;
-
-        /**
          * Only applicable when enable_backchannel is true. Controls how often the agent
          * would backchannel when a backchannel is possible. Value ranging from [0,1].
          * Lower value means less frequent backchannel, while higher value means more
@@ -322,14 +309,21 @@ export namespace BatchCallCreateBatchCallParams {
         /**
          * Provide a customized list of keywords to bias the transcriber model, so that
          * these words are more likely to get transcribed. Commonly used for names, brands,
-         * street, etc.
+         * street, etc. Entries may reference dynamic variables with `{{variable}}` syntax.
          */
         boosted_keywords?: Array<string> | null;
 
         /**
+         * If this option is set, the agent prompt will include call screen handling
+         * instructions for identity and call purpose questions. Set this to null to
+         * disable call screen prompt instructions.
+         */
+        call_screening_option?: Agent.CallScreeningOption | null;
+
+        /**
          * Custom STT configuration. Only used when stt_mode is set to custom.
          */
-        custom_stt_config?: Agent.CustomSttConfig;
+        custom_stt_config?: Agent.CustomSttConfig | null;
 
         /**
          * Number of days to retain call/chat data before automatic deletion. Must be
@@ -379,16 +373,43 @@ export namespace BatchCallCreateBatchCallParams {
         enable_dynamic_voice_speed?: boolean;
 
         /**
-         * If set to true, will detect whether the call enters a voicemail. Note that this
-         * feature is only available for phone calls.
+         * Master toggle for expressive mode. When true, the agent may add expressive voice
+         * tags to the audio it generates. Only applicable for platform voices. If unset,
+         * defaults to false.
          */
-        enable_voicemail_detection?: boolean;
+        enable_expressive_mode?: boolean;
 
         /**
          * If users stay silent for a period after agent speech, end the call. The minimum
          * value allowed is 10,000 ms (10 s). By default, this is set to 600000 (10 min).
          */
         end_call_after_silence_ms?: number;
+
+        /**
+         * The expressive voice tags Retell pre-teaches the model to use when
+         * enable_expressive_mode is true. Custom tags defined in the system prompt are
+         * still allowed. If empty, the agent follows general expressive guidance without a
+         * fixed tag set.
+         */
+        expressive_emotion_tags?: Array<
+          | 'empathetic'
+          | 'excited'
+          | 'happy'
+          | 'curious'
+          | 'surprised'
+          | 'sigh'
+          | 'clear throat'
+          | 'pause'
+          | 'long pause'
+          | 'emphasis'
+        >;
+
+        /**
+         * Custom expressive voice guidance to use instead of the default Retell expressive
+         * prompt when enable_expressive_mode is true. If omitted or blank, the default
+         * expressive prompt will be used.
+         */
+        expressive_mode_prompt?: string | null;
 
         /**
          * When TTS provider for the selected voice is experiencing outages, we would use
@@ -406,6 +427,11 @@ export namespace BatchCallCreateBatchCallParams {
         guardrail_config?: Agent.GuardrailConfig;
 
         /**
+         * Toggle behavior presets on/off to influence agent response style and behaviors.
+         */
+        handbook_config?: Agent.HandbookConfig;
+
+        /**
          * Controls how sensitive the agent is to user interruptions. Value ranging from
          * [0,1]. Lower value means it will take longer / more words for user to interrupt
          * agent, while higher value means it's easier for user to interrupt agent. If
@@ -415,12 +441,6 @@ export namespace BatchCallCreateBatchCallParams {
         interruption_sensitivity?: number;
 
         /**
-         * Whether the agent is public. When set to true, the agent is available for public
-         * agent preview link.
-         */
-        is_public?: boolean | null;
-
-        /**
          * If this option is set, the call will try to detect IVR in the first 3 minutes of
          * the call. Actions defined will be applied when the IVR is detected. Set this to
          * null to disable IVR detection.
@@ -428,10 +448,13 @@ export namespace BatchCallCreateBatchCallParams {
         ivr_option?: Agent.IvrOption | null;
 
         /**
-         * Specifies what language (and dialect) the speech recognition will operate in.
-         * For instance, selecting `en-GB` optimizes speech recognition for British
-         * English. If unset, will use default value `en-US`. Select `multi` for
-         * multilingual support.
+         * Specifies what language(s) the agent will operate in. Accepts either a single
+         * scalar locale (e.g. `en-US`), the legacy scalar value `multi` for multilingual
+         * support, or an array of concrete locale codes for explicit multi-locale
+         * selection (e.g. `["en-US","es-ES"]`). The array form must contain concrete
+         * locale codes only — the `multi` value is valid only as the scalar legacy form
+         * and must not appear inside an array. Single-element arrays are normalized to the
+         * equivalent scalar on output. If unset, defaults to `en-US`.
          */
         language?:
           | 'en-US'
@@ -497,7 +520,72 @@ export namespace BatchCallCreateBatchCallParams {
           | 'ur-IN'
           | 'yue-CN'
           | 'uk-UA'
-          | 'multi';
+          | 'multi'
+          | Array<
+              | 'en-US'
+              | 'en-IN'
+              | 'en-GB'
+              | 'en-AU'
+              | 'en-NZ'
+              | 'de-DE'
+              | 'es-ES'
+              | 'es-419'
+              | 'hi-IN'
+              | 'fr-FR'
+              | 'fr-CA'
+              | 'ja-JP'
+              | 'pt-PT'
+              | 'pt-BR'
+              | 'zh-CN'
+              | 'ru-RU'
+              | 'it-IT'
+              | 'ko-KR'
+              | 'nl-NL'
+              | 'nl-BE'
+              | 'pl-PL'
+              | 'tr-TR'
+              | 'vi-VN'
+              | 'ro-RO'
+              | 'bg-BG'
+              | 'ca-ES'
+              | 'th-TH'
+              | 'da-DK'
+              | 'fi-FI'
+              | 'el-GR'
+              | 'hu-HU'
+              | 'id-ID'
+              | 'no-NO'
+              | 'sk-SK'
+              | 'sv-SE'
+              | 'lt-LT'
+              | 'lv-LV'
+              | 'cs-CZ'
+              | 'ms-MY'
+              | 'af-ZA'
+              | 'ar-SA'
+              | 'az-AZ'
+              | 'bs-BA'
+              | 'cy-GB'
+              | 'fa-IR'
+              | 'fil-PH'
+              | 'gl-ES'
+              | 'he-IL'
+              | 'hr-HR'
+              | 'hy-AM'
+              | 'is-IS'
+              | 'kk-KZ'
+              | 'kn-IN'
+              | 'mk-MK'
+              | 'mr-IN'
+              | 'ne-NP'
+              | 'sl-SI'
+              | 'sr-RS'
+              | 'sw-KE'
+              | 'ta-IN'
+              | 'ur-IN'
+              | 'yue-CN'
+              | 'uk-UA'
+            >;
 
         /**
          * Maximum allowed length for the call, will force end the call if reached. The
@@ -505,17 +593,6 @@ export namespace BatchCallCreateBatchCallParams {
          * 7,200,000 (2 hours). By default, this is set to 3,600,000 (1 hour).
          */
         max_call_duration_ms?: number;
-
-        /**
-         * If set to true, will normalize the some part of text (number, currency, date,
-         * etc) to spoken to its spoken form for more consistent speech synthesis
-         * (sometimes the voice synthesize system itself might read these wrong with the
-         * raw text). For example, it will convert "Call my number 2137112342 on Jul 5th,
-         * 2024 for the $24.12 payment" to "Call my number two one three seven one one two
-         * three four two on july fifth, twenty twenty four for the twenty four dollars
-         * twelve cents payment" before starting audio generation.
-         */
-        normalize_for_speech?: boolean;
 
         /**
          * Whether this agent opts in for signed URLs for public logs and recordings. When
@@ -539,25 +616,30 @@ export namespace BatchCallCreateBatchCallParams {
           | Agent.EnumAnalysisData
           | Agent.BooleanAnalysisData
           | Agent.NumberAnalysisData
+          | Agent.CallPresetAnalysisData
         > | null;
 
         /**
-         * The model to use for post call analysis. Default to gpt-4.1-mini.
+         * The model to use for post call analysis. Default to gpt-4.1.
          */
         post_call_analysis_model?:
           | 'gpt-4.1'
           | 'gpt-4.1-mini'
           | 'gpt-4.1-nano'
           | 'gpt-5'
-          | 'gpt-5.1'
-          | 'gpt-5.2'
           | 'gpt-5-mini'
           | 'gpt-5-nano'
+          | 'gpt-5.1'
+          | 'gpt-5.2'
+          | 'gpt-5.4'
+          | 'gpt-5.4-mini'
+          | 'gpt-5.4-nano'
+          | 'gpt-5.5'
           | 'claude-4.5-sonnet'
+          | 'claude-4.6-sonnet'
           | 'claude-4.5-haiku'
-          | 'gemini-2.5-flash'
-          | 'gemini-2.5-flash-lite'
           | 'gemini-3.0-flash'
+          | 'gemini-3.1-flash-lite'
           | null;
 
         /**
@@ -603,7 +685,7 @@ export namespace BatchCallCreateBatchCallParams {
         /**
          * If set, the phone ringing will last for the specified amount of milliseconds.
          * This applies for both outbound call ringtime, and call transfer ringtime.
-         * Default to 30000 (30 s). Valid range is [5000, 90000].
+         * Default to 30000 (30 s). Valid range is [5000, 300000].
          */
         ring_duration_ms?: number;
 
@@ -620,6 +702,12 @@ export namespace BatchCallCreateBatchCallParams {
          */
         stt_mode?: 'fast' | 'accurate' | 'custom';
 
+        /**
+         * IANA timezone for the agent (e.g. America/New_York). Defaults to
+         * America/Los_Angeles if not set.
+         */
+        timezone?: string | null;
+
         user_dtmf_options?: Agent.UserDtmfOptions | null;
 
         /**
@@ -627,6 +715,11 @@ export namespace BatchCallCreateBatchCallParams {
          * documentation.
          */
         version_description?: string | null;
+
+        /**
+         * Optional title of the agent version. Used for your own reference.
+         */
+        version_title?: string | null;
 
         /**
          * If set, determines the vocabulary set to use for transcription. This setting
@@ -658,15 +751,17 @@ export namespace BatchCallCreateBatchCallParams {
           | 'eleven_turbo_v2_5'
           | 'eleven_flash_v2_5'
           | 'eleven_multilingual_v2'
-          | 'sonic-2'
+          | 'eleven_v3'
           | 'sonic-3'
           | 'sonic-3-latest'
-          | 'sonic-turbo'
+          | 'sonic-3.5'
           | 'tts-1'
           | 'gpt-4o-mini-tts'
           | 'speech-02-turbo'
           | 'speech-2.8-turbo'
           | 's1'
+          | 's2-pro'
+          | 's2.1-pro'
           | null;
 
         /**
@@ -683,21 +778,6 @@ export namespace BatchCallCreateBatchCallParams {
          * will apply.
          */
         voice_temperature?: number;
-
-        /**
-         * Configures when to stop running voicemail detection, as it becomes unlikely to
-         * hit voicemail after a couple minutes, and keep running it will only have
-         * negative impact. The minimum value allowed is 5,000 ms (5 s), and maximum value
-         * allowed is 180,000 (3 minutes). By default, this is set to 30,000 (30 s).
-         */
-        voicemail_detection_timeout_ms?: number;
-
-        /**
-         * The message to be played when the call enters a voicemail. Note that this
-         * feature is only available for phone calls. If you want to hangup after hitting
-         * voicemail, set this to empty string.
-         */
-        voicemail_message?: string;
 
         /**
          * If this option is set, the call will try to detect voicemail in the first 3
@@ -746,18 +826,38 @@ export namespace BatchCallCreateBatchCallParams {
 
       export namespace Agent {
         /**
+         * If this option is set, the agent prompt will include call screen handling
+         * instructions for identity and call purpose questions. Set this to null to
+         * disable call screen prompt instructions.
+         */
+        export interface CallScreeningOption {
+          /**
+           * Identity the agent should provide when a call screen asks who is calling.
+           * Dynamic variables are supported.
+           */
+          agent_identity: string;
+
+          /**
+           * Purpose the agent should provide when a call screen asks why it is calling.
+           * Dynamic variables are supported.
+           */
+          call_purpose: string;
+        }
+
+        /**
          * Custom STT configuration. Only used when stt_mode is set to custom.
          */
         export interface CustomSttConfig {
           /**
-           * Endpointing timeout in milliseconds. Minimum is 100 for azure, 10 for deepgram.
+           * Endpointing timeout in milliseconds. Minimum is 100 for Azure, 10 for Deepgram,
+           * 500 for Soniox, 100 for AssemblyAI.
            */
           endpointing_ms: number;
 
           /**
-           * The STT provider to use.
+           * ASR provider name.
            */
-          provider: 'azure' | 'deepgram';
+          provider: 'azure' | 'deepgram' | 'soniox' | 'assemblyai';
         }
 
         /**
@@ -790,12 +890,77 @@ export namespace BatchCallCreateBatchCallParams {
         }
 
         /**
+         * Toggle behavior presets on/off to influence agent response style and behaviors.
+         */
+        export interface HandbookConfig {
+          /**
+           * When asked, acknowledge being a virtual assistant.
+           */
+          ai_disclosure?: boolean;
+
+          /**
+           * Enables Conversational Personality. When true, the agent uses the Conversational
+           * Personality handbook preset, skips Professional Rep Personality during prompt
+           * assembly, and enables internal colloquial rewrite behavior.
+           */
+          conversational_personality?: boolean;
+
+          /**
+           * Professional call center rep baseline.
+           */
+          default_personality?: boolean;
+
+          /**
+           * Repeat back and confirm important details (voice only).
+           */
+          echo_verification?: boolean;
+
+          /**
+           * Warm acknowledgment of caller concerns.
+           */
+          high_empathy?: boolean;
+
+          /**
+           * Spell using NATO phonetic alphabet style (voice only).
+           */
+          nato_phonetic_alphabet?: boolean;
+
+          /**
+           * Sprinkle natural speech fillers like "um", "you know" for a more human,
+           * conversational tone.
+           */
+          natural_filler_words?: boolean;
+
+          /**
+           * Stay within prompt/context scope, don't invent details.
+           */
+          scope_boundaries?: boolean;
+
+          /**
+           * Treat near-match similar words as same entity to reduce impact of transcription
+           * error (voice only).
+           */
+          smart_matching?: boolean;
+
+          /**
+           * Convert numbers/dates/currency to spoken forms (voice only).
+           */
+          speech_normalization?: boolean;
+        }
+
+        /**
          * If this option is set, the call will try to detect IVR in the first 3 minutes of
          * the call. Actions defined will be applied when the IVR is detected. Set this to
          * null to disable IVR detection.
          */
         export interface IvrOption {
           action: IvrOption.Action;
+
+          /**
+           * Optionally describe what should be treated as an IVR. Leave as null to use the
+           * default definition.
+           */
+          detection_prompt?: string | null;
         }
 
         export namespace IvrOption {
@@ -809,7 +974,9 @@ export namespace BatchCallCreateBatchCallParams {
          */
         export interface PiiConfig {
           /**
-           * List of PII categories to scrub from transcripts and recordings.
+           * List of PII categories to scrub from transcripts and recordings. PII redaction
+           * is only active when this list is non-empty; an empty array means no PII
+           * scrubbing is performed.
            */
           categories: Array<
             | 'person_name'
@@ -851,9 +1018,22 @@ export namespace BatchCallCreateBatchCallParams {
           type: 'string';
 
           /**
+           * Optional instruction to help decide whether this field needs to be populated in
+           * the analysis. If not set, the field is always included. If required is true,
+           * this is ignored.
+           */
+          conditional_prompt?: string;
+
+          /**
            * Examples of the variable value to teach model the style and syntax.
            */
           examples?: Array<string>;
+
+          /**
+           * Whether this data is required. If true and the data is not extracted, the call
+           * will be marked as unsuccessful.
+           */
+          required?: boolean;
         }
 
         export interface EnumAnalysisData {
@@ -876,6 +1056,19 @@ export namespace BatchCallCreateBatchCallParams {
            * Type of the variable to extract.
            */
           type: 'enum';
+
+          /**
+           * Optional instruction to help decide whether this field needs to be populated in
+           * the analysis. If not set, the field is always included. If required is true,
+           * this is ignored.
+           */
+          conditional_prompt?: string;
+
+          /**
+           * Whether this data is required. If true and the data is not extracted, the call
+           * will be marked as unsuccessful.
+           */
+          required?: boolean;
         }
 
         export interface BooleanAnalysisData {
@@ -893,6 +1086,19 @@ export namespace BatchCallCreateBatchCallParams {
            * Type of the variable to extract.
            */
           type: 'boolean';
+
+          /**
+           * Optional instruction to help decide whether this field needs to be populated in
+           * the analysis. If not set, the field is always included. If required is true,
+           * this is ignored.
+           */
+          conditional_prompt?: string;
+
+          /**
+           * Whether this data is required. If true and the data is not extracted, the call
+           * will be marked as unsuccessful.
+           */
+          required?: boolean;
         }
 
         export interface NumberAnalysisData {
@@ -910,6 +1116,52 @@ export namespace BatchCallCreateBatchCallParams {
            * Type of the variable to extract.
            */
           type: 'number';
+
+          /**
+           * Optional instruction to help decide whether this field needs to be populated in
+           * the analysis. If not set, the field is always included. If required is true,
+           * this is ignored.
+           */
+          conditional_prompt?: string;
+
+          /**
+           * Whether this data is required. If true and the data is not extracted, the call
+           * will be marked as unsuccessful.
+           */
+          required?: boolean;
+        }
+
+        /**
+         * System preset for post-call analysis (voice agents). Use in
+         * post_call_analysis_data to override prompts or mark fields optional.
+         */
+        export interface CallPresetAnalysisData {
+          /**
+           * Preset identifier for voice agent analysis.
+           */
+          name: 'call_summary' | 'call_successful' | 'user_sentiment';
+
+          /**
+           * Identifies this item as a system preset.
+           */
+          type: 'system-presets';
+
+          /**
+           * Optional instruction to help decide whether this field needs to be populated. If
+           * not set, the field is always included.
+           */
+          conditional_prompt?: string;
+
+          /**
+           * Prompt or description for this preset.
+           */
+          description?: string;
+
+          /**
+           * If false, this field is optional in the analysis. If true or unset, the field is
+           * required.
+           */
+          required?: boolean;
         }
 
         export interface PronunciationDictionary {
@@ -1008,6 +1260,12 @@ export namespace BatchCallCreateBatchCallParams {
             | VoicemailOption.VoicemailActionStaticText
             | VoicemailOption.VoicemailActionHangup
             | VoicemailOption.VoicemailActionBridgeTransfer;
+
+          /**
+           * Optionally describe what should be treated as voicemail. Leave as null to use
+           * the default definition.
+           */
+          detection_prompt?: string | null;
         }
 
         export namespace VoicemailOption {
@@ -1116,15 +1374,19 @@ export namespace BatchCallCreateBatchCallParams {
             | 'gpt-4.1-mini'
             | 'gpt-4.1-nano'
             | 'gpt-5'
-            | 'gpt-5.1'
-            | 'gpt-5.2'
             | 'gpt-5-mini'
             | 'gpt-5-nano'
+            | 'gpt-5.1'
+            | 'gpt-5.2'
+            | 'gpt-5.4'
+            | 'gpt-5.4-mini'
+            | 'gpt-5.4-nano'
+            | 'gpt-5.5'
             | 'claude-4.5-sonnet'
+            | 'claude-4.6-sonnet'
             | 'claude-4.5-haiku'
-            | 'gemini-2.5-flash'
-            | 'gemini-2.5-flash-lite'
-            | 'gemini-3.0-flash';
+            | 'gemini-3.0-flash'
+            | 'gemini-3.1-flash-lite';
 
           /**
            * Type of model choice
@@ -1178,15 +1440,19 @@ export namespace BatchCallCreateBatchCallParams {
           | 'gpt-4.1-mini'
           | 'gpt-4.1-nano'
           | 'gpt-5'
-          | 'gpt-5.1'
-          | 'gpt-5.2'
           | 'gpt-5-mini'
           | 'gpt-5-nano'
+          | 'gpt-5.1'
+          | 'gpt-5.2'
+          | 'gpt-5.4'
+          | 'gpt-5.4-mini'
+          | 'gpt-5.4-nano'
+          | 'gpt-5.5'
           | 'claude-4.5-sonnet'
+          | 'claude-4.6-sonnet'
           | 'claude-4.5-haiku'
-          | 'gemini-2.5-flash'
-          | 'gemini-2.5-flash-lite'
           | 'gemini-3.0-flash'
+          | 'gemini-3.1-flash-lite'
           | null;
 
         /**
@@ -1208,7 +1474,7 @@ export namespace BatchCallCreateBatchCallParams {
          * Select the underlying speech to speech model. Can only set this or model, not
          * both.
          */
-        s2s_model?: 'gpt-4o-realtime' | 'gpt-4o-mini-realtime' | 'gpt-realtime' | 'gpt-realtime-mini' | null;
+        s2s_model?: 'gpt-realtime-2' | 'gpt-realtime-1.5' | 'gpt-realtime' | 'gpt-realtime-mini' | null;
 
         /**
          * The speaker who starts the conversation. Required. Must be either 'user' or

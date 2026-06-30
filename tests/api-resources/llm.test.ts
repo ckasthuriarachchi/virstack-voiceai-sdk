@@ -45,18 +45,6 @@ describe('resource llm', () => {
   });
 
   // Mock server tests are disabled
-  test.skip('update', async () => {
-    const responsePromise = client.llm.update('16b980523634a6dc504898cda492e939', {});
-    const rawResponse = await responsePromise.asResponse();
-    expect(rawResponse).toBeInstanceOf(Response);
-    const response = await responsePromise;
-    expect(response).not.toBeInstanceOf(Response);
-    const dataAndResponse = await responsePromise.withResponse();
-    expect(dataAndResponse.data).toBe(response);
-    expect(dataAndResponse.response).toBe(rawResponse);
-  });
-
-  // Mock server tests are disabled
   test.skip('list', async () => {
     const responsePromise = client.llm.list();
     const rawResponse = await responsePromise.asResponse();
@@ -74,13 +62,25 @@ describe('resource llm', () => {
     await expect(
       client.llm.list(
         {
-          limit: 50,
-          pagination_key: 'llm_1ffdb9717444d0e77346838911',
-          pagination_key_version: 0,
+          limit: 1000,
+          pagination_key: 'pagination_key',
+          sort_order: 'ascending',
         },
         { path: '/_stainless_unknown_path' },
       ),
     ).rejects.toThrow(Retell.NotFoundError);
+  });
+
+  // Mock server tests are disabled
+  test.skip('update', async () => {
+    const responsePromise = client.llm.update('16b980523634a6dc504898cda492e939', {});
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
   });
 
   // Mock server tests are disabled

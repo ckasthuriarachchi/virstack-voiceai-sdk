@@ -33,18 +33,18 @@ describe('resource agent', () => {
       },
       voice_id: 'retell-Cimo',
       agent_name: 'Jarvis',
+      allow_dtmf_interruption: false,
       allow_user_dtmf: true,
       ambient_sound: 'coffee-shop',
       ambient_sound_volume: 1,
-      analysis_successful_prompt:
-        'The agent finished the task and the call was complete without being cutoff.',
-      analysis_summary_prompt: 'Summarize the outcome of the conversation in two sentences.',
-      analysis_user_sentiment_prompt:
-        "Evaluate the user's sentiment based on their tone and satisfaction level.",
       backchannel_frequency: 0.9,
       backchannel_words: ['yeah', 'uh-huh'],
       begin_message_delay_ms: 1000,
       boosted_keywords: ['retell', 'kroger'],
+      call_screening_option: {
+        agent_identity: 'Acme Health scheduling team',
+        call_purpose: 'confirming your appointment for tomorrow',
+      },
       custom_stt_config: { endpointing_ms: 0, provider: 'azure' },
       data_storage_retention_days: 30,
       data_storage_setting: 'everything',
@@ -52,16 +52,31 @@ describe('resource agent', () => {
       enable_backchannel: true,
       enable_dynamic_responsiveness: true,
       enable_dynamic_voice_speed: true,
-      enable_voicemail_detection: true,
+      enable_expressive_mode: true,
       end_call_after_silence_ms: 600000,
+      expressive_emotion_tags: ['empathetic', 'excited', 'sigh', 'clear throat', 'emphasis'],
+      expressive_mode_prompt: 'Use [sigh] for thoughtful pauses and [excited] for good news.',
       fallback_voice_ids: ['cartesia-Cimo', 'minimax-Cimo'],
       guardrail_config: { input_topics: ['platform_integrity_jailbreaking'], output_topics: ['harassment'] },
+      handbook_config: {
+        ai_disclosure: true,
+        conversational_personality: true,
+        default_personality: true,
+        echo_verification: true,
+        high_empathy: true,
+        nato_phonetic_alphabet: true,
+        natural_filler_words: true,
+        scope_boundaries: true,
+        smart_matching: true,
+        speech_normalization: true,
+      },
       interruption_sensitivity: 1,
-      is_public: false,
-      ivr_option: { action: { type: 'hangup' } },
+      ivr_option: {
+        action: { type: 'hangup' },
+        detection_prompt: 'detection_prompt',
+      },
       language: 'en-US',
       max_call_duration_ms: 3600000,
-      normalize_for_speech: true,
       opt_in_signed_url: true,
       pii_config: { categories: ['person_name'], mode: 'post_call' },
       post_call_analysis_data: [
@@ -69,7 +84,9 @@ describe('resource agent', () => {
           description: 'The name of the customer.',
           name: 'customer_name',
           type: 'string',
+          conditional_prompt: 'conditional_prompt',
           examples: ['John Doe', 'Jane Smith'],
+          required: true,
         },
       ],
       post_call_analysis_model: 'gpt-4.1-mini',
@@ -86,21 +103,22 @@ describe('resource agent', () => {
       ring_duration_ms: 30000,
       signed_url_expiration_ms: 86400000,
       stt_mode: 'fast',
+      timezone: 'America/New_York',
       user_dtmf_options: {
         digit_limit: 1,
         termination_key: '#',
         timeout_ms: 1000,
       },
       version_description: 'Customer support agent for handling product inquiries',
+      version_title: 'Production hotfix',
       vocab_specialization: 'general',
       voice_emotion: 'calm',
       voice_model: 'eleven_turbo_v2',
       voice_speed: 1,
       voice_temperature: 1,
-      voicemail_detection_timeout_ms: 30000,
-      voicemail_message: 'Hi, please give us a callback.',
       voicemail_option: {
         action: { text: 'Please give us a callback tomorrow at 10am.', type: 'static_text' },
+        detection_prompt: 'detection_prompt',
       },
       volume: 1,
       webhook_events: ['call_started'],
@@ -134,18 +152,6 @@ describe('resource agent', () => {
   });
 
   // Mock server tests are disabled
-  test.skip('update', async () => {
-    const responsePromise = client.agent.update('16b980523634a6dc504898cda492e939', {});
-    const rawResponse = await responsePromise.asResponse();
-    expect(rawResponse).toBeInstanceOf(Response);
-    const response = await responsePromise;
-    expect(response).not.toBeInstanceOf(Response);
-    const dataAndResponse = await responsePromise.withResponse();
-    expect(dataAndResponse.data).toBe(response);
-    expect(dataAndResponse.response).toBe(rawResponse);
-  });
-
-  // Mock server tests are disabled
   test.skip('list', async () => {
     const responsePromise = client.agent.list();
     const rawResponse = await responsePromise.asResponse();
@@ -163,6 +169,7 @@ describe('resource agent', () => {
     await expect(
       client.agent.list(
         {
+          is_latest: true,
           limit: 50,
           pagination_key: 'agent_1ffdb9717444d0e77346838911',
           pagination_key_version: 0,
@@ -170,6 +177,18 @@ describe('resource agent', () => {
         { path: '/_stainless_unknown_path' },
       ),
     ).rejects.toThrow(Retell.NotFoundError);
+  });
+
+  // Mock server tests are disabled
+  test.skip('update', async () => {
+    const responsePromise = client.agent.update('16b980523634a6dc504898cda492e939', {});
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
   });
 
   // Mock server tests are disabled
@@ -185,8 +204,8 @@ describe('resource agent', () => {
   });
 
   // Mock server tests are disabled
-  test.skip('getVersions', async () => {
-    const responsePromise = client.agent.getVersions('16b980523634a6dc504898cda492e939');
+  test.skip('publish: only required params', async () => {
+    const responsePromise = client.agent.publish('agent_xxx', { version: 15 });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
     const response = await responsePromise;
@@ -197,8 +216,51 @@ describe('resource agent', () => {
   });
 
   // Mock server tests are disabled
-  test.skip('publish', async () => {
-    const responsePromise = client.agent.publish('16b980523634a6dc504898cda492e939');
+  test.skip('publish: required and optional params', async () => {
+    const response = await client.agent.publish('agent_xxx', {
+      version: 15,
+      version_description: 'Hotfix for transfer timeout',
+      version_title: 'Hotfix',
+    });
+  });
+
+  // Mock server tests are disabled
+  test.skip('createVersion: only required params', async () => {
+    const responsePromise = client.agent.createVersion('agent_xxx', { base_version: 12 });
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Mock server tests are disabled
+  test.skip('createVersion: required and optional params', async () => {
+    const response = await client.agent.createVersion('agent_xxx', { base_version: 12 });
+  });
+
+  // Mock server tests are disabled
+  test.skip('deleteVersion: only required params', async () => {
+    const responsePromise = client.agent.deleteVersion('agent_xxx', { version: 1 });
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Mock server tests are disabled
+  test.skip('deleteVersion: required and optional params', async () => {
+    const response = await client.agent.deleteVersion('agent_xxx', { version: 1 });
+  });
+
+  // Mock server tests are disabled
+  test.skip('getVersions', async () => {
+    const responsePromise = client.agent.getVersions('16b980523634a6dc504898cda492e939');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
     const response = await responsePromise;

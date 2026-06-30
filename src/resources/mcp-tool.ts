@@ -27,7 +27,7 @@ export interface McpToolDefinition {
   /**
    * JSON schema defining the input parameters for the tool.
    */
-  inputSchema: { [key: string]: unknown };
+  inputSchema: unknown;
 
   /**
    * Name of the MCP tool.
@@ -52,7 +52,7 @@ export interface McpToolGetMcpToolsParams {
    * Optional version of the agent to use for this request. Default to latest
    * version.
    */
-  version?: number;
+  version?: number | string;
 }
 
 export declare namespace McpTool {

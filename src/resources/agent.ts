@@ -1,6 +1,7 @@
 // File generated from our OpenAPI spec by Stainless. See CONTRIBUTING.md for details.
 
 import { APIResource } from '../core/resource';
+import * as ChatAgentAPI from './chat-agent';
 import { APIPromise } from '../core/api-promise';
 import { buildHeaders } from '../internal/headers';
 import { RequestOptions } from '../internal/request-options';
@@ -44,6 +45,18 @@ export class Agent extends APIResource {
   }
 
   /**
+   * List all agents
+   *
+   * @deprecated
+   */
+  list(
+    query: AgentListParams | null | undefined = {},
+    options?: RequestOptions,
+  ): APIPromise<AgentListResponse> {
+    return this._client.get('/list-agents', { query, ...options });
+  }
+
+  /**
    * Update an existing agent's latest draft version
    *
    * @example
@@ -57,21 +70,6 @@ export class Agent extends APIResource {
   update(agentID: string, params: AgentUpdateParams, options?: RequestOptions): APIPromise<AgentResponse> {
     const { version, ...body } = params;
     return this._client.patch(path`/update-agent/${agentID}`, { query: { version }, body, ...options });
-  }
-
-  /**
-   * List all agents
-   *
-   * @example
-   * ```ts
-   * const agentResponses = await client.agent.list();
-   * ```
-   */
-  list(
-    query: AgentListParams | null | undefined = {},
-    options?: RequestOptions,
-  ): APIPromise<AgentListResponse> {
-    return this._client.get('/list-agents', { query, ...options });
   }
 
   /**
@@ -92,6 +90,64 @@ export class Agent extends APIResource {
   }
 
   /**
+   * Publish an existing draft version in place.
+   *
+   * @example
+   * ```ts
+   * await client.agent.publish('agent_xxx', { version: 15 });
+   * ```
+   */
+  publish(agentID: string, body: AgentPublishParams, options?: RequestOptions): APIPromise<void> {
+    return this._client.post(path`/publish-agent-version/${agentID}`, {
+      body,
+      ...options,
+      headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
+    });
+  }
+
+  /**
+   * Create a new draft agent version from a base version.
+   *
+   * @example
+   * ```ts
+   * const response = await client.agent.createVersion(
+   *   'agent_xxx',
+   *   { base_version: 12 },
+   * );
+   * ```
+   */
+  createVersion(
+    agentID: string,
+    body: AgentCreateVersionParams,
+    options?: RequestOptions,
+  ): APIPromise<AgentCreateVersionResponse> {
+    return this._client.post(path`/create-agent-version/${agentID}`, { body, ...options });
+  }
+
+  /**
+   * Delete a specific agent version.
+   *
+   * @example
+   * ```ts
+   * await client.agent.deleteVersion('agent_xxx', {
+   *   version: 1,
+   * });
+   * ```
+   */
+  deleteVersion(
+    agentID: string,
+    params: AgentDeleteVersionParams,
+    options?: RequestOptions,
+  ): APIPromise<void> {
+    const { version } = params;
+    return this._client.delete(path`/delete-agent-version/${agentID}`, {
+      query: { version },
+      ...options,
+      headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
+    });
+  }
+
+  /**
    * Get all versions of an agent
    *
    * @example
@@ -103,24 +159,6 @@ export class Agent extends APIResource {
    */
   getVersions(agentID: string, options?: RequestOptions): APIPromise<AgentGetVersionsResponse> {
     return this._client.get(path`/get-agent-versions/${agentID}`, options);
-  }
-
-  /**
-   * Publish the latest version of the agent and create a new draft agent with newer
-   * version.
-   *
-   * @example
-   * ```ts
-   * await client.agent.publish(
-   *   '16b980523634a6dc504898cda492e939',
-   * );
-   * ```
-   */
-  publish(agentID: string, options?: RequestOptions): APIPromise<void> {
-    return this._client.post(path`/publish-agent/${agentID}`, {
-      ...options,
-      headers: buildHeaders([{ Accept: '*/*' }, options?.headers]),
-    });
   }
 }
 
@@ -161,6 +199,13 @@ export interface AgentResponse {
    * The name of the agent. Only used for your own reference.
    */
   agent_name?: string | null;
+
+  /**
+   * If set to true, DTMF input will interrupt the agent even when
+   * interruption_sensitivity is 0. Can be overridden per conversation or subagent
+   * node. Default to false.
+   */
+  allow_dtmf_interruption?: boolean;
 
   /**
    * If set to true, DTMF input will be accepted and processed. If false, any DTMF
@@ -204,24 +249,9 @@ export interface AgentResponse {
   ambient_sound_volume?: number;
 
   /**
-   * Prompt to determine whether the post call or chat analysis should mark the
-   * interaction as successful. Set to null to use the default prompt.
+   * Tags assigned to this agent version. Preferred tag is listed first.
    */
-  analysis_successful_prompt?: string | null;
-
-  /**
-   * Prompt to guide how the post call or chat analysis summary should be generated.
-   * When unset, the default system prompt is used. Set to null to use the default
-   * prompt.
-   */
-  analysis_summary_prompt?: string | null;
-
-  /**
-   * Prompt to guide how the post call or chat analysis should evaluate user
-   * sentiment. When unset, the default system prompt is used. Set to null to use the
-   * default prompt.
-   */
-  analysis_user_sentiment_prompt?: string | null;
+  assigned_tags?: Array<string>;
 
   /**
    * Only applicable when enable_backchannel is true. Controls how often the agent
@@ -242,6 +272,11 @@ export interface AgentResponse {
   backchannel_words?: Array<string> | null;
 
   /**
+   * Version that this draft was based on. Null for initial versions.
+   */
+  base_version?: number | null;
+
+  /**
    * If set, will delay the first message by the specified amount of milliseconds, so
    * that it gives user more time to prepare to take the call. Valid range is [0,
    * 5000]. If not set or set to 0, agent will speak immediately. Only applicable
@@ -252,14 +287,21 @@ export interface AgentResponse {
   /**
    * Provide a customized list of keywords to bias the transcriber model, so that
    * these words are more likely to get transcribed. Commonly used for names, brands,
-   * street, etc.
+   * street, etc. Entries may reference dynamic variables with `{{variable}}` syntax.
    */
   boosted_keywords?: Array<string> | null;
 
   /**
+   * If this option is set, the agent prompt will include call screen handling
+   * instructions for identity and call purpose questions. Set this to null to
+   * disable call screen prompt instructions.
+   */
+  call_screening_option?: AgentResponse.CallScreeningOption | null;
+
+  /**
    * Custom STT configuration. Only used when stt_mode is set to custom.
    */
-  custom_stt_config?: AgentResponse.CustomSttConfig;
+  custom_stt_config?: AgentResponse.CustomSttConfig | null;
 
   /**
    * Number of days to retain call/chat data before automatic deletion. Must be
@@ -309,16 +351,43 @@ export interface AgentResponse {
   enable_dynamic_voice_speed?: boolean;
 
   /**
-   * If set to true, will detect whether the call enters a voicemail. Note that this
-   * feature is only available for phone calls.
+   * Master toggle for expressive mode. When true, the agent may add expressive voice
+   * tags to the audio it generates. Only applicable for platform voices. If unset,
+   * defaults to false.
    */
-  enable_voicemail_detection?: boolean;
+  enable_expressive_mode?: boolean;
 
   /**
    * If users stay silent for a period after agent speech, end the call. The minimum
    * value allowed is 10,000 ms (10 s). By default, this is set to 600000 (10 min).
    */
   end_call_after_silence_ms?: number;
+
+  /**
+   * The expressive voice tags Retell pre-teaches the model to use when
+   * enable_expressive_mode is true. Custom tags defined in the system prompt are
+   * still allowed. If empty, the agent follows general expressive guidance without a
+   * fixed tag set.
+   */
+  expressive_emotion_tags?: Array<
+    | 'empathetic'
+    | 'excited'
+    | 'happy'
+    | 'curious'
+    | 'surprised'
+    | 'sigh'
+    | 'clear throat'
+    | 'pause'
+    | 'long pause'
+    | 'emphasis'
+  >;
+
+  /**
+   * Custom expressive voice guidance to use instead of the default Retell expressive
+   * prompt when enable_expressive_mode is true. If omitted or blank, the default
+   * expressive prompt will be used.
+   */
+  expressive_mode_prompt?: string | null;
 
   /**
    * When TTS provider for the selected voice is experiencing outages, we would use
@@ -336,6 +405,11 @@ export interface AgentResponse {
   guardrail_config?: AgentResponse.GuardrailConfig;
 
   /**
+   * Toggle behavior presets on/off to influence agent response style and behaviors.
+   */
+  handbook_config?: AgentResponse.HandbookConfig;
+
+  /**
    * Controls how sensitive the agent is to user interruptions. Value ranging from
    * [0,1]. Lower value means it will take longer / more words for user to interrupt
    * agent, while higher value means it's easier for user to interrupt agent. If
@@ -343,12 +417,6 @@ export interface AgentResponse {
    * interrupted.
    */
   interruption_sensitivity?: number;
-
-  /**
-   * Whether the agent is public. When set to true, the agent is available for public
-   * agent preview link.
-   */
-  is_public?: boolean | null;
 
   /**
    * Whether the agent is published.
@@ -363,10 +431,13 @@ export interface AgentResponse {
   ivr_option?: AgentResponse.IvrOption | null;
 
   /**
-   * Specifies what language (and dialect) the speech recognition will operate in.
-   * For instance, selecting `en-GB` optimizes speech recognition for British
-   * English. If unset, will use default value `en-US`. Select `multi` for
-   * multilingual support.
+   * Specifies what language(s) the agent will operate in. Accepts either a single
+   * scalar locale (e.g. `en-US`), the legacy scalar value `multi` for multilingual
+   * support, or an array of concrete locale codes for explicit multi-locale
+   * selection (e.g. `["en-US","es-ES"]`). The array form must contain concrete
+   * locale codes only — the `multi` value is valid only as the scalar legacy form
+   * and must not appear inside an array. Single-element arrays are normalized to the
+   * equivalent scalar on output. If unset, defaults to `en-US`.
    */
   language?:
     | 'en-US'
@@ -432,7 +503,72 @@ export interface AgentResponse {
     | 'ur-IN'
     | 'yue-CN'
     | 'uk-UA'
-    | 'multi';
+    | 'multi'
+    | Array<
+        | 'en-US'
+        | 'en-IN'
+        | 'en-GB'
+        | 'en-AU'
+        | 'en-NZ'
+        | 'de-DE'
+        | 'es-ES'
+        | 'es-419'
+        | 'hi-IN'
+        | 'fr-FR'
+        | 'fr-CA'
+        | 'ja-JP'
+        | 'pt-PT'
+        | 'pt-BR'
+        | 'zh-CN'
+        | 'ru-RU'
+        | 'it-IT'
+        | 'ko-KR'
+        | 'nl-NL'
+        | 'nl-BE'
+        | 'pl-PL'
+        | 'tr-TR'
+        | 'vi-VN'
+        | 'ro-RO'
+        | 'bg-BG'
+        | 'ca-ES'
+        | 'th-TH'
+        | 'da-DK'
+        | 'fi-FI'
+        | 'el-GR'
+        | 'hu-HU'
+        | 'id-ID'
+        | 'no-NO'
+        | 'sk-SK'
+        | 'sv-SE'
+        | 'lt-LT'
+        | 'lv-LV'
+        | 'cs-CZ'
+        | 'ms-MY'
+        | 'af-ZA'
+        | 'ar-SA'
+        | 'az-AZ'
+        | 'bs-BA'
+        | 'cy-GB'
+        | 'fa-IR'
+        | 'fil-PH'
+        | 'gl-ES'
+        | 'he-IL'
+        | 'hr-HR'
+        | 'hy-AM'
+        | 'is-IS'
+        | 'kk-KZ'
+        | 'kn-IN'
+        | 'mk-MK'
+        | 'mr-IN'
+        | 'ne-NP'
+        | 'sl-SI'
+        | 'sr-RS'
+        | 'sw-KE'
+        | 'ta-IN'
+        | 'ur-IN'
+        | 'yue-CN'
+        | 'uk-UA'
+      >;
 
   /**
    * Maximum allowed length for the call, will force end the call if reached. The
@@ -440,17 +576,6 @@ export interface AgentResponse {
    * 7,200,000 (2 hours). By default, this is set to 3,600,000 (1 hour).
    */
   max_call_duration_ms?: number;
-
-  /**
-   * If set to true, will normalize the some part of text (number, currency, date,
-   * etc) to spoken to its spoken form for more consistent speech synthesis
-   * (sometimes the voice synthesize system itself might read these wrong with the
-   * raw text). For example, it will convert "Call my number 2137112342 on Jul 5th,
-   * 2024 for the $24.12 payment" to "Call my number two one three seven one one two
-   * three four two on july fifth, twenty twenty four for the twenty four dollars
-   * twelve cents payment" before starting audio generation.
-   */
-  normalize_for_speech?: boolean;
 
   /**
    * Whether this agent opts in for signed URLs for public logs and recordings. When
@@ -474,25 +599,30 @@ export interface AgentResponse {
     | AgentResponse.EnumAnalysisData
     | AgentResponse.BooleanAnalysisData
     | AgentResponse.NumberAnalysisData
+    | AgentResponse.CallPresetAnalysisData
   > | null;
 
   /**
-   * The model to use for post call analysis. Default to gpt-4.1-mini.
+   * The model to use for post call analysis. Default to gpt-4.1.
    */
   post_call_analysis_model?:
     | 'gpt-4.1'
     | 'gpt-4.1-mini'
     | 'gpt-4.1-nano'
     | 'gpt-5'
-    | 'gpt-5.1'
-    | 'gpt-5.2'
     | 'gpt-5-mini'
     | 'gpt-5-nano'
+    | 'gpt-5.1'
+    | 'gpt-5.2'
+    | 'gpt-5.4'
+    | 'gpt-5.4-mini'
+    | 'gpt-5.4-nano'
+    | 'gpt-5.5'
     | 'claude-4.5-sonnet'
+    | 'claude-4.6-sonnet'
     | 'claude-4.5-haiku'
-    | 'gemini-2.5-flash'
-    | 'gemini-2.5-flash-lite'
     | 'gemini-3.0-flash'
+    | 'gemini-3.1-flash-lite'
     | null;
 
   /**
@@ -528,7 +658,7 @@ export interface AgentResponse {
   /**
    * If set, the phone ringing will last for the specified amount of milliseconds.
    * This applies for both outbound call ringtime, and call transfer ringtime.
-   * Default to 30000 (30 s). Valid range is [5000, 90000].
+   * Default to 30000 (30 s). Valid range is [5000, 300000].
    */
   ring_duration_ms?: number;
 
@@ -545,6 +675,12 @@ export interface AgentResponse {
    */
   stt_mode?: 'fast' | 'accurate' | 'custom';
 
+  /**
+   * IANA timezone for the agent (e.g. America/New_York). Defaults to
+   * America/Los_Angeles if not set.
+   */
+  timezone?: string | null;
+
   user_dtmf_options?: AgentResponse.UserDtmfOptions | null;
 
   /**
@@ -552,6 +688,11 @@ export interface AgentResponse {
    * documentation.
    */
   version_description?: string | null;
+
+  /**
+   * Optional title of the agent version. Used for your own reference.
+   */
+  version_title?: string | null;
 
   /**
    * If set, determines the vocabulary set to use for transcription. This setting
@@ -577,15 +718,17 @@ export interface AgentResponse {
     | 'eleven_turbo_v2_5'
     | 'eleven_flash_v2_5'
     | 'eleven_multilingual_v2'
-    | 'sonic-2'
+    | 'eleven_v3'
     | 'sonic-3'
     | 'sonic-3-latest'
-    | 'sonic-turbo'
+    | 'sonic-3.5'
     | 'tts-1'
     | 'gpt-4o-mini-tts'
     | 'speech-02-turbo'
     | 'speech-2.8-turbo'
     | 's1'
+    | 's2-pro'
+    | 's2.1-pro'
     | null;
 
   /**
@@ -602,21 +745,6 @@ export interface AgentResponse {
    * will apply.
    */
   voice_temperature?: number;
-
-  /**
-   * Configures when to stop running voicemail detection, as it becomes unlikely to
-   * hit voicemail after a couple minutes, and keep running it will only have
-   * negative impact. The minimum value allowed is 5,000 ms (5 s), and maximum value
-   * allowed is 180,000 (3 minutes). By default, this is set to 30,000 (30 s).
-   */
-  voicemail_detection_timeout_ms?: number;
-
-  /**
-   * The message to be played when the call enters a voicemail. Note that this
-   * feature is only available for phone calls. If you want to hangup after hitting
-   * voicemail, set this to empty string.
-   */
-  voicemail_message?: string;
 
   /**
    * If this option is set, the call will try to detect voicemail in the first 3
@@ -711,18 +839,38 @@ export namespace AgentResponse {
   }
 
   /**
+   * If this option is set, the agent prompt will include call screen handling
+   * instructions for identity and call purpose questions. Set this to null to
+   * disable call screen prompt instructions.
+   */
+  export interface CallScreeningOption {
+    /**
+     * Identity the agent should provide when a call screen asks who is calling.
+     * Dynamic variables are supported.
+     */
+    agent_identity: string;
+
+    /**
+     * Purpose the agent should provide when a call screen asks why it is calling.
+     * Dynamic variables are supported.
+     */
+    call_purpose: string;
+  }
+
+  /**
    * Custom STT configuration. Only used when stt_mode is set to custom.
    */
   export interface CustomSttConfig {
     /**
-     * Endpointing timeout in milliseconds. Minimum is 100 for azure, 10 for deepgram.
+     * Endpointing timeout in milliseconds. Minimum is 100 for Azure, 10 for Deepgram,
+     * 500 for Soniox, 100 for AssemblyAI.
      */
     endpointing_ms: number;
 
     /**
-     * The STT provider to use.
+     * ASR provider name.
      */
-    provider: 'azure' | 'deepgram';
+    provider: 'azure' | 'deepgram' | 'soniox' | 'assemblyai';
   }
 
   /**
@@ -755,12 +903,77 @@ export namespace AgentResponse {
   }
 
   /**
+   * Toggle behavior presets on/off to influence agent response style and behaviors.
+   */
+  export interface HandbookConfig {
+    /**
+     * When asked, acknowledge being a virtual assistant.
+     */
+    ai_disclosure?: boolean;
+
+    /**
+     * Enables Conversational Personality. When true, the agent uses the Conversational
+     * Personality handbook preset, skips Professional Rep Personality during prompt
+     * assembly, and enables internal colloquial rewrite behavior.
+     */
+    conversational_personality?: boolean;
+
+    /**
+     * Professional call center rep baseline.
+     */
+    default_personality?: boolean;
+
+    /**
+     * Repeat back and confirm important details (voice only).
+     */
+    echo_verification?: boolean;
+
+    /**
+     * Warm acknowledgment of caller concerns.
+     */
+    high_empathy?: boolean;
+
+    /**
+     * Spell using NATO phonetic alphabet style (voice only).
+     */
+    nato_phonetic_alphabet?: boolean;
+
+    /**
+     * Sprinkle natural speech fillers like "um", "you know" for a more human,
+     * conversational tone.
+     */
+    natural_filler_words?: boolean;
+
+    /**
+     * Stay within prompt/context scope, don't invent details.
+     */
+    scope_boundaries?: boolean;
+
+    /**
+     * Treat near-match similar words as same entity to reduce impact of transcription
+     * error (voice only).
+     */
+    smart_matching?: boolean;
+
+    /**
+     * Convert numbers/dates/currency to spoken forms (voice only).
+     */
+    speech_normalization?: boolean;
+  }
+
+  /**
    * If this option is set, the call will try to detect IVR in the first 3 minutes of
    * the call. Actions defined will be applied when the IVR is detected. Set this to
    * null to disable IVR detection.
    */
   export interface IvrOption {
     action: IvrOption.Action;
+
+    /**
+     * Optionally describe what should be treated as an IVR. Leave as null to use the
+     * default definition.
+     */
+    detection_prompt?: string | null;
   }
 
   export namespace IvrOption {
@@ -774,7 +987,9 @@ export namespace AgentResponse {
    */
   export interface PiiConfig {
     /**
-     * List of PII categories to scrub from transcripts and recordings.
+     * List of PII categories to scrub from transcripts and recordings. PII redaction
+     * is only active when this list is non-empty; an empty array means no PII
+     * scrubbing is performed.
      */
     categories: Array<
       | 'person_name'
@@ -816,9 +1031,22 @@ export namespace AgentResponse {
     type: 'string';
 
     /**
+     * Optional instruction to help decide whether this field needs to be populated in
+     * the analysis. If not set, the field is always included. If required is true,
+     * this is ignored.
+     */
+    conditional_prompt?: string;
+
+    /**
      * Examples of the variable value to teach model the style and syntax.
      */
     examples?: Array<string>;
+
+    /**
+     * Whether this data is required. If true and the data is not extracted, the call
+     * will be marked as unsuccessful.
+     */
+    required?: boolean;
   }
 
   export interface EnumAnalysisData {
@@ -841,6 +1069,19 @@ export namespace AgentResponse {
      * Type of the variable to extract.
      */
     type: 'enum';
+
+    /**
+     * Optional instruction to help decide whether this field needs to be populated in
+     * the analysis. If not set, the field is always included. If required is true,
+     * this is ignored.
+     */
+    conditional_prompt?: string;
+
+    /**
+     * Whether this data is required. If true and the data is not extracted, the call
+     * will be marked as unsuccessful.
+     */
+    required?: boolean;
   }
 
   export interface BooleanAnalysisData {
@@ -858,6 +1099,19 @@ export namespace AgentResponse {
      * Type of the variable to extract.
      */
     type: 'boolean';
+
+    /**
+     * Optional instruction to help decide whether this field needs to be populated in
+     * the analysis. If not set, the field is always included. If required is true,
+     * this is ignored.
+     */
+    conditional_prompt?: string;
+
+    /**
+     * Whether this data is required. If true and the data is not extracted, the call
+     * will be marked as unsuccessful.
+     */
+    required?: boolean;
   }
 
   export interface NumberAnalysisData {
@@ -875,6 +1129,52 @@ export namespace AgentResponse {
      * Type of the variable to extract.
      */
     type: 'number';
+
+    /**
+     * Optional instruction to help decide whether this field needs to be populated in
+     * the analysis. If not set, the field is always included. If required is true,
+     * this is ignored.
+     */
+    conditional_prompt?: string;
+
+    /**
+     * Whether this data is required. If true and the data is not extracted, the call
+     * will be marked as unsuccessful.
+     */
+    required?: boolean;
+  }
+
+  /**
+   * System preset for post-call analysis (voice agents). Use in
+   * post_call_analysis_data to override prompts or mark fields optional.
+   */
+  export interface CallPresetAnalysisData {
+    /**
+     * Preset identifier for voice agent analysis.
+     */
+    name: 'call_summary' | 'call_successful' | 'user_sentiment';
+
+    /**
+     * Identifies this item as a system preset.
+     */
+    type: 'system-presets';
+
+    /**
+     * Optional instruction to help decide whether this field needs to be populated. If
+     * not set, the field is always included.
+     */
+    conditional_prompt?: string;
+
+    /**
+     * Prompt or description for this preset.
+     */
+    description?: string;
+
+    /**
+     * If false, this field is optional in the analysis. If true or unset, the field is
+     * required.
+     */
+    required?: boolean;
   }
 
   export interface PronunciationDictionary {
@@ -927,6 +1227,12 @@ export namespace AgentResponse {
       | VoicemailOption.VoicemailActionStaticText
       | VoicemailOption.VoicemailActionHangup
       | VoicemailOption.VoicemailActionBridgeTransfer;
+
+    /**
+     * Optionally describe what should be treated as voicemail. Leave as null to use
+     * the default definition.
+     */
+    detection_prompt?: string | null;
   }
 
   export namespace VoicemailOption {
@@ -961,6 +1267,8 @@ export namespace AgentResponse {
 
 export type AgentListResponse = Array<AgentResponse>;
 
+export type AgentCreateVersionResponse = AgentResponse | ChatAgentAPI.ChatAgentResponse;
+
 export type AgentGetVersionsResponse = Array<AgentResponse>;
 
 export interface AgentCreateParams {
@@ -984,6 +1292,13 @@ export interface AgentCreateParams {
    * The name of the agent. Only used for your own reference.
    */
   agent_name?: string | null;
+
+  /**
+   * If set to true, DTMF input will interrupt the agent even when
+   * interruption_sensitivity is 0. Can be overridden per conversation or subagent
+   * node. Default to false.
+   */
+  allow_dtmf_interruption?: boolean;
 
   /**
    * If set to true, DTMF input will be accepted and processed. If false, any DTMF
@@ -1027,26 +1342,6 @@ export interface AgentCreateParams {
   ambient_sound_volume?: number;
 
   /**
-   * Prompt to determine whether the post call or chat analysis should mark the
-   * interaction as successful. Set to null to use the default prompt.
-   */
-  analysis_successful_prompt?: string | null;
-
-  /**
-   * Prompt to guide how the post call or chat analysis summary should be generated.
-   * When unset, the default system prompt is used. Set to null to use the default
-   * prompt.
-   */
-  analysis_summary_prompt?: string | null;
-
-  /**
-   * Prompt to guide how the post call or chat analysis should evaluate user
-   * sentiment. When unset, the default system prompt is used. Set to null to use the
-   * default prompt.
-   */
-  analysis_user_sentiment_prompt?: string | null;
-
-  /**
    * Only applicable when enable_backchannel is true. Controls how often the agent
    * would backchannel when a backchannel is possible. Value ranging from [0,1].
    * Lower value means less frequent backchannel, while higher value means more
@@ -1075,14 +1370,21 @@ export interface AgentCreateParams {
   /**
    * Provide a customized list of keywords to bias the transcriber model, so that
    * these words are more likely to get transcribed. Commonly used for names, brands,
-   * street, etc.
+   * street, etc. Entries may reference dynamic variables with `{{variable}}` syntax.
    */
   boosted_keywords?: Array<string> | null;
 
   /**
+   * If this option is set, the agent prompt will include call screen handling
+   * instructions for identity and call purpose questions. Set this to null to
+   * disable call screen prompt instructions.
+   */
+  call_screening_option?: AgentCreateParams.CallScreeningOption | null;
+
+  /**
    * Custom STT configuration. Only used when stt_mode is set to custom.
    */
-  custom_stt_config?: AgentCreateParams.CustomSttConfig;
+  custom_stt_config?: AgentCreateParams.CustomSttConfig | null;
 
   /**
    * Number of days to retain call/chat data before automatic deletion. Must be
@@ -1132,16 +1434,43 @@ export interface AgentCreateParams {
   enable_dynamic_voice_speed?: boolean;
 
   /**
-   * If set to true, will detect whether the call enters a voicemail. Note that this
-   * feature is only available for phone calls.
+   * Master toggle for expressive mode. When true, the agent may add expressive voice
+   * tags to the audio it generates. Only applicable for platform voices. If unset,
+   * defaults to false.
    */
-  enable_voicemail_detection?: boolean;
+  enable_expressive_mode?: boolean;
 
   /**
    * If users stay silent for a period after agent speech, end the call. The minimum
    * value allowed is 10,000 ms (10 s). By default, this is set to 600000 (10 min).
    */
   end_call_after_silence_ms?: number;
+
+  /**
+   * The expressive voice tags Retell pre-teaches the model to use when
+   * enable_expressive_mode is true. Custom tags defined in the system prompt are
+   * still allowed. If empty, the agent follows general expressive guidance without a
+   * fixed tag set.
+   */
+  expressive_emotion_tags?: Array<
+    | 'empathetic'
+    | 'excited'
+    | 'happy'
+    | 'curious'
+    | 'surprised'
+    | 'sigh'
+    | 'clear throat'
+    | 'pause'
+    | 'long pause'
+    | 'emphasis'
+  >;
+
+  /**
+   * Custom expressive voice guidance to use instead of the default Retell expressive
+   * prompt when enable_expressive_mode is true. If omitted or blank, the default
+   * expressive prompt will be used.
+   */
+  expressive_mode_prompt?: string | null;
 
   /**
    * When TTS provider for the selected voice is experiencing outages, we would use
@@ -1159,6 +1488,11 @@ export interface AgentCreateParams {
   guardrail_config?: AgentCreateParams.GuardrailConfig;
 
   /**
+   * Toggle behavior presets on/off to influence agent response style and behaviors.
+   */
+  handbook_config?: AgentCreateParams.HandbookConfig;
+
+  /**
    * Controls how sensitive the agent is to user interruptions. Value ranging from
    * [0,1]. Lower value means it will take longer / more words for user to interrupt
    * agent, while higher value means it's easier for user to interrupt agent. If
@@ -1168,12 +1502,6 @@ export interface AgentCreateParams {
   interruption_sensitivity?: number;
 
   /**
-   * Whether the agent is public. When set to true, the agent is available for public
-   * agent preview link.
-   */
-  is_public?: boolean | null;
-
-  /**
    * If this option is set, the call will try to detect IVR in the first 3 minutes of
    * the call. Actions defined will be applied when the IVR is detected. Set this to
    * null to disable IVR detection.
@@ -1181,10 +1509,13 @@ export interface AgentCreateParams {
   ivr_option?: AgentCreateParams.IvrOption | null;
 
   /**
-   * Specifies what language (and dialect) the speech recognition will operate in.
-   * For instance, selecting `en-GB` optimizes speech recognition for British
-   * English. If unset, will use default value `en-US`. Select `multi` for
-   * multilingual support.
+   * Specifies what language(s) the agent will operate in. Accepts either a single
+   * scalar locale (e.g. `en-US`), the legacy scalar value `multi` for multilingual
+   * support, or an array of concrete locale codes for explicit multi-locale
+   * selection (e.g. `["en-US","es-ES"]`). The array form must contain concrete
+   * locale codes only — the `multi` value is valid only as the scalar legacy form
+   * and must not appear inside an array. Single-element arrays are normalized to the
+   * equivalent scalar on output. If unset, defaults to `en-US`.
    */
   language?:
     | 'en-US'
@@ -1250,7 +1581,72 @@ export interface AgentCreateParams {
     | 'ur-IN'
     | 'yue-CN'
     | 'uk-UA'
-    | 'multi';
+    | 'multi'
+    | Array<
+        | 'en-US'
+        | 'en-IN'
+        | 'en-GB'
+        | 'en-AU'
+        | 'en-NZ'
+        | 'de-DE'
+        | 'es-ES'
+        | 'es-419'
+        | 'hi-IN'
+        | 'fr-FR'
+        | 'fr-CA'
+        | 'ja-JP'
+        | 'pt-PT'
+        | 'pt-BR'
+        | 'zh-CN'
+        | 'ru-RU'
+        | 'it-IT'
+        | 'ko-KR'
+        | 'nl-NL'
+        | 'nl-BE'
+        | 'pl-PL'
+        | 'tr-TR'
+        | 'vi-VN'
+        | 'ro-RO'
+        | 'bg-BG'
+        | 'ca-ES'
+        | 'th-TH'
+        | 'da-DK'
+        | 'fi-FI'
+        | 'el-GR'
+        | 'hu-HU'
+        | 'id-ID'
+        | 'no-NO'
+        | 'sk-SK'
+        | 'sv-SE'
+        | 'lt-LT'
+        | 'lv-LV'
+        | 'cs-CZ'
+        | 'ms-MY'
+        | 'af-ZA'
+        | 'ar-SA'
+        | 'az-AZ'
+        | 'bs-BA'
+        | 'cy-GB'
+        | 'fa-IR'
+        | 'fil-PH'
+        | 'gl-ES'
+        | 'he-IL'
+        | 'hr-HR'
+        | 'hy-AM'
+        | 'is-IS'
+        | 'kk-KZ'
+        | 'kn-IN'
+        | 'mk-MK'
+        | 'mr-IN'
+        | 'ne-NP'
+        | 'sl-SI'
+        | 'sr-RS'
+        | 'sw-KE'
+        | 'ta-IN'
+        | 'ur-IN'
+        | 'yue-CN'
+        | 'uk-UA'
+      >;
 
   /**
    * Maximum allowed length for the call, will force end the call if reached. The
@@ -1258,17 +1654,6 @@ export interface AgentCreateParams {
    * 7,200,000 (2 hours). By default, this is set to 3,600,000 (1 hour).
    */
   max_call_duration_ms?: number;
-
-  /**
-   * If set to true, will normalize the some part of text (number, currency, date,
-   * etc) to spoken to its spoken form for more consistent speech synthesis
-   * (sometimes the voice synthesize system itself might read these wrong with the
-   * raw text). For example, it will convert "Call my number 2137112342 on Jul 5th,
-   * 2024 for the $24.12 payment" to "Call my number two one three seven one one two
-   * three four two on july fifth, twenty twenty four for the twenty four dollars
-   * twelve cents payment" before starting audio generation.
-   */
-  normalize_for_speech?: boolean;
 
   /**
    * Whether this agent opts in for signed URLs for public logs and recordings. When
@@ -1292,25 +1677,30 @@ export interface AgentCreateParams {
     | AgentCreateParams.EnumAnalysisData
     | AgentCreateParams.BooleanAnalysisData
     | AgentCreateParams.NumberAnalysisData
+    | AgentCreateParams.CallPresetAnalysisData
   > | null;
 
   /**
-   * The model to use for post call analysis. Default to gpt-4.1-mini.
+   * The model to use for post call analysis. Default to gpt-4.1.
    */
   post_call_analysis_model?:
     | 'gpt-4.1'
     | 'gpt-4.1-mini'
     | 'gpt-4.1-nano'
     | 'gpt-5'
-    | 'gpt-5.1'
-    | 'gpt-5.2'
     | 'gpt-5-mini'
     | 'gpt-5-nano'
+    | 'gpt-5.1'
+    | 'gpt-5.2'
+    | 'gpt-5.4'
+    | 'gpt-5.4-mini'
+    | 'gpt-5.4-nano'
+    | 'gpt-5.5'
     | 'claude-4.5-sonnet'
+    | 'claude-4.6-sonnet'
     | 'claude-4.5-haiku'
-    | 'gemini-2.5-flash'
-    | 'gemini-2.5-flash-lite'
     | 'gemini-3.0-flash'
+    | 'gemini-3.1-flash-lite'
     | null;
 
   /**
@@ -1346,7 +1736,7 @@ export interface AgentCreateParams {
   /**
    * If set, the phone ringing will last for the specified amount of milliseconds.
    * This applies for both outbound call ringtime, and call transfer ringtime.
-   * Default to 30000 (30 s). Valid range is [5000, 90000].
+   * Default to 30000 (30 s). Valid range is [5000, 300000].
    */
   ring_duration_ms?: number;
 
@@ -1363,6 +1753,12 @@ export interface AgentCreateParams {
    */
   stt_mode?: 'fast' | 'accurate' | 'custom';
 
+  /**
+   * IANA timezone for the agent (e.g. America/New_York). Defaults to
+   * America/Los_Angeles if not set.
+   */
+  timezone?: string | null;
+
   user_dtmf_options?: AgentCreateParams.UserDtmfOptions | null;
 
   /**
@@ -1370,6 +1766,11 @@ export interface AgentCreateParams {
    * documentation.
    */
   version_description?: string | null;
+
+  /**
+   * Optional title of the agent version. Used for your own reference.
+   */
+  version_title?: string | null;
 
   /**
    * If set, determines the vocabulary set to use for transcription. This setting
@@ -1395,15 +1796,17 @@ export interface AgentCreateParams {
     | 'eleven_turbo_v2_5'
     | 'eleven_flash_v2_5'
     | 'eleven_multilingual_v2'
-    | 'sonic-2'
+    | 'eleven_v3'
     | 'sonic-3'
     | 'sonic-3-latest'
-    | 'sonic-turbo'
+    | 'sonic-3.5'
     | 'tts-1'
     | 'gpt-4o-mini-tts'
     | 'speech-02-turbo'
     | 'speech-2.8-turbo'
     | 's1'
+    | 's2-pro'
+    | 's2.1-pro'
     | null;
 
   /**
@@ -1420,21 +1823,6 @@ export interface AgentCreateParams {
    * will apply.
    */
   voice_temperature?: number;
-
-  /**
-   * Configures when to stop running voicemail detection, as it becomes unlikely to
-   * hit voicemail after a couple minutes, and keep running it will only have
-   * negative impact. The minimum value allowed is 5,000 ms (5 s), and maximum value
-   * allowed is 180,000 (3 minutes). By default, this is set to 30,000 (30 s).
-   */
-  voicemail_detection_timeout_ms?: number;
-
-  /**
-   * The message to be played when the call enters a voicemail. Note that this
-   * feature is only available for phone calls. If you want to hangup after hitting
-   * voicemail, set this to empty string.
-   */
-  voicemail_message?: string;
 
   /**
    * If this option is set, the call will try to detect voicemail in the first 3
@@ -1529,18 +1917,38 @@ export namespace AgentCreateParams {
   }
 
   /**
+   * If this option is set, the agent prompt will include call screen handling
+   * instructions for identity and call purpose questions. Set this to null to
+   * disable call screen prompt instructions.
+   */
+  export interface CallScreeningOption {
+    /**
+     * Identity the agent should provide when a call screen asks who is calling.
+     * Dynamic variables are supported.
+     */
+    agent_identity: string;
+
+    /**
+     * Purpose the agent should provide when a call screen asks why it is calling.
+     * Dynamic variables are supported.
+     */
+    call_purpose: string;
+  }
+
+  /**
    * Custom STT configuration. Only used when stt_mode is set to custom.
    */
   export interface CustomSttConfig {
     /**
-     * Endpointing timeout in milliseconds. Minimum is 100 for azure, 10 for deepgram.
+     * Endpointing timeout in milliseconds. Minimum is 100 for Azure, 10 for Deepgram,
+     * 500 for Soniox, 100 for AssemblyAI.
      */
     endpointing_ms: number;
 
     /**
-     * The STT provider to use.
+     * ASR provider name.
      */
-    provider: 'azure' | 'deepgram';
+    provider: 'azure' | 'deepgram' | 'soniox' | 'assemblyai';
   }
 
   /**
@@ -1573,12 +1981,77 @@ export namespace AgentCreateParams {
   }
 
   /**
+   * Toggle behavior presets on/off to influence agent response style and behaviors.
+   */
+  export interface HandbookConfig {
+    /**
+     * When asked, acknowledge being a virtual assistant.
+     */
+    ai_disclosure?: boolean;
+
+    /**
+     * Enables Conversational Personality. When true, the agent uses the Conversational
+     * Personality handbook preset, skips Professional Rep Personality during prompt
+     * assembly, and enables internal colloquial rewrite behavior.
+     */
+    conversational_personality?: boolean;
+
+    /**
+     * Professional call center rep baseline.
+     */
+    default_personality?: boolean;
+
+    /**
+     * Repeat back and confirm important details (voice only).
+     */
+    echo_verification?: boolean;
+
+    /**
+     * Warm acknowledgment of caller concerns.
+     */
+    high_empathy?: boolean;
+
+    /**
+     * Spell using NATO phonetic alphabet style (voice only).
+     */
+    nato_phonetic_alphabet?: boolean;
+
+    /**
+     * Sprinkle natural speech fillers like "um", "you know" for a more human,
+     * conversational tone.
+     */
+    natural_filler_words?: boolean;
+
+    /**
+     * Stay within prompt/context scope, don't invent details.
+     */
+    scope_boundaries?: boolean;
+
+    /**
+     * Treat near-match similar words as same entity to reduce impact of transcription
+     * error (voice only).
+     */
+    smart_matching?: boolean;
+
+    /**
+     * Convert numbers/dates/currency to spoken forms (voice only).
+     */
+    speech_normalization?: boolean;
+  }
+
+  /**
    * If this option is set, the call will try to detect IVR in the first 3 minutes of
    * the call. Actions defined will be applied when the IVR is detected. Set this to
    * null to disable IVR detection.
    */
   export interface IvrOption {
     action: IvrOption.Action;
+
+    /**
+     * Optionally describe what should be treated as an IVR. Leave as null to use the
+     * default definition.
+     */
+    detection_prompt?: string | null;
   }
 
   export namespace IvrOption {
@@ -1592,7 +2065,9 @@ export namespace AgentCreateParams {
    */
   export interface PiiConfig {
     /**
-     * List of PII categories to scrub from transcripts and recordings.
+     * List of PII categories to scrub from transcripts and recordings. PII redaction
+     * is only active when this list is non-empty; an empty array means no PII
+     * scrubbing is performed.
      */
     categories: Array<
       | 'person_name'
@@ -1634,9 +2109,22 @@ export namespace AgentCreateParams {
     type: 'string';
 
     /**
+     * Optional instruction to help decide whether this field needs to be populated in
+     * the analysis. If not set, the field is always included. If required is true,
+     * this is ignored.
+     */
+    conditional_prompt?: string;
+
+    /**
      * Examples of the variable value to teach model the style and syntax.
      */
     examples?: Array<string>;
+
+    /**
+     * Whether this data is required. If true and the data is not extracted, the call
+     * will be marked as unsuccessful.
+     */
+    required?: boolean;
   }
 
   export interface EnumAnalysisData {
@@ -1659,6 +2147,19 @@ export namespace AgentCreateParams {
      * Type of the variable to extract.
      */
     type: 'enum';
+
+    /**
+     * Optional instruction to help decide whether this field needs to be populated in
+     * the analysis. If not set, the field is always included. If required is true,
+     * this is ignored.
+     */
+    conditional_prompt?: string;
+
+    /**
+     * Whether this data is required. If true and the data is not extracted, the call
+     * will be marked as unsuccessful.
+     */
+    required?: boolean;
   }
 
   export interface BooleanAnalysisData {
@@ -1676,6 +2177,19 @@ export namespace AgentCreateParams {
      * Type of the variable to extract.
      */
     type: 'boolean';
+
+    /**
+     * Optional instruction to help decide whether this field needs to be populated in
+     * the analysis. If not set, the field is always included. If required is true,
+     * this is ignored.
+     */
+    conditional_prompt?: string;
+
+    /**
+     * Whether this data is required. If true and the data is not extracted, the call
+     * will be marked as unsuccessful.
+     */
+    required?: boolean;
   }
 
   export interface NumberAnalysisData {
@@ -1693,6 +2207,52 @@ export namespace AgentCreateParams {
      * Type of the variable to extract.
      */
     type: 'number';
+
+    /**
+     * Optional instruction to help decide whether this field needs to be populated in
+     * the analysis. If not set, the field is always included. If required is true,
+     * this is ignored.
+     */
+    conditional_prompt?: string;
+
+    /**
+     * Whether this data is required. If true and the data is not extracted, the call
+     * will be marked as unsuccessful.
+     */
+    required?: boolean;
+  }
+
+  /**
+   * System preset for post-call analysis (voice agents). Use in
+   * post_call_analysis_data to override prompts or mark fields optional.
+   */
+  export interface CallPresetAnalysisData {
+    /**
+     * Preset identifier for voice agent analysis.
+     */
+    name: 'call_summary' | 'call_successful' | 'user_sentiment';
+
+    /**
+     * Identifies this item as a system preset.
+     */
+    type: 'system-presets';
+
+    /**
+     * Optional instruction to help decide whether this field needs to be populated. If
+     * not set, the field is always included.
+     */
+    conditional_prompt?: string;
+
+    /**
+     * Prompt or description for this preset.
+     */
+    description?: string;
+
+    /**
+     * If false, this field is optional in the analysis. If true or unset, the field is
+     * required.
+     */
+    required?: boolean;
   }
 
   export interface PronunciationDictionary {
@@ -1745,6 +2305,12 @@ export namespace AgentCreateParams {
       | VoicemailOption.VoicemailActionStaticText
       | VoicemailOption.VoicemailActionHangup
       | VoicemailOption.VoicemailActionBridgeTransfer;
+
+    /**
+     * Optionally describe what should be treated as voicemail. Leave as null to use
+     * the default definition.
+     */
+    detection_prompt?: string | null;
   }
 
   export namespace VoicemailOption {
@@ -1782,7 +2348,34 @@ export interface AgentRetrieveParams {
    * Optional version of the API to use for this request. If not provided, will
    * default to latest version.
    */
-  version?: number;
+  version?: number | string;
+}
+
+export interface AgentListParams {
+  /**
+   * If true, only return the latest version of each agent.
+   */
+  is_latest?: boolean;
+
+  /**
+   * A limit on the number of objects to be returned. Limit can range between 1 and
+   * 1000, and the default is 1000.
+   */
+  limit?: number;
+
+  /**
+   * The pagination key to continue fetching the next page of agents. Pagination key
+   * is represented by a agent id, pagination key and version pair is exclusive (not
+   * included in the fetched page). If not set, will start from the beginning.
+   */
+  pagination_key?: string;
+
+  /**
+   * Specifies the version of the agent associated with the pagination_key. When
+   * paginating, both the pagination_key and its version must be provided to ensure
+   * consistent ordering and to fetch the next page correctly.
+   */
+  pagination_key_version?: number;
 }
 
 export interface AgentUpdateParams {
@@ -1790,12 +2383,19 @@ export interface AgentUpdateParams {
    * Query param: Optional version of the API to use for this request. Default to
    * latest version.
    */
-  version?: number;
+  version?: number | string;
 
   /**
    * Body param: The name of the agent. Only used for your own reference.
    */
   agent_name?: string | null;
+
+  /**
+   * Body param: If set to true, DTMF input will interrupt the agent even when
+   * interruption_sensitivity is 0. Can be overridden per conversation or subagent
+   * node. Default to false.
+   */
+  allow_dtmf_interruption?: boolean;
 
   /**
    * Body param: If set to true, DTMF input will be accepted and processed. If false,
@@ -1839,26 +2439,6 @@ export interface AgentUpdateParams {
   ambient_sound_volume?: number;
 
   /**
-   * Body param: Prompt to determine whether the post call or chat analysis should
-   * mark the interaction as successful. Set to null to use the default prompt.
-   */
-  analysis_successful_prompt?: string | null;
-
-  /**
-   * Body param: Prompt to guide how the post call or chat analysis summary should be
-   * generated. When unset, the default system prompt is used. Set to null to use the
-   * default prompt.
-   */
-  analysis_summary_prompt?: string | null;
-
-  /**
-   * Body param: Prompt to guide how the post call or chat analysis should evaluate
-   * user sentiment. When unset, the default system prompt is used. Set to null to
-   * use the default prompt.
-   */
-  analysis_user_sentiment_prompt?: string | null;
-
-  /**
    * Body param: Only applicable when enable_backchannel is true. Controls how often
    * the agent would backchannel when a backchannel is possible. Value ranging from
    * [0,1]. Lower value means less frequent backchannel, while higher value means
@@ -1887,14 +2467,22 @@ export interface AgentUpdateParams {
   /**
    * Body param: Provide a customized list of keywords to bias the transcriber model,
    * so that these words are more likely to get transcribed. Commonly used for names,
-   * brands, street, etc.
+   * brands, street, etc. Entries may reference dynamic variables with `{{variable}}`
+   * syntax.
    */
   boosted_keywords?: Array<string> | null;
 
   /**
+   * Body param: If this option is set, the agent prompt will include call screen
+   * handling instructions for identity and call purpose questions. Set this to null
+   * to disable call screen prompt instructions.
+   */
+  call_screening_option?: AgentUpdateParams.CallScreeningOption | null;
+
+  /**
    * Body param: Custom STT configuration. Only used when stt_mode is set to custom.
    */
-  custom_stt_config?: AgentUpdateParams.CustomSttConfig;
+  custom_stt_config?: AgentUpdateParams.CustomSttConfig | null;
 
   /**
    * Body param: Number of days to retain call/chat data before automatic deletion.
@@ -1945,10 +2533,11 @@ export interface AgentUpdateParams {
   enable_dynamic_voice_speed?: boolean;
 
   /**
-   * Body param: If set to true, will detect whether the call enters a voicemail.
-   * Note that this feature is only available for phone calls.
+   * Body param: Master toggle for expressive mode. When true, the agent may add
+   * expressive voice tags to the audio it generates. Only applicable for platform
+   * voices. If unset, defaults to false.
    */
-  enable_voicemail_detection?: boolean;
+  enable_expressive_mode?: boolean;
 
   /**
    * Body param: If users stay silent for a period after agent speech, end the call.
@@ -1956,6 +2545,32 @@ export interface AgentUpdateParams {
    * (10 min).
    */
   end_call_after_silence_ms?: number;
+
+  /**
+   * Body param: The expressive voice tags Retell pre-teaches the model to use when
+   * enable_expressive_mode is true. Custom tags defined in the system prompt are
+   * still allowed. If empty, the agent follows general expressive guidance without a
+   * fixed tag set.
+   */
+  expressive_emotion_tags?: Array<
+    | 'empathetic'
+    | 'excited'
+    | 'happy'
+    | 'curious'
+    | 'surprised'
+    | 'sigh'
+    | 'clear throat'
+    | 'pause'
+    | 'long pause'
+    | 'emphasis'
+  >;
+
+  /**
+   * Body param: Custom expressive voice guidance to use instead of the default
+   * Retell expressive prompt when enable_expressive_mode is true. If omitted or
+   * blank, the default expressive prompt will be used.
+   */
+  expressive_mode_prompt?: string | null;
 
   /**
    * Body param: When TTS provider for the selected voice is experiencing outages, we
@@ -1973,6 +2588,12 @@ export interface AgentUpdateParams {
   guardrail_config?: AgentUpdateParams.GuardrailConfig;
 
   /**
+   * Body param: Toggle behavior presets on/off to influence agent response style and
+   * behaviors.
+   */
+  handbook_config?: AgentUpdateParams.HandbookConfig;
+
+  /**
    * Body param: Controls how sensitive the agent is to user interruptions. Value
    * ranging from [0,1]. Lower value means it will take longer / more words for user
    * to interrupt agent, while higher value means it's easier for user to interrupt
@@ -1982,12 +2603,6 @@ export interface AgentUpdateParams {
   interruption_sensitivity?: number;
 
   /**
-   * Body param: Whether the agent is public. When set to true, the agent is
-   * available for public agent preview link.
-   */
-  is_public?: boolean | null;
-
-  /**
    * Body param: If this option is set, the call will try to detect IVR in the first
    * 3 minutes of the call. Actions defined will be applied when the IVR is detected.
    * Set this to null to disable IVR detection.
@@ -1995,10 +2610,13 @@ export interface AgentUpdateParams {
   ivr_option?: AgentUpdateParams.IvrOption | null;
 
   /**
-   * Body param: Specifies what language (and dialect) the speech recognition will
-   * operate in. For instance, selecting `en-GB` optimizes speech recognition for
-   * British English. If unset, will use default value `en-US`. Select `multi` for
-   * multilingual support.
+   * Body param: Specifies what language(s) the agent will operate in. Accepts either
+   * a single scalar locale (e.g. `en-US`), the legacy scalar value `multi` for
+   * multilingual support, or an array of concrete locale codes for explicit
+   * multi-locale selection (e.g. `["en-US","es-ES"]`). The array form must contain
+   * concrete locale codes only — the `multi` value is valid only as the scalar
+   * legacy form and must not appear inside an array. Single-element arrays are
+   * normalized to the equivalent scalar on output. If unset, defaults to `en-US`.
    */
   language?:
     | 'en-US'
@@ -2064,7 +2682,72 @@ export interface AgentUpdateParams {
     | 'ur-IN'
     | 'yue-CN'
     | 'uk-UA'
-    | 'multi';
+    | 'multi'
+    | Array<
+        | 'en-US'
+        | 'en-IN'
+        | 'en-GB'
+        | 'en-AU'
+        | 'en-NZ'
+        | 'de-DE'
+        | 'es-ES'
+        | 'es-419'
+        | 'hi-IN'
+        | 'fr-FR'
+        | 'fr-CA'
+        | 'ja-JP'
+        | 'pt-PT'
+        | 'pt-BR'
+        | 'zh-CN'
+        | 'ru-RU'
+        | 'it-IT'
+        | 'ko-KR'
+        | 'nl-NL'
+        | 'nl-BE'
+        | 'pl-PL'
+        | 'tr-TR'
+        | 'vi-VN'
+        | 'ro-RO'
+        | 'bg-BG'
+        | 'ca-ES'
+        | 'th-TH'
+        | 'da-DK'
+        | 'fi-FI'
+        | 'el-GR'
+        | 'hu-HU'
+        | 'id-ID'
+        | 'no-NO'
+        | 'sk-SK'
+        | 'sv-SE'
+        | 'lt-LT'
+        | 'lv-LV'
+        | 'cs-CZ'
+        | 'ms-MY'
+        | 'af-ZA'
+        | 'ar-SA'
+        | 'az-AZ'
+        | 'bs-BA'
+        | 'cy-GB'
+        | 'fa-IR'
+        | 'fil-PH'
+        | 'gl-ES'
+        | 'he-IL'
+        | 'hr-HR'
+        | 'hy-AM'
+        | 'is-IS'
+        | 'kk-KZ'
+        | 'kn-IN'
+        | 'mk-MK'
+        | 'mr-IN'
+        | 'ne-NP'
+        | 'sl-SI'
+        | 'sr-RS'
+        | 'sw-KE'
+        | 'ta-IN'
+        | 'ur-IN'
+        | 'yue-CN'
+        | 'uk-UA'
+      >;
 
   /**
    * Body param: Maximum allowed length for the call, will force end the call if
@@ -2072,17 +2755,6 @@ export interface AgentUpdateParams {
    * allowed is 7,200,000 (2 hours). By default, this is set to 3,600,000 (1 hour).
    */
   max_call_duration_ms?: number;
-
-  /**
-   * Body param: If set to true, will normalize the some part of text (number,
-   * currency, date, etc) to spoken to its spoken form for more consistent speech
-   * synthesis (sometimes the voice synthesize system itself might read these wrong
-   * with the raw text). For example, it will convert "Call my number 2137112342 on
-   * Jul 5th, 2024 for the $24.12 payment" to "Call my number two one three seven one
-   * one two three four two on july fifth, twenty twenty four for the twenty four
-   * dollars twelve cents payment" before starting audio generation.
-   */
-  normalize_for_speech?: boolean;
 
   /**
    * Body param: Whether this agent opts in for signed URLs for public logs and
@@ -2106,25 +2778,30 @@ export interface AgentUpdateParams {
     | AgentUpdateParams.EnumAnalysisData
     | AgentUpdateParams.BooleanAnalysisData
     | AgentUpdateParams.NumberAnalysisData
+    | AgentUpdateParams.CallPresetAnalysisData
   > | null;
 
   /**
-   * Body param: The model to use for post call analysis. Default to gpt-4.1-mini.
+   * Body param: The model to use for post call analysis. Default to gpt-4.1.
    */
   post_call_analysis_model?:
     | 'gpt-4.1'
     | 'gpt-4.1-mini'
     | 'gpt-4.1-nano'
     | 'gpt-5'
-    | 'gpt-5.1'
-    | 'gpt-5.2'
     | 'gpt-5-mini'
     | 'gpt-5-nano'
+    | 'gpt-5.1'
+    | 'gpt-5.2'
+    | 'gpt-5.4'
+    | 'gpt-5.4-mini'
+    | 'gpt-5.4-nano'
+    | 'gpt-5.5'
     | 'claude-4.5-sonnet'
+    | 'claude-4.6-sonnet'
     | 'claude-4.5-haiku'
-    | 'gemini-2.5-flash'
-    | 'gemini-2.5-flash-lite'
     | 'gemini-3.0-flash'
+    | 'gemini-3.1-flash-lite'
     | null;
 
   /**
@@ -2171,7 +2848,7 @@ export interface AgentUpdateParams {
   /**
    * Body param: If set, the phone ringing will last for the specified amount of
    * milliseconds. This applies for both outbound call ringtime, and call transfer
-   * ringtime. Default to 30000 (30 s). Valid range is [5000, 90000].
+   * ringtime. Default to 30000 (30 s). Valid range is [5000, 300000].
    */
   ring_duration_ms?: number;
 
@@ -2190,6 +2867,12 @@ export interface AgentUpdateParams {
   stt_mode?: 'fast' | 'accurate' | 'custom';
 
   /**
+   * Body param: IANA timezone for the agent (e.g. America/New_York). Defaults to
+   * America/Los_Angeles if not set.
+   */
+  timezone?: string | null;
+
+  /**
    * Body param
    */
   user_dtmf_options?: AgentUpdateParams.UserDtmfOptions | null;
@@ -2199,6 +2882,11 @@ export interface AgentUpdateParams {
    * reference and documentation.
    */
   version_description?: string | null;
+
+  /**
+   * Body param: Optional title of the agent version. Used for your own reference.
+   */
+  version_title?: string | null;
 
   /**
    * Body param: If set, determines the vocabulary set to use for transcription. This
@@ -2232,15 +2920,17 @@ export interface AgentUpdateParams {
     | 'eleven_turbo_v2_5'
     | 'eleven_flash_v2_5'
     | 'eleven_multilingual_v2'
-    | 'sonic-2'
+    | 'eleven_v3'
     | 'sonic-3'
     | 'sonic-3-latest'
-    | 'sonic-turbo'
+    | 'sonic-3.5'
     | 'tts-1'
     | 'gpt-4o-mini-tts'
     | 'speech-02-turbo'
     | 'speech-2.8-turbo'
     | 's1'
+    | 's2-pro'
+    | 's2.1-pro'
     | null;
 
   /**
@@ -2257,21 +2947,6 @@ export interface AgentUpdateParams {
    * default value 1 will apply.
    */
   voice_temperature?: number;
-
-  /**
-   * Body param: Configures when to stop running voicemail detection, as it becomes
-   * unlikely to hit voicemail after a couple minutes, and keep running it will only
-   * have negative impact. The minimum value allowed is 5,000 ms (5 s), and maximum
-   * value allowed is 180,000 (3 minutes). By default, this is set to 30,000 (30 s).
-   */
-  voicemail_detection_timeout_ms?: number;
-
-  /**
-   * Body param: The message to be played when the call enters a voicemail. Note that
-   * this feature is only available for phone calls. If you want to hangup after
-   * hitting voicemail, set this to empty string.
-   */
-  voicemail_message?: string;
 
   /**
    * Body param: If this option is set, the call will try to detect voicemail in the
@@ -2320,18 +2995,38 @@ export interface AgentUpdateParams {
 
 export namespace AgentUpdateParams {
   /**
+   * If this option is set, the agent prompt will include call screen handling
+   * instructions for identity and call purpose questions. Set this to null to
+   * disable call screen prompt instructions.
+   */
+  export interface CallScreeningOption {
+    /**
+     * Identity the agent should provide when a call screen asks who is calling.
+     * Dynamic variables are supported.
+     */
+    agent_identity: string;
+
+    /**
+     * Purpose the agent should provide when a call screen asks why it is calling.
+     * Dynamic variables are supported.
+     */
+    call_purpose: string;
+  }
+
+  /**
    * Custom STT configuration. Only used when stt_mode is set to custom.
    */
   export interface CustomSttConfig {
     /**
-     * Endpointing timeout in milliseconds. Minimum is 100 for azure, 10 for deepgram.
+     * Endpointing timeout in milliseconds. Minimum is 100 for Azure, 10 for Deepgram,
+     * 500 for Soniox, 100 for AssemblyAI.
      */
     endpointing_ms: number;
 
     /**
-     * The STT provider to use.
+     * ASR provider name.
      */
-    provider: 'azure' | 'deepgram';
+    provider: 'azure' | 'deepgram' | 'soniox' | 'assemblyai';
   }
 
   /**
@@ -2364,12 +3059,77 @@ export namespace AgentUpdateParams {
   }
 
   /**
+   * Toggle behavior presets on/off to influence agent response style and behaviors.
+   */
+  export interface HandbookConfig {
+    /**
+     * When asked, acknowledge being a virtual assistant.
+     */
+    ai_disclosure?: boolean;
+
+    /**
+     * Enables Conversational Personality. When true, the agent uses the Conversational
+     * Personality handbook preset, skips Professional Rep Personality during prompt
+     * assembly, and enables internal colloquial rewrite behavior.
+     */
+    conversational_personality?: boolean;
+
+    /**
+     * Professional call center rep baseline.
+     */
+    default_personality?: boolean;
+
+    /**
+     * Repeat back and confirm important details (voice only).
+     */
+    echo_verification?: boolean;
+
+    /**
+     * Warm acknowledgment of caller concerns.
+     */
+    high_empathy?: boolean;
+
+    /**
+     * Spell using NATO phonetic alphabet style (voice only).
+     */
+    nato_phonetic_alphabet?: boolean;
+
+    /**
+     * Sprinkle natural speech fillers like "um", "you know" for a more human,
+     * conversational tone.
+     */
+    natural_filler_words?: boolean;
+
+    /**
+     * Stay within prompt/context scope, don't invent details.
+     */
+    scope_boundaries?: boolean;
+
+    /**
+     * Treat near-match similar words as same entity to reduce impact of transcription
+     * error (voice only).
+     */
+    smart_matching?: boolean;
+
+    /**
+     * Convert numbers/dates/currency to spoken forms (voice only).
+     */
+    speech_normalization?: boolean;
+  }
+
+  /**
    * If this option is set, the call will try to detect IVR in the first 3 minutes of
    * the call. Actions defined will be applied when the IVR is detected. Set this to
    * null to disable IVR detection.
    */
   export interface IvrOption {
     action: IvrOption.Action;
+
+    /**
+     * Optionally describe what should be treated as an IVR. Leave as null to use the
+     * default definition.
+     */
+    detection_prompt?: string | null;
   }
 
   export namespace IvrOption {
@@ -2383,7 +3143,9 @@ export namespace AgentUpdateParams {
    */
   export interface PiiConfig {
     /**
-     * List of PII categories to scrub from transcripts and recordings.
+     * List of PII categories to scrub from transcripts and recordings. PII redaction
+     * is only active when this list is non-empty; an empty array means no PII
+     * scrubbing is performed.
      */
     categories: Array<
       | 'person_name'
@@ -2425,9 +3187,22 @@ export namespace AgentUpdateParams {
     type: 'string';
 
     /**
+     * Optional instruction to help decide whether this field needs to be populated in
+     * the analysis. If not set, the field is always included. If required is true,
+     * this is ignored.
+     */
+    conditional_prompt?: string;
+
+    /**
      * Examples of the variable value to teach model the style and syntax.
      */
     examples?: Array<string>;
+
+    /**
+     * Whether this data is required. If true and the data is not extracted, the call
+     * will be marked as unsuccessful.
+     */
+    required?: boolean;
   }
 
   export interface EnumAnalysisData {
@@ -2450,6 +3225,19 @@ export namespace AgentUpdateParams {
      * Type of the variable to extract.
      */
     type: 'enum';
+
+    /**
+     * Optional instruction to help decide whether this field needs to be populated in
+     * the analysis. If not set, the field is always included. If required is true,
+     * this is ignored.
+     */
+    conditional_prompt?: string;
+
+    /**
+     * Whether this data is required. If true and the data is not extracted, the call
+     * will be marked as unsuccessful.
+     */
+    required?: boolean;
   }
 
   export interface BooleanAnalysisData {
@@ -2467,6 +3255,19 @@ export namespace AgentUpdateParams {
      * Type of the variable to extract.
      */
     type: 'boolean';
+
+    /**
+     * Optional instruction to help decide whether this field needs to be populated in
+     * the analysis. If not set, the field is always included. If required is true,
+     * this is ignored.
+     */
+    conditional_prompt?: string;
+
+    /**
+     * Whether this data is required. If true and the data is not extracted, the call
+     * will be marked as unsuccessful.
+     */
+    required?: boolean;
   }
 
   export interface NumberAnalysisData {
@@ -2484,6 +3285,52 @@ export namespace AgentUpdateParams {
      * Type of the variable to extract.
      */
     type: 'number';
+
+    /**
+     * Optional instruction to help decide whether this field needs to be populated in
+     * the analysis. If not set, the field is always included. If required is true,
+     * this is ignored.
+     */
+    conditional_prompt?: string;
+
+    /**
+     * Whether this data is required. If true and the data is not extracted, the call
+     * will be marked as unsuccessful.
+     */
+    required?: boolean;
+  }
+
+  /**
+   * System preset for post-call analysis (voice agents). Use in
+   * post_call_analysis_data to override prompts or mark fields optional.
+   */
+  export interface CallPresetAnalysisData {
+    /**
+     * Preset identifier for voice agent analysis.
+     */
+    name: 'call_summary' | 'call_successful' | 'user_sentiment';
+
+    /**
+     * Identifies this item as a system preset.
+     */
+    type: 'system-presets';
+
+    /**
+     * Optional instruction to help decide whether this field needs to be populated. If
+     * not set, the field is always included.
+     */
+    conditional_prompt?: string;
+
+    /**
+     * Prompt or description for this preset.
+     */
+    description?: string;
+
+    /**
+     * If false, this field is optional in the analysis. If true or unset, the field is
+     * required.
+     */
+    required?: boolean;
   }
 
   export interface PronunciationDictionary {
@@ -2582,6 +3429,12 @@ export namespace AgentUpdateParams {
       | VoicemailOption.VoicemailActionStaticText
       | VoicemailOption.VoicemailActionHangup
       | VoicemailOption.VoicemailActionBridgeTransfer;
+
+    /**
+     * Optionally describe what should be treated as voicemail. Leave as null to use
+     * the default definition.
+     */
+    detection_prompt?: string | null;
   }
 
   export namespace VoicemailOption {
@@ -2614,36 +3467,43 @@ export namespace AgentUpdateParams {
   }
 }
 
-export interface AgentListParams {
-  /**
-   * A limit on the number of objects to be returned. Limit can range between 1 and
-   * 1000, and the default is 1000.
-   */
-  limit?: number;
+export interface AgentPublishParams {
+  version: number;
+
+  version_description?: string;
 
   /**
-   * The pagination key to continue fetching the next page of agents. Pagination key
-   * is represented by a agent id, pagination key and version pair is exclusive (not
-   * included in the fetched page). If not set, will start from the beginning.
+   * Optional title of the agent version. Used for your own reference.
    */
-  pagination_key?: string;
+  version_title?: string;
+}
 
+export interface AgentCreateVersionParams {
   /**
-   * Specifies the version of the agent associated with the pagination_key. When
-   * paginating, both the pagination_key and its version must be provided to ensure
-   * consistent ordering and to fetch the next page correctly.
+   * Existing version used as the base when creating a new draft.
    */
-  pagination_key_version?: number;
+  base_version: number;
+}
+
+export interface AgentDeleteVersionParams {
+  /**
+   * Version to delete.
+   */
+  version: number;
 }
 
 export declare namespace Agent {
   export {
     type AgentResponse as AgentResponse,
     type AgentListResponse as AgentListResponse,
+    type AgentCreateVersionResponse as AgentCreateVersionResponse,
     type AgentGetVersionsResponse as AgentGetVersionsResponse,
     type AgentCreateParams as AgentCreateParams,
     type AgentRetrieveParams as AgentRetrieveParams,
-    type AgentUpdateParams as AgentUpdateParams,
     type AgentListParams as AgentListParams,
+    type AgentUpdateParams as AgentUpdateParams,
+    type AgentPublishParams as AgentPublishParams,
+    type AgentCreateVersionParams as AgentCreateVersionParams,
+    type AgentDeleteVersionParams as AgentDeleteVersionParams,
   };
 }

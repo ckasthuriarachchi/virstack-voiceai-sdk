@@ -31,17 +31,17 @@ describe('resource chatAgent', () => {
         version: 0,
       },
       agent_name: 'Jarvis',
-      analysis_successful_prompt:
-        'The agent finished the task and the call was complete without being cutoff.',
-      analysis_summary_prompt: 'Summarize the call in a few sentences.',
-      analysis_user_sentiment_prompt:
-        "Evaluate the user's sentiment based on their tone and satisfaction level.",
       auto_close_message: 'Thank you for chatting. The conversation has ended.',
       data_storage_retention_days: 30,
       data_storage_setting: 'everything',
       end_chat_after_silence_ms: 3600000,
       guardrail_config: { input_topics: ['platform_integrity_jailbreaking'], output_topics: ['harassment'] },
-      is_public: false,
+      handbook_config: {
+        ai_disclosure: true,
+        default_personality: true,
+        high_empathy: true,
+        scope_boundaries: true,
+      },
       language: 'en-US',
       opt_in_signed_url: true,
       pii_config: { categories: ['person_name'], mode: 'post_call' },
@@ -50,11 +50,15 @@ describe('resource chatAgent', () => {
           description: 'The name of the customer.',
           name: 'customer_name',
           type: 'string',
+          conditional_prompt: 'conditional_prompt',
           examples: ['John Doe', 'Jane Smith'],
+          required: true,
         },
       ],
       post_chat_analysis_model: 'gpt-4.1-mini',
       signed_url_expiration_ms: 86400000,
+      timezone: 'America/New_York',
+      version_title: 'Production hotfix',
       webhook_events: ['chat_started'],
       webhook_timeout_ms: 10000,
       webhook_url: 'https://webhook-url-here',
@@ -86,18 +90,6 @@ describe('resource chatAgent', () => {
   });
 
   // Mock server tests are disabled
-  test.skip('update', async () => {
-    const responsePromise = client.chatAgent.update('16b980523634a6dc504898cda492e939', {});
-    const rawResponse = await responsePromise.asResponse();
-    expect(rawResponse).toBeInstanceOf(Response);
-    const response = await responsePromise;
-    expect(response).not.toBeInstanceOf(Response);
-    const dataAndResponse = await responsePromise.withResponse();
-    expect(dataAndResponse.data).toBe(response);
-    expect(dataAndResponse.response).toBe(rawResponse);
-  });
-
-  // Mock server tests are disabled
   test.skip('list', async () => {
     const responsePromise = client.chatAgent.list();
     const rawResponse = await responsePromise.asResponse();
@@ -115,6 +107,7 @@ describe('resource chatAgent', () => {
     await expect(
       client.chatAgent.list(
         {
+          is_latest: true,
           limit: 50,
           pagination_key: '16b980523634a6dc504898cda492e939',
           pagination_key_version: 0,
@@ -122,6 +115,18 @@ describe('resource chatAgent', () => {
         { path: '/_stainless_unknown_path' },
       ),
     ).rejects.toThrow(Retell.NotFoundError);
+  });
+
+  // Mock server tests are disabled
+  test.skip('update', async () => {
+    const responsePromise = client.chatAgent.update('16b980523634a6dc504898cda492e939', {});
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
   });
 
   // Mock server tests are disabled
@@ -137,8 +142,8 @@ describe('resource chatAgent', () => {
   });
 
   // Mock server tests are disabled
-  test.skip('getVersions', async () => {
-    const responsePromise = client.chatAgent.getVersions('16b980523634a6dc504898cda492e939');
+  test.skip('publish: only required params', async () => {
+    const responsePromise = client.chatAgent.publish('agent_xxx', { version: 15 });
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
     const response = await responsePromise;
@@ -149,8 +154,51 @@ describe('resource chatAgent', () => {
   });
 
   // Mock server tests are disabled
-  test.skip('publish', async () => {
-    const responsePromise = client.chatAgent.publish('16b980523634a6dc504898cda492e939');
+  test.skip('publish: required and optional params', async () => {
+    const response = await client.chatAgent.publish('agent_xxx', {
+      version: 15,
+      version_description: 'Hotfix for transfer timeout',
+      version_title: 'Hotfix',
+    });
+  });
+
+  // Mock server tests are disabled
+  test.skip('createVersion: only required params', async () => {
+    const responsePromise = client.chatAgent.createVersion('agent_xxx', { base_version: 12 });
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Mock server tests are disabled
+  test.skip('createVersion: required and optional params', async () => {
+    const response = await client.chatAgent.createVersion('agent_xxx', { base_version: 12 });
+  });
+
+  // Mock server tests are disabled
+  test.skip('deleteVersion: only required params', async () => {
+    const responsePromise = client.chatAgent.deleteVersion('agent_xxx', { version: 1 });
+    const rawResponse = await responsePromise.asResponse();
+    expect(rawResponse).toBeInstanceOf(Response);
+    const response = await responsePromise;
+    expect(response).not.toBeInstanceOf(Response);
+    const dataAndResponse = await responsePromise.withResponse();
+    expect(dataAndResponse.data).toBe(response);
+    expect(dataAndResponse.response).toBe(rawResponse);
+  });
+
+  // Mock server tests are disabled
+  test.skip('deleteVersion: required and optional params', async () => {
+    const response = await client.chatAgent.deleteVersion('agent_xxx', { version: 1 });
+  });
+
+  // Mock server tests are disabled
+  test.skip('getVersions', async () => {
+    const responsePromise = client.chatAgent.getVersions('16b980523634a6dc504898cda492e939');
     const rawResponse = await responsePromise.asResponse();
     expect(rawResponse).toBeInstanceOf(Response);
     const response = await responsePromise;

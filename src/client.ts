@@ -11,18 +11,22 @@ import type { APIResponseProps } from './internal/parse';
 import { getPlatformHeaders } from './internal/detect-platform';
 import * as Shims from './internal/shims';
 import * as Opts from './internal/request-options';
+import { stringifyQuery } from './internal/utils/query';
 import { VERSION } from './version';
 import * as Errors from './core/error';
 import * as Uploads from './core/uploads';
-import * as Webhooks from './lib/webhook_auth';
 import * as API from './resources/index';
 import { APIPromise } from './core/api-promise';
 import {
   Agent,
   AgentCreateParams,
+  AgentCreateVersionParams,
+  AgentCreateVersionResponse,
+  AgentDeleteVersionParams,
   AgentGetVersionsResponse,
   AgentListParams,
   AgentListResponse,
+  AgentPublishParams,
   AgentResponse,
   AgentRetrieveParams,
   AgentUpdateParams,
@@ -54,9 +58,13 @@ import {
 import {
   ChatAgent,
   ChatAgentCreateParams,
+  ChatAgentCreateVersionParams,
+  ChatAgentCreateVersionResponse,
+  ChatAgentDeleteVersionParams,
   ChatAgentGetVersionsResponse,
   ChatAgentListParams,
   ChatAgentListResponse,
+  ChatAgentPublishParams,
   ChatAgentResponse,
   ChatAgentRetrieveParams,
   ChatAgentUpdateParams,
@@ -74,10 +82,16 @@ import {
 import {
   ConversationFlowComponent,
   ConversationFlowComponentCreateParams,
+  ConversationFlowComponentListParams,
   ConversationFlowComponentListResponse,
   ConversationFlowComponentResponse,
   ConversationFlowComponentUpdateParams,
 } from './resources/conversation-flow-component';
+import {
+  ExportRequest,
+  ExportRequestListParams,
+  ExportRequestListResponse,
+} from './resources/export-request';
 import {
   KnowledgeBase,
   KnowledgeBaseAddSourcesParams,
@@ -105,10 +119,12 @@ import {
   PhoneNumber,
   PhoneNumberCreateParams,
   PhoneNumberImportParams,
+  PhoneNumberListParams,
   PhoneNumberListResponse,
   PhoneNumberResponse,
   PhoneNumberUpdateParams,
 } from './resources/phone-number';
+import { Playground, PlaygroundCompletionParams, PlaygroundCompletionResponse } from './resources/playground';
 import {
   BatchTestResponse,
   TestCaseDefinitionResponse,
@@ -119,6 +135,7 @@ import {
   TestListBatchTestsResponse,
   TestListTestCaseDefinitionsParams,
   TestListTestCaseDefinitionsResponse,
+  TestListTestRunsParams,
   TestListTestRunsResponse,
   TestUpdateTestCaseDefinitionParams,
   Tests,
@@ -146,7 +163,10 @@ import {
 import { isEmptyObj } from './internal/utils/values';
 
 export interface ClientOptions {
-  apiKey: string;
+  /**
+   * Defaults to process.env['RETELL_API_KEY'].
+   */
+  apiKey?: string | undefined;
 
   /**
    * Override the default base URL for the API, e.g., "https://api.example.com/v2/"
@@ -238,7 +258,7 @@ export class Retell {
   /**
    * API Client for interfacing with the Retell API.
    *
-   * @param {string} opts.apiKey
+   * @param {string | undefined} [opts.apiKey=process.env['RETELL_API_KEY'] ?? undefined]
    * @param {string} [opts.baseURL=process.env['RETELL_BASE_URL'] ?? https://api.retellai.com] - Override the default base URL for the API.
    * @param {number} [opts.timeout=1 minute] - The maximum amount of time (in milliseconds) the client will wait for a response before timing out.
    * @param {MergedRequestInit} [opts.fetchOptions] - Additional `RequestInit` options to be passed to `fetch` calls.
@@ -247,10 +267,14 @@ export class Retell {
    * @param {HeadersLike} opts.defaultHeaders - Default headers to include with every request to the API.
    * @param {Record<string, string | undefined>} opts.defaultQuery - Default query parameters to include with every request to the API.
    */
-  constructor({ baseURL = readEnv('RETELL_BASE_URL'), apiKey, ...opts }: ClientOptions) {
+  constructor({
+    baseURL = readEnv('RETELL_BASE_URL'),
+    apiKey = readEnv('RETELL_API_KEY'),
+    ...opts
+  }: ClientOptions = {}) {
     if (apiKey === undefined) {
       throw new Errors.RetellError(
-        "Missing required client option apiKey; you need to instantiate the Retell client with an apiKey option, like new Retell({ apiKey: 'YOUR_RETELL_API_KEY' }).",
+        "The RETELL_API_KEY environment variable is missing or empty; either provide it, or instantiate the Retell client with an apiKey option, like new Retell({ apiKey: 'YOUR_RETELL_API_KEY' }).",
       );
     }
 
@@ -274,6 +298,18 @@ export class Retell {
     this.maxRetries = options.maxRetries ?? 2;
     this.fetch = options.fetch ?? Shims.getDefaultFetch();
     this.#encoder = Opts.FallbackEncoder;
+
+    const customHeadersEnv = readEnv('RETELL_CUSTOM_HEADERS');
+    if (customHeadersEnv) {
+      const parsed: Record<string, string> = {};
+      for (const line of customHeadersEnv.split('\n')) {
+        const colon = line.indexOf(':');
+        if (colon >= 0) {
+          parsed[line.substring(0, colon).trim()] = line.substring(colon + 1).trim();
+        }
+      }
+      options.defaultHeaders = { ...parsed, ...options.defaultHeaders };
+    }
 
     this._options = options;
 
@@ -321,21 +357,8 @@ export class Retell {
   /**
    * Basic re-implementation of `qs.stringify` for primitive types.
    */
-  protected stringifyQuery(query: Record<string, unknown>): string {
-    return Object.entries(query)
-      .filter(([_, value]) => typeof value !== 'undefined')
-      .map(([key, value]) => {
-        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-          return `${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
-        }
-        if (value === null) {
-          return `${encodeURIComponent(key)}=`;
-        }
-        throw new Errors.RetellError(
-          `Cannot stringify type ${typeof value}; Expected string, number, boolean, or null. If you need to pass nested query parameters, you can manually encode them, e.g. { query: { 'foo[key1]': value1, 'foo[key2]': value2 } }, and please open a GitHub issue requesting better support for your use case.`,
-        );
-      })
-      .join('&');
+  protected stringifyQuery(query: object | Record<string, unknown>): string {
+    return stringifyQuery(query);
   }
 
   private getUserAgent(): string {
@@ -367,12 +390,13 @@ export class Retell {
       : new URL(baseURL + (baseURL.endsWith('/') && path.startsWith('/') ? path.slice(1) : path));
 
     const defaultQuery = this.defaultQuery();
-    if (!isEmptyObj(defaultQuery)) {
-      query = { ...defaultQuery, ...query };
+    const pathQuery = Object.fromEntries(url.searchParams);
+    if (!isEmptyObj(defaultQuery) || !isEmptyObj(pathQuery)) {
+      query = { ...pathQuery, ...defaultQuery, ...query };
     }
 
     if (typeof query === 'object' && query && !Array.isArray(query)) {
-      url.search = this.stringifyQuery(query as Record<string, unknown>);
+      url.search = this.stringifyQuery(query);
     }
 
     return url.toString();
@@ -677,9 +701,9 @@ export class Retell {
       }
     }
 
-    // If the API asks us to wait a certain amount of time (and it's a reasonable amount),
-    // just do what it says, but otherwise calculate a default
-    if (!(timeoutMillis && 0 <= timeoutMillis && timeoutMillis < 60 * 1000)) {
+    // If the API asks us to wait a certain amount of time, just do what it
+    // says, but otherwise calculate a default
+    if (timeoutMillis === undefined) {
       const maxRetries = options.maxRetries ?? this.maxRetries;
       timeoutMillis = this.calculateDefaultRetryTimeoutMillis(retriesRemaining, maxRetries);
     }
@@ -773,11 +797,19 @@ export class Retell {
     return () => controller.abort();
   }
 
-  private buildBody({ options: { body, headers: rawHeaders } }: { options: FinalRequestOptions }): {
+  private buildBody({ options }: { options: FinalRequestOptions }): {
     bodyHeaders: HeadersLike;
     body: BodyInit | undefined;
   } {
+    const { body, headers: rawHeaders } = options;
     if (!body) {
+      // A resource method always passes a `body` key when its operation defines a
+      // request body, even if the caller omitted an optional body param. Keep the
+      // content-type for those, and only elide it for operations with no body at
+      // all (e.g. GET/DELETE).
+      if (body == null && 'body' in options) {
+        return this.#encoder({ body, headers: buildHeaders([rawHeaders]) });
+      }
       return { bodyHeaders: undefined, body: undefined };
     }
     const headers = buildHeaders([rawHeaders]);
@@ -811,7 +843,7 @@ export class Retell {
     ) {
       return {
         bodyHeaders: { 'content-type': 'application/x-www-form-urlencoded' },
-        body: this.stringifyQuery(body as Record<string, unknown>),
+        body: this.stringifyQuery(body),
       };
     } else {
       return this.#encoder({ body, headers });
@@ -837,9 +869,6 @@ export class Retell {
 
   static toFile = Uploads.toFile;
 
-  static verify = Webhooks.verify;
-  static sign = Webhooks.sign;
-
   call: API.Call = new API.Call(this);
   chat: API.Chat = new API.Chat(this);
   phoneNumber: API.PhoneNumber = new API.PhoneNumber(this);
@@ -851,8 +880,10 @@ export class Retell {
   knowledgeBase: API.KnowledgeBase = new API.KnowledgeBase(this);
   voice: API.Voice = new API.Voice(this);
   concurrency: API.Concurrency = new API.Concurrency(this);
+  exportRequest: API.ExportRequest = new API.ExportRequest(this);
   batchCall: API.BatchCall = new API.BatchCall(this);
   tests: API.Tests = new API.Tests(this);
+  playground: API.Playground = new API.Playground(this);
   mcpTool: API.McpTool = new API.McpTool(this);
 }
 
@@ -867,8 +898,10 @@ Retell.ConversationFlowComponent = ConversationFlowComponent;
 Retell.KnowledgeBase = KnowledgeBase;
 Retell.Voice = Voice;
 Retell.Concurrency = Concurrency;
+Retell.ExportRequest = ExportRequest;
 Retell.BatchCall = BatchCall;
 Retell.Tests = Tests;
+Retell.Playground = Playground;
 Retell.McpTool = McpTool;
 
 export declare namespace Retell {
@@ -880,11 +913,11 @@ export declare namespace Retell {
     type PhoneCallResponse as PhoneCallResponse,
     type WebCallResponse as WebCallResponse,
     type CallListResponse as CallListResponse,
-    type CallUpdateParams as CallUpdateParams,
-    type CallListParams as CallListParams,
     type CallCreatePhoneCallParams as CallCreatePhoneCallParams,
-    type CallCreateWebCallParams as CallCreateWebCallParams,
     type CallRegisterPhoneCallParams as CallRegisterPhoneCallParams,
+    type CallCreateWebCallParams as CallCreateWebCallParams,
+    type CallListParams as CallListParams,
+    type CallUpdateParams as CallUpdateParams,
   };
 
   export {
@@ -893,10 +926,10 @@ export declare namespace Retell {
     type ChatListResponse as ChatListResponse,
     type ChatCreateChatCompletionResponse as ChatCreateChatCompletionResponse,
     type ChatCreateParams as ChatCreateParams,
-    type ChatUpdateParams as ChatUpdateParams,
-    type ChatListParams as ChatListParams,
-    type ChatCreateChatCompletionParams as ChatCreateChatCompletionParams,
     type ChatCreateSMSChatParams as ChatCreateSMSChatParams,
+    type ChatCreateChatCompletionParams as ChatCreateChatCompletionParams,
+    type ChatListParams as ChatListParams,
+    type ChatUpdateParams as ChatUpdateParams,
   };
 
   export {
@@ -904,30 +937,39 @@ export declare namespace Retell {
     type PhoneNumberResponse as PhoneNumberResponse,
     type PhoneNumberListResponse as PhoneNumberListResponse,
     type PhoneNumberCreateParams as PhoneNumberCreateParams,
-    type PhoneNumberUpdateParams as PhoneNumberUpdateParams,
     type PhoneNumberImportParams as PhoneNumberImportParams,
+    type PhoneNumberListParams as PhoneNumberListParams,
+    type PhoneNumberUpdateParams as PhoneNumberUpdateParams,
   };
 
   export {
     Agent as Agent,
     type AgentResponse as AgentResponse,
     type AgentListResponse as AgentListResponse,
+    type AgentCreateVersionResponse as AgentCreateVersionResponse,
     type AgentGetVersionsResponse as AgentGetVersionsResponse,
     type AgentCreateParams as AgentCreateParams,
     type AgentRetrieveParams as AgentRetrieveParams,
-    type AgentUpdateParams as AgentUpdateParams,
     type AgentListParams as AgentListParams,
+    type AgentUpdateParams as AgentUpdateParams,
+    type AgentPublishParams as AgentPublishParams,
+    type AgentCreateVersionParams as AgentCreateVersionParams,
+    type AgentDeleteVersionParams as AgentDeleteVersionParams,
   };
 
   export {
     ChatAgent as ChatAgent,
     type ChatAgentResponse as ChatAgentResponse,
     type ChatAgentListResponse as ChatAgentListResponse,
+    type ChatAgentCreateVersionResponse as ChatAgentCreateVersionResponse,
     type ChatAgentGetVersionsResponse as ChatAgentGetVersionsResponse,
     type ChatAgentCreateParams as ChatAgentCreateParams,
     type ChatAgentRetrieveParams as ChatAgentRetrieveParams,
-    type ChatAgentUpdateParams as ChatAgentUpdateParams,
     type ChatAgentListParams as ChatAgentListParams,
+    type ChatAgentUpdateParams as ChatAgentUpdateParams,
+    type ChatAgentPublishParams as ChatAgentPublishParams,
+    type ChatAgentCreateVersionParams as ChatAgentCreateVersionParams,
+    type ChatAgentDeleteVersionParams as ChatAgentDeleteVersionParams,
   };
 
   export {
@@ -936,8 +978,8 @@ export declare namespace Retell {
     type LlmListResponse as LlmListResponse,
     type LlmCreateParams as LlmCreateParams,
     type LlmRetrieveParams as LlmRetrieveParams,
-    type LlmUpdateParams as LlmUpdateParams,
     type LlmListParams as LlmListParams,
+    type LlmUpdateParams as LlmUpdateParams,
   };
 
   export {
@@ -946,8 +988,8 @@ export declare namespace Retell {
     type ConversationFlowListResponse as ConversationFlowListResponse,
     type ConversationFlowCreateParams as ConversationFlowCreateParams,
     type ConversationFlowRetrieveParams as ConversationFlowRetrieveParams,
-    type ConversationFlowUpdateParams as ConversationFlowUpdateParams,
     type ConversationFlowListParams as ConversationFlowListParams,
+    type ConversationFlowUpdateParams as ConversationFlowUpdateParams,
   };
 
   export {
@@ -955,6 +997,7 @@ export declare namespace Retell {
     type ConversationFlowComponentResponse as ConversationFlowComponentResponse,
     type ConversationFlowComponentListResponse as ConversationFlowComponentListResponse,
     type ConversationFlowComponentCreateParams as ConversationFlowComponentCreateParams,
+    type ConversationFlowComponentListParams as ConversationFlowComponentListParams,
     type ConversationFlowComponentUpdateParams as ConversationFlowComponentUpdateParams,
   };
 
@@ -980,6 +1023,12 @@ export declare namespace Retell {
   export { Concurrency as Concurrency, type ConcurrencyRetrieveResponse as ConcurrencyRetrieveResponse };
 
   export {
+    ExportRequest as ExportRequest,
+    type ExportRequestListResponse as ExportRequestListResponse,
+    type ExportRequestListParams as ExportRequestListParams,
+  };
+
+  export {
     BatchCall as BatchCall,
     type BatchCallResponse as BatchCallResponse,
     type BatchCallCreateBatchCallParams as BatchCallCreateBatchCallParams,
@@ -993,11 +1042,18 @@ export declare namespace Retell {
     type TestListBatchTestsResponse as TestListBatchTestsResponse,
     type TestListTestCaseDefinitionsResponse as TestListTestCaseDefinitionsResponse,
     type TestListTestRunsResponse as TestListTestRunsResponse,
-    type TestCreateBatchTestParams as TestCreateBatchTestParams,
     type TestCreateTestCaseDefinitionParams as TestCreateTestCaseDefinitionParams,
-    type TestListBatchTestsParams as TestListBatchTestsParams,
     type TestListTestCaseDefinitionsParams as TestListTestCaseDefinitionsParams,
     type TestUpdateTestCaseDefinitionParams as TestUpdateTestCaseDefinitionParams,
+    type TestCreateBatchTestParams as TestCreateBatchTestParams,
+    type TestListBatchTestsParams as TestListBatchTestsParams,
+    type TestListTestRunsParams as TestListTestRunsParams,
+  };
+
+  export {
+    Playground as Playground,
+    type PlaygroundCompletionResponse as PlaygroundCompletionResponse,
+    type PlaygroundCompletionParams as PlaygroundCompletionParams,
   };
 
   export {
